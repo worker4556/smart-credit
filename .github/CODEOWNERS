@@ -1,0 +1,4 @@
+# Only the verified repository owner is known. Add real collaborators after access is confirmed.
+# CODEOWNERS requests review; enforcement requires repository settings.
+# Do not require owner approval while this sole owner authors the bootstrap PR.
+* @worker4556
