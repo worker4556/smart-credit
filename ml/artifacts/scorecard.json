@@ -1,0 +1,116 @@
+{
+  "model_version": "scorecard-1.0",
+  "trained_at": "2026-10-19",
+  "scaling": {
+    "base_score": 600,
+    "base_odds": 20,
+    "pdo": 40,
+    "factor": 57.707802,
+    "offset": 427.122876
+  },
+  "base_points": 617,
+  "features": [
+    {
+      "name": "company_age_months",
+      "label": "Возраст бизнеса",
+      "reference": "1–2 года",
+      "points": {
+        "до 6 мес": -42,
+        "6–12 мес": -27,
+        "1–2 года": 0,
+        "2–4 года": 15,
+        "4+ лет": 37
+      }
+    },
+    {
+      "name": "debt_burden",
+      "label": "Долговая нагрузка (платежи / выручка в месяц)",
+      "reference": "15–30%",
+      "points": {
+        "до 15%": 6,
+        "15–30%": 0,
+        "30–45%": -21,
+        "45–60%": -39,
+        "60%+": -77
+      }
+    },
+    {
+      "name": "amount_to_revenue",
+      "label": "Сумма кредита к годовой выручке",
+      "reference": "10–25%",
+      "points": {
+        "до 10%": 6,
+        "10–25%": 0,
+        "25–50%": -10,
+        "50%+": -44
+      }
+    },
+    {
+      "name": "max_dpd_12m",
+      "label": "Макс. просрочка за 12 мес",
+      "reference": "нет",
+      "points": {
+        "нет": 0,
+        "1–30 дн": -61,
+        "31–89 дн": -121,
+        "90+ дн": -178
+      }
+    },
+    {
+      "name": "active_loans_count",
+      "label": "Активные кредиты",
+      "reference": "1–2",
+      "points": {
+        "нет": -6,
+        "1–2": 0,
+        "3+": -28
+      }
+    },
+    {
+      "name": "tax_debt",
+      "label": "Налоговая задолженность",
+      "reference": "нет",
+      "points": {
+        "нет": 0,
+        "есть": -50
+      }
+    },
+    {
+      "name": "mass_address",
+      "label": "Массовый адрес регистрации",
+      "reference": "False",
+      "points": {
+        "False": 0,
+        "True": -56
+      }
+    },
+    {
+      "name": "revenue_confirmed",
+      "label": "Выручка подтверждена выпиской",
+      "reference": "False",
+      "points": {
+        "False": 0,
+        "True": 20
+      }
+    },
+    {
+      "name": "legal_form",
+      "label": "Форма бизнеса",
+      "reference": "OOO",
+      "points": {
+        "IP": -13,
+        "OOO": 0
+      }
+    },
+    {
+      "name": "industry_risk",
+      "label": "Отраслевой риск",
+      "reference": "MEDIUM",
+      "points": {
+        "LOW": 21,
+        "MEDIUM": 0,
+        "HIGH": -20
+      }
+    }
+  ]
+}

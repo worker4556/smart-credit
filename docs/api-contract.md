@@ -211,68 +211,89 @@
 
 # C. ml — внутренний API (`http://ml:8001`)
 
-Вызывает только backend. Без состояния.
+Статус: **реализовано** (`ml/`). Вызывает только backend. Без состояния. Swagger: `http://localhost:8001/docs`.
 
 ### Входные признаки — `ScoringFeatures`
 Собирает backend из заявки и `check_results`.
 
-| Поле | Тип | Источник |
-|---|---|---|
-| `legal_form` | `IP` \| `OOO` | ЕГРЮЛ |
-| `okved` | string | ЕГРЮЛ |
-| `company_age_months` | int | ЕГРЮЛ |
-| `annual_revenue` | int | клиент (выписка, если есть) |
-| `revenue_confirmed` | bool | есть документ `BANK_STATEMENT` |
-| `requested_amount` | int | заявка |
-| `term_months` | int | заявка |
-| `product_code` | string | заявка |
-| `active_loans_count` | int | БКИ |
-| `existing_monthly_payments` | int | БКИ |
-| `max_dpd_12m` | int | БКИ |
-| `overdue_count_12m` | int | БКИ |
-| `tax_debt` | int | ФНС |
-| `mass_address` | bool | ФНС |
+| Поле | Тип | Источник | Обяз. |
+|---|---|---|---|
+| `legal_form` | `IP` \| `OOO` | ЕГРЮЛ | да |
+| `okved` | string, напр. `"56.10"` | ЕГРЮЛ | да |
+| `company_age_months` | int ≥ 0 | ЕГРЮЛ | да |
+| `annual_revenue` | int ≥ 0, ₽ | клиент | да |
+| `requested_amount` | int > 0, ₽ | заявка | да |
+| `term_months` | int 1–120 | заявка | да |
+| `revenue_confirmed` | bool | есть документ `BANK_STATEMENT` | нет (`false`) |
+| `product_code` | string | заявка | нет (`WORKING_CAPITAL`) |
+| `annual_rate` | float, % | если не задано — базовая ставка продукта + 2 п.п. | нет |
+| `active_loans_count` | int | БКИ | нет (0) |
+| `existing_monthly_payments` | int, ₽ | БКИ | нет (0) |
+| `max_dpd_12m` | int, дней | БКИ | нет (0) |
+| `overdue_count_12m` | int | БКИ (используется политикой, в модель не входит) | нет (0) |
+| `tax_debt` | int, ₽ | ФНС | нет (0) |
+| `mass_address` | bool | ФНС | нет (`false`) |
+
+Неверные поля → `422` (стандартная ошибка FastAPI).
+
+### `ScoreResult`
+```json
+{ "model_version": "scorecard-1.0", "score": 563, "pd": 0.0867, "grade": "C",
+  "chance": "MEDIUM", "chance_percent": 32, "monthly_payment": 151000,
+  "factors": [
+    { "feature": "max_dpd_12m", "label": "Макс. просрочка за 12 мес", "value": 15, "bin": "1–30 дн", "points": -61, "impact": "NEGATIVE" },
+    { "feature": "company_age_months", "label": "Возраст бизнеса", "value": 38, "bin": "2–4 года", "points": 15, "impact": "POSITIVE" }
+  ] }
+```
+- Грейд по PD: **A** < 2%, **B** < 5%, **C** < 10%, **D** < 20%, **E** ≥ 20%.
+- `chance`: A, B → `HIGH`; C → `MEDIUM`; D, E → `LOW`. Это оценка риска, а не решение: политику применяет backend.
+- `chance_percent` — индекс для интерфейса (0–100, монотонен по баллу), **не** вероятность одобрения.
+- `factors` отсортированы по |points|; `score = base_points + Σ points`.
 
 ### `POST /v1/score`
-```json
-// req
-{ "application_id": "uuid", "features": { ...ScoringFeatures } }
-// 200
-{ "model_version": "scorecard-1.0", "score": 612, "pd": 0.064, "grade": "C",
-  "factors": [ { "feature": "max_dpd_12m", "label": "Макс. просрочка за 12 мес", "value": 15, "points": -40, "impact": "NEGATIVE" } ] }
-```
-Грейд по PD: A < 2%, B < 5%, C < 10%, D < 20%, E ≥ 20% (калибруется ML).
+`{ "application_id": "uuid|null", "features": ScoringFeatures }` → `ScoreResult`.
+
+### `POST /v1/score/batch`
+`{ "items": [ScoringFeatures, ...] }` (до 200) → `{ "items": [ScoreResult, ...] }` в том же порядке.
+Для симуляций «что если» в карте маршрута (backend меняет признаки и прогоняет политику).
 
 ### `POST /v1/precheck`
 ```json
 // req
-{ "features": { ...ScoringFeatures }, "variants": [ { "amount": 1200000 }, { "term_months": 48 } ] }
+{ "features": { ...ScoringFeatures }, "variants": [], "min_amount": 500000, "max_term_months": 60 }
 // 200
-{ "chance": "MEDIUM", "pd": 0.071, "estimated_rate": { "from": 18.5, "to": 21.0 },
-  "hints": [ { "change": { "amount": 1200000 }, "chance": "HIGH", "text": "При сумме до 1 200 000 ₽ шансы высокие" } ] }
+{ "model_version": "scorecard-1.0", "chance": "MEDIUM", "chance_percent": 42, "grade": "C", "pd": 0.0712, "monthly_payment": 54606,
+  "hints": [
+    { "change": { "revenue_confirmed": true }, "chance": "HIGH", "chance_percent": 50, "grade": "B", "text": "Подтвердите выручку выпиской — шансы высокие" },
+    { "change": { "amount": 1050000 }, "chance": "HIGH", "chance_percent": 46, "grade": "B", "text": "При сумме до 1 050 000 ₽ шансы высокие" }
+  ] }
 ```
-Если `variants` пусто, ML сам подбирает ближайшие изменения суммы и срока, повышающие шанс.
+Если `variants` пусто, ML сам перебирает: сумму −10…−60% (шаг 50 000 ₽, не ниже `min_amount`), срок до `max_term_months`, подтверждение выручки.
+В `hints` — по одному лучшему варианту каждого вида, только улучшающие шансы.
 
 ### `POST /v1/recommend`
 ```json
 // req
-{ "purpose": "EQUIPMENT", "amount": 1500000, "term_months": 36, "company": { "legal_form": "IP", "okved": "56.10", "company_age_months": 25 } }
+{ "purpose": "EQUIPMENT", "amount": 1500000, "term_months": 36 }
 // 200
-{ "items": [ { "product_code": "EQUIPMENT", "fit": "BEST", "reason": "..." } ] }
+{ "items": [ { "product_code": "EQUIPMENT", "name": "Кредит на оборудование", "fit": "BEST", "reason": "...", "fits_request": true } ] }
 ```
+Если лучший по задаче продукт не подходит по сумме/сроку, вперёд поднимается подходящая альтернатива.
 
 ### `POST /v1/explain`
 ```json
 // req
-{ "outcome": "COUNTER_OFFER", "requested_amount": 1500000, "offer": { "amount": 1200000, "term_months": 36, "rate": 19.5 },
-  "reasons": [ "DSCR_LOW" ], "factors": [ ... ] }
+{ "outcome": "COUNTER_OFFER", "requested_amount": 1500000, "offer": { "amount": 1150000, "term_months": 36, "rate": 19.5 },
+  "reasons": [ "AMOUNT_ABOVE_LIMIT" ], "factors": [ ...factors из ScoreResult ], "use_llm": true }
 // 200
-{ "text": "Мы готовы выдать 1 200 000 ₽ ...", "recommendations": [ "..." ], "source": "LLM" }
+{ "text": "Мы готовы выдать 1 150 000 ₽ вместо 1 500 000 ₽ ...", "template_text": "...", "recommendations": [ "Подтвердите выручку выпиской — лимит может вырасти." ], "source": "TEMPLATE" }
 ```
-`source`: `LLM` | `TEMPLATE` (фолбэк, если LLM выключен или не ответил за 5 с).
+- `outcome`: `APPROVED` | `COUNTER_OFFER` | `REJECTED` | `INFO_REQUESTED` | `MANUAL_REVIEW`.
+- Коды `reasons`: `DSCR_LOW`, `AMOUNT_ABOVE_LIMIT`, `OVERDUE_90`, `OVERDUE`, `TAX_DEBT`, `COMPANY_INACTIVE`, `FICTITIOUS_SIGNS`, `YOUNG_BUSINESS`, `REVENUE_UNCONFIRMED`, `HIGH_RISK`, `BORDERLINE_RISK`.
+- `source`: `LLM` | `TEMPLATE` (LLM выключен или не ответил за `LLM_TIMEOUT_SECONDS`).
 
-### `GET /health`
-`{ "status": "ok", "model_version": "scorecard-1.0", "llm": "disabled" }`
+### `GET /v1/products` · `GET /health`
+Справочник продуктов, как его видит ML · `{ "status": "ok", "model_version": "scorecard-1.0", "llm": "disabled" }`.
 
 ---
 

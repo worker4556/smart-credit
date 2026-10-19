@@ -1,0 +1,49 @@
+{
+  "model_version": "scorecard-1.0",
+  "dataset": {
+    "rows": 40000,
+    "default_rate": 0.0901,
+    "source": "synthetic, training/generate_data.py"
+  },
+  "metrics": {
+    "auc_train": 0.795,
+    "auc_test": 0.7961,
+    "gini_train": 0.59,
+    "gini_test": 0.5922,
+    "ks_test": 0.4658
+  },
+  "information_value": {
+    "company_age_months": 0.1154,
+    "debt_burden": 0.2092,
+    "amount_to_revenue": 0.1392,
+    "max_dpd_12m": 0.7171,
+    "active_loans_count": 0.0268,
+    "tax_debt": 0.0427,
+    "mass_address": 0.0289,
+    "revenue_confirmed": 0.0194,
+    "legal_form": 0.0106,
+    "industry_risk": 0.039
+  },
+  "grades_test": {
+    "A": {
+      "share": 0.1196,
+      "default_rate": 0.0153
+    },
+    "B": {
+      "share": 0.4023,
+      "default_rate": 0.0329
+    },
+    "C": {
+      "share": 0.2466,
+      "default_rate": 0.0686
+    },
+    "D": {
+      "share": 0.1239,
+      "default_rate": 0.1506
+    },
+    "E": {
+      "share": 0.1076,
+      "default_rate": 0.3664
+    }
+  }
+}
