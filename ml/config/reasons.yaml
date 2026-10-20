@@ -1,0 +1,119 @@
+# Единый справочник причин — для системы, специалиста и маршрута (спецификация, раздел 6).
+# kind: FACTOR — недобор баллов; STOP — стоп-фактор; LIMIT — сумму держит формула лимита;
+#       DATA — нужны данные; NONCREDIT — 115-ФЗ (только шаблон, без LLM и без маршрута).
+# step.months — ориентир для маршрута (нижняя граница диапазона), step.term — как показывать клиенту.
+# step.effect — как шаг меняет данные при пересчёте маршрута (реализация — service/route.py).
+reasons:
+  B_TURNOVER:
+    kind: FACTOR
+    category: Финансовые показатели
+    text: Поступления на счёт нерегулярны
+    step: {action: Вести всю выручку через один счёт, term: 3–6 мес., months: 3, effect: regular_turnover}
+  B_AMOUNT:
+    kind: FACTOR
+    category: Финансовые показатели
+    text: Сумма велика для вашего оборота
+    step: {action: Уменьшить сумму или увеличить срок, term: сразу, months: 0, effect: alternative}
+  B_AGE:
+    kind: FACTOR
+    category: Финансовые показатели
+    text: Бизнес работает недолго
+    step: {action: Подождать — ускорить нельзя, term: до порога, months: null, effect: time}
+  B_RKO:
+    kind: FACTOR
+    category: Финансовые показатели
+    text: Мало данных об оборотах
+    step: {action: Перевести обороты на счёт, term: 3–6 мес., months: null, effect: time}
+  B_DEBT_RATIO:
+    kind: FACTOR
+    category: Долговая нагрузка
+    text: Высокая нагрузка бизнеса
+    step: {action: Погасить часть кредитов, term: 1–3 мес., months: 1, effect: reduce_business_payments}
+  O_DEBT:
+    kind: FACTOR
+    category: Долговая нагрузка
+    text: Высокая личная нагрузка
+    step: {action: Закрыть кредитки или снизить лимиты, term: недели, months: weeks, effect: reduce_card_utilization, bki: true}
+  O_HISTORY:
+    kind: FACTOR
+    category: Кредитная история
+    text: Просрочки в кредитной истории владельца
+    step: {action: Платить вовремя; ошибку в БКИ можно оспорить (30 дней), term: 6+ мес., months: 6, effect: advice, bki: true}
+  B_INDUSTRY:
+    kind: FACTOR
+    category: Требования программы
+    text: Отраслевой риск
+    step: {action: Предложить залог или выбрать другой продукт, term: 1–3 мес., months: 1, effect: advice}
+  B_COURTS:
+    kind: FACTOR
+    category: Исполнительные производства
+    text: Есть исполнительные производства
+    step: {action: Погасить долг по ФССП, term: недели, months: weeks, effect: clear_fssp}
+
+  S_TAX:
+    kind: STOP
+    category: Исполнительные производства и ограничения
+    text: Налоговая задолженность
+    step: {action: Погасить сальдо ЕНС, term: недели, months: weeks, effect: clear_tax_debt}
+  S_90_12:
+    kind: STOP
+    category: Кредитная история
+    text: Просрочка 90+ дней за последние 12 месяцев
+    step: {action: Дождаться, когда эпизод выйдет из 12-месячного окна — ускорить нельзя, term: нельзя ускорить, months: null, effect: time_window, bki: true}
+    advice: Не подавайте заявки в другие банки — каждая заявка видна в кредитной истории и снижает рейтинг на 2–3 месяца.
+  S_OVERDUE:
+    kind: STOP
+    category: Кредитная история
+    text: Есть текущая просрочка
+    step: {action: Погасить текущую просрочку, term: недели, months: weeks, effect: clear_current_overdue, bki: true}
+  S_FNS_BLOCK:
+    kind: STOP
+    category: Исполнительные производства и ограничения
+    text: Счёт заблокирован решением ФНС
+    step: {action: Снять блокировку счёта в ФНС, term: недели, months: weeks, effect: clear_fns_block}
+  S_LAWSUIT:
+    kind: STOP
+    category: Исполнительные производства и ограничения
+    text: Есть иск о взыскании задолженности
+    step: {action: Урегулировать иск с кредитором, term: 1–3 мес., months: 1, effect: clear_lawsuit}
+  S_AGE:
+    kind: STOP
+    category: Финансовые показатели
+    text: Бизнес работает меньше 3 месяцев
+    step: {action: Дождаться трёх месяцев работы бизнеса, term: до порога, months: null, effect: time_window}
+  S_INACTIVE:
+    kind: STOP
+    category: Исполнительные производства и ограничения
+    text: Компания не действует или ликвидируется по данным реестра
+    permanent: true
+  S_BANKRUPTCY:
+    kind: STOP
+    category: Исполнительные производства и ограничения
+    text: Процедура банкротства
+    permanent: true
+  S_INDUSTRY:
+    kind: STOP
+    category: Требования программы
+    text: Отрасль не кредитуется по программе
+    permanent: true
+
+  L_TURNOVER:
+    kind: LIMIT
+    category: Финансовые показатели
+    text: Сумму ограничивает оборот, а не баллы
+    step: {action: Рост оборота до нужного уровня, term: по темпу, months: null, effect: turnover_growth}
+  D_MISMATCH:
+    kind: DATA
+    category: Неполные документы
+    text: Заявленный оборот не совпадает с данными счёта — нужно подтвердить
+    step: {action: Загрузить выписку другого банка за 6 месяцев в ту же заявку, term: сразу, months: 0, effect: advice}
+  D_DOC:
+    kind: DATA
+    category: Неполные документы
+    text: Не хватает обязательного документа
+    step: {action: Дозагрузить документ в ту же заявку, term: сразу, months: 0, effect: advice}
+
+  Z_115:
+    kind: NONCREDIT
+    category: Проверка по 115-ФЗ
+    text: Заявка приостановлена из-за проверки по 115-ФЗ. Это не оценка вашей кредитоспособности.

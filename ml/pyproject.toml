@@ -1,21 +1,21 @@
 [project]
 name = "smart-credit-ml"
-version = "1.0.0"
-description = "Scoring, precheck, product recommendation and explanations for Smart Credit"
+version = "2.0.0"
+description = "Approval engine for Smart Credit: scoring, decision rules, precheck, route to approval, local LLM helpers"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
     "pydantic>=2.9",
     "httpx>=0.27",
+    "pyyaml>=6.0",
 ]
 
 [dependency-groups]
 dev = ["pytest>=8.3"]
-train = ["numpy>=2.1", "pandas>=2.2", "scikit-learn>=1.5"]
 
 [tool.uv]
-default-groups = ["dev", "train"]
+default-groups = ["dev"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

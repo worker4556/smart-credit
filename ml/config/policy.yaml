@@ -1,0 +1,143 @@
+# Кредитная политика MVP «Маршрут к одобрению».
+# Одна модель для предоценки, решения, причин и маршрута. Все значения — демонстрационные допущения команды,
+# не данные банка. Меняются здесь, без правки кода.
+version: "policy-2026.10-1"
+
+# ---------- Скоринг (Б3): 9 факторов, всего 100 баллов ----------
+# max  — верхняя граница метрики (меньше — лучше), min — нижняя (больше — лучше). Первая подходящая строка.
+factors:
+  # --- слой «бизнес», 75 баллов ---
+  turnover_regularity:          # коэффициент вариации поступлений за 6 мес
+    label: Регулярность оборотов
+    layer: BUSINESS
+    max_points: 20
+    reason: B_TURNOVER
+    bins: [{max: 0.10, points: 20}, {max: 0.20, points: 15}, {max: 0.30, points: 10}, {max: 0.45, points: 5}]
+  debt_load:                    # платежи бизнеса по кредитам / средний месячный оборот
+    label: Долговая нагрузка бизнеса
+    layer: BUSINESS
+    max_points: 15
+    reason: B_DEBT_RATIO
+    bins: [{max: 0.05, points: 15}, {max: 0.10, points: 12}, {max: 0.20, points: 8}, {max: 0.30, points: 4}]
+  business_age:                 # месяцев с регистрации
+    label: Возраст бизнеса
+    layer: BUSINESS
+    max_points: 10
+    reason: B_AGE
+    bins: [{min: 24, points: 10}, {min: 12, points: 8}, {min: 6, points: 6}, {min: 3, points: 3}]
+  amount_to_turnover:           # запрошенная сумма / средний месячный оборот
+    label: Сумма относительно оборота
+    layer: BUSINESS
+    max_points: 10
+    reason: B_AMOUNT
+    bins: [{max: 1.0, points: 10}, {max: 1.5, points: 7}, {max: 2.0, points: 4}, {max: 3.0, points: 2}]
+  industry:                     # группа риска по ОКВЭД, см. industries
+    label: Отрасль
+    layer: BUSINESS
+    max_points: 8
+    reason: B_INDUSTRY
+    groups: {LOW: 8, MEDIUM: 4, HIGH: 1}
+  courts:                       # сумма открытых исполнительных производств ФССП, ₽
+    label: Суды и ФССП
+    layer: BUSINESS
+    max_points: 7
+    reason: B_COURTS
+    bins: [{max: 0, points: 7}, {max: 50000, points: 4}]
+  rko_tenure:                   # месяцев обслуживания счёта в банке
+    label: Срок обслуживания счёта
+    layer: BUSINESS
+    max_points: 5
+    reason: B_RKO
+    bins: [{min: 12, points: 5}, {min: 6, points: 3}, {min: 3, points: 1}]
+  # --- слой «владелец», 25 баллов ---
+  owner_history:                # макс. просрочка владельца за 24 мес, дней
+    label: Кредитная история владельца
+    layer: OWNER
+    max_points: 15
+    reason: O_HISTORY
+    bins: [{max: 0, points: 15}, {max: 30, points: 9}, {max: 89, points: 4}, {max: 100000, points: 2}]
+    self_reported_overdue_points: 9   # «были просрочки» со слов клиента → как просрочка до 30 дней
+  personal_load:                # личные платежи владельца / средний месячный оборот
+    label: Личная долговая нагрузка
+    layer: OWNER
+    max_points: 10
+    reason: O_DEBT
+    bins: [{max: 0.05, points: 10}, {max: 0.10, points: 6}, {max: 0.20, points: 2}]
+    card_utilization_limit: 0.5       # использование кредиток ≥ 50% лимита …
+    card_utilization_penalty: 8       # … снимает 8 баллов (не ниже нуля)
+
+# Группы риска отраслей по префиксу ОКВЭД (самый длинный совпавший префикс). FORBIDDEN — стоп-фактор.
+industries:
+  default: MEDIUM
+  prefixes:
+    "56": LOW        # общепит
+    "47.52": MEDIUM  # стройматериалы
+    "47.91": MEDIUM  # торговля через интернет, маркетплейсы
+    "45.20": MEDIUM  # ремонт автотранспорта
+    "96.02": MEDIUM  # парикмахерские и салоны красоты
+    "41": HIGH       # строительство зданий
+    "68": HIGH       # операции с недвижимостью
+    "92": FORBIDDEN  # азартные игры
+    "64.92": FORBIDDEN # микрофинансы
+
+# ---------- Стоп-факторы ----------
+stops:
+  tax_debt_threshold: 500       # налоговый долг > 500 ₽
+  min_business_age_months: 3
+  overdue_90_window_months: 12
+
+# ---------- Решение (Б4) ----------
+decision:
+  approve_score: 70
+  counter_bands:                # баллы ниже порога одобрения → доля лимита
+    - {min: 60, factor: 0.75}
+    - {min: 50, factor: 0.50}
+  turnover_mismatch: 0.30       # заявленный оборот расходится со счётом больше чем на 30% → «Нужны данные»
+  specialist:
+    amount_above: 2000000
+    score_band: {min: 50, max: 59}
+  max_reasons: 4
+
+# ---------- Продукты ----------
+products:
+  WORKING_CAPITAL:
+    name: Оборотный кредит
+    min_amount: 100000
+    max_amount: 3000000
+    max_amount_with_guarantor: 5000000
+    min_term: 3
+    max_term: 36
+    rate: 20.0
+    fee_percent: 1.0
+    limit:
+      turnover_multiple: 1.5          # 1,5 × средний месячный оборот
+      debt_turnover_multiple: 3.0     # 3 × оборот − текущий долг
+      payment_share: 0.20             # платёж ≤ 20% оборота − текущие платежи
+      round_to: 50000
+  OVERDRAFT:
+    name: Овердрафт
+    min_amount: 50000
+    max_amount: 3000000
+    term: 12
+    rate: 22.0
+    fee_percent: 1.0
+    days_in_month: 30
+    tranche_days: 60
+    limit:
+      turnover_share: 0.40            # до 40% среднего оборота за 6 мес
+      round_to: 10000
+
+# ---------- Предоценка ----------
+precheck:
+  valid_days: 30
+  range_discount: 0.10          # вилка доступной суммы: [−10%; оценка]
+  disclaimer: "Это оценка по текущим данным, а не решение банка. Действует 30 дней."
+
+# ---------- Маршрут ----------
+route:
+  weeks_as_months: 0.5
+  max_horizon_months: 24
+  bki_update_business_days: 2
+  regular_turnover_cv: 0.15     # «вся выручка через один счёт» → поступления ровные
+  card_utilization_target: 0.4
+  disclaimer: "Это ориентир при текущем темпе, а не обещание одобрения."

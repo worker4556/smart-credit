@@ -1,0 +1,77 @@
+{
+  "_comment": "Синтетические персоны P1–P5 и тест-аккаунт ЗСК — приёмочные сценарии спецификации (раздел 3). decision — данные после подачи (БКИ, ЗСК); precheck — до подачи, владелец со слов клиента. Обороты — по месяцам, ₽, от старых к новым.",
+  "P1": {
+    "name": "Ольга, ИП, кофейня",
+    "inn": "631200000001",
+    "decision": {
+      "request": {"product": "WORKING_CAPITAL", "amount": 850000, "term_months": 24},
+      "company": {"legal_form": "IP", "okved": "56.10", "business_age_months": 34, "zsk_level": "GREEN"},
+      "account": {"turnover_monthly": [920000, 960000, 940000, 980000, 930000, 970000], "rko_months": 20},
+      "owner": {"source": "BKI", "max_dpd_24m": 0, "personal_monthly_payments": 20000, "card_utilization": 0.2},
+      "checks": {"declared_monthly_revenue": 950000}
+    },
+    "precheck_owner": {"source": "SELF_REPORTED", "had_overdue_2y": false, "personal_monthly_payments": 20000}
+  },
+  "P2": {
+    "name": "ООО «Полка», селлер на маркетплейсах",
+    "inn": "771500000002",
+    "decision": {
+      "request": {"product": "WORKING_CAPITAL", "amount": 3000000, "term_months": 18, "has_guarantor": true},
+      "company": {"legal_form": "OOO", "okved": "47.91", "business_age_months": 26, "zsk_level": "GREEN"},
+      "account": {"turnover_monthly": [1200000, 2600000, 1300000, 2800000, 1400000, 2100000], "rko_months": 24,
+                  "business_debt": 1800000, "business_monthly_payments": 120000},
+      "owner": {"source": "BKI", "max_dpd_24m": 0, "personal_monthly_payments": 50000, "card_utilization": 0.3},
+      "checks": {"declared_monthly_revenue": 1900000}
+    },
+    "precheck_owner": {"source": "SELF_REPORTED", "had_overdue_2y": false, "personal_monthly_payments": 50000}
+  },
+  "P3": {
+    "name": "Тимур, ИП, автосервис",
+    "inn": "026800000003",
+    "decision": {
+      "request": {"product": "WORKING_CAPITAL", "amount": 1200000, "term_months": 24},
+      "company": {"legal_form": "IP", "okved": "45.20", "business_age_months": 11, "tax_debt": 86000, "zsk_level": "GREEN"},
+      "account": {"turnover_monthly": [300000, 800000, 400000, 780000, 450000, 750000], "rko_months": 11},
+      "owner": {"source": "BKI", "max_dpd_24m": 20, "personal_monthly_payments": 25000, "card_utilization": 0.75},
+      "checks": {"declared_monthly_revenue": 750000}
+    },
+    "precheck_owner": {"source": "SELF_REPORTED", "had_overdue_2y": true, "personal_monthly_payments": 25000}
+  },
+  "P4": {
+    "name": "Марина, ИП, студия маникюра",
+    "inn": "540600000004",
+    "decision": {
+      "request": {"product": "WORKING_CAPITAL", "amount": 500000, "term_months": 12},
+      "company": {"legal_form": "IP", "okved": "96.02", "business_age_months": 5, "fssp_debt": 30000, "zsk_level": "GREEN"},
+      "account": {"turnover_monthly": [240000, 580000, 280000, 540000, 320000, 440000], "rko_months": 5},
+      "owner": {"source": "BKI", "max_dpd_24m": 95, "months_since_90plus": 4, "personal_monthly_payments": 10000, "card_utilization": 0.2},
+      "checks": {"declared_monthly_revenue": 400000}
+    },
+    "precheck_owner": {"source": "SELF_REPORTED", "had_overdue_2y": false, "personal_monthly_payments": 10000}
+  },
+  "P5": {
+    "name": "Андрей, ИП, магазин стройматериалов",
+    "inn": "662300000005",
+    "decision": {
+      "request": {"product": "OVERDRAFT", "amount": 300000},
+      "company": {"legal_form": "IP", "okved": "47.52", "business_age_months": 18, "zsk_level": "GREEN"},
+      "account": {"turnover_monthly": [540000, 560000, 545000, 555000, 550000, 550000], "rko_months": 8},
+      "owner": {"source": "BKI", "max_dpd_24m": 0, "personal_monthly_payments": 20000, "card_utilization": 0.1},
+      "checks": {"declared_monthly_revenue": 900000}
+    },
+    "precheck_owner": {"source": "SELF_REPORTED", "had_overdue_2y": false, "personal_monthly_payments": 20000},
+    "statement_external_turnover": [350000, 350000, 350000, 350000, 350000, 350000]
+  },
+  "ZSK": {
+    "name": "ООО с красным уровнем риска ЗСК",
+    "inn": "770100000099",
+    "decision": {
+      "request": {"product": "WORKING_CAPITAL", "amount": 1000000, "term_months": 12, "has_guarantor": true},
+      "company": {"legal_form": "OOO", "okved": "46.90", "business_age_months": 40, "zsk_level": "RED"},
+      "account": {"turnover_monthly": [1500000, 1550000, 1480000, 1520000, 1500000, 1510000], "rko_months": 30},
+      "owner": {"source": "BKI", "max_dpd_24m": 0},
+      "checks": {"declared_monthly_revenue": 1500000}
+    },
+    "precheck_owner": {"source": "SELF_REPORTED", "had_overdue_2y": false}
+  }
+}

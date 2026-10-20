@@ -209,91 +209,95 @@
 
 ---
 
-# C. ml — внутренний API (`http://ml:8001`)
+# C. ml — движок одобрения (`http://ml:8001`)
 
-Статус: **реализовано** (`ml/`). Вызывает только backend. Без состояния. Swagger: `http://localhost:8001/docs`.
+Статус: **реализовано** (`ml/`), по спецификации MVP «Маршрут к одобрению». Вызывает только backend. Без состояния.
+Swagger: `http://localhost:8001/docs`. Одна модель правил (`ml/config/policy.yaml`, `ml/config/reasons.yaml`) считает
+предоценку, скоринг (Б3), решение (Б4), причины и маршрут — backend не дублирует эту логику, а сохраняет результат
+и переводит статусы по `outcome` и `specialist.required`.
 
-### Входные признаки — `ScoringFeatures`
-Собирает backend из заявки и `check_results`.
+### Вход — `Applicant`
+Собирает backend из моков источников и ответов клиента. Неверные поля → `422`.
 
-| Поле | Тип | Источник | Обяз. |
-|---|---|---|---|
-| `legal_form` | `IP` \| `OOO` | ЕГРЮЛ | да |
-| `okved` | string, напр. `"56.10"` | ЕГРЮЛ | да |
-| `company_age_months` | int ≥ 0 | ЕГРЮЛ | да |
-| `annual_revenue` | int ≥ 0, ₽ | клиент | да |
-| `requested_amount` | int > 0, ₽ | заявка | да |
-| `term_months` | int 1–120 | заявка | да |
-| `revenue_confirmed` | bool | есть документ `BANK_STATEMENT` | нет (`false`) |
-| `product_code` | string | заявка | нет (`WORKING_CAPITAL`) |
-| `annual_rate` | float, % | если не задано — базовая ставка продукта + 2 п.п. | нет |
-| `active_loans_count` | int | БКИ | нет (0) |
-| `existing_monthly_payments` | int, ₽ | БКИ | нет (0) |
-| `max_dpd_12m` | int, дней | БКИ | нет (0) |
-| `overdue_count_12m` | int | БКИ (используется политикой, в модель не входит) | нет (0) |
-| `tax_debt` | int, ₽ | ФНС | нет (0) |
-| `mass_address` | bool | ФНС | нет (`false`) |
+| Блок | Поля | Источник |
+|---|---|---|
+| `request` | `product` (`WORKING_CAPITAL` \| `OVERDRAFT`), `amount`, `term_months` (для овердрафта не нужен), `has_guarantor` | заявка |
+| `company` | `legal_form`, `okved`, `status` (`ACTIVE` \| `LIQUIDATING` \| `LIQUIDATED`, иначе стоп `S_INACTIVE`), `business_age_months`, `tax_debt`, `fns_blocked`, `bankruptcy`, `recovery_lawsuit`, `fssp_debt`, `zsk_level` (`GREEN`/`YELLOW`/`RED`, после Б2), `measures_115fz` | ЕГРЮЛ/ЕГРИП, «Прозрачный бизнес», ФССП, арбитраж, ЗСК |
+| `account` | `turnover_monthly` (1–12 мес., от старых к новым), `rko_months`, `business_debt`, `business_monthly_payments`, `external_turnover_monthly` (выписка другого банка) | счёт в Альфе, документы |
+| `owner` | `source` (`SELF_REPORTED` до подачи \| `BKI` после Б2), `had_overdue_2y`, `current_overdue`, `max_dpd_24m`, `months_since_90plus`, `personal_monthly_payments`, `card_utilization` | ответы клиента / БКИ |
+| `checks` | `declared_monthly_revenue`, `missing_documents`, `mismatch_unresolved`, `disputed` | заявка, Б1 |
 
-Неверные поля → `422` (стандартная ошибка FastAPI).
+Пример — `ml/fixtures/personas.json` (P1–P5, ЗСК).
 
-### `ScoreResult`
+### `POST /v1/intent` — шаг 1
+`{ "text": "нужно 800 тыс. на закупку к сезону", "use_llm": true }` →
 ```json
-{ "model_version": "scorecard-1.0", "score": 563, "pd": 0.0867, "grade": "C",
-  "chance": "MEDIUM", "chance_percent": 32, "monthly_payment": 151000,
-  "factors": [
-    { "feature": "max_dpd_12m", "label": "Макс. просрочка за 12 мес", "value": 15, "bin": "1–30 дн", "points": -61, "impact": "NEGATIVE" },
-    { "feature": "company_age_months", "label": "Возраст бизнеса", "value": 38, "bin": "2–4 года", "points": 15, "impact": "POSITIVE" }
-  ] }
+{ "purpose": "PURCHASE", "purpose_text": "Закупка товара, сырья или материалов", "amount": 800000, "term_months": null,
+  "product": "WORKING_CAPITAL", "product_reason": "Оборотный кредит: ...", "missing": ["term_months"],
+  "needs_confirmation": true, "source": "RULES" }
 ```
-- Грейд по PD: **A** < 2%, **B** < 5%, **C** < 10%, **D** < 20%, **E** ≥ 20%.
-- `chance`: A, B → `HIGH`; C → `MEDIUM`; D, E → `LOW`. Это оценка риска, а не решение: политику применяет backend.
-- `chance_percent` — индекс для интерфейса (0–100, монотонен по баллу), **не** вероятность одобрения.
-- `factors` отсортированы по |points|; `score = base_points + Σ points`.
+`purpose`: `PURCHASE` | `CASH_GAP` | `CONTRACT` | `EQUIPMENT` | `EXPANSION` | `OTHER`. Поля из `missing` клиент заполняет в форме.
 
-### `POST /v1/score`
-`{ "application_id": "uuid|null", "features": ScoringFeatures }` → `ScoreResult`.
+### `POST /v1/quote` — калькулятор для ползунков (без скоринга)
+`{ "product": "WORKING_CAPITAL", "amount": 850000, "term_months": 24 }` →
+`{ "monthly_payment": 43261, "total_paid": 1038274, "interest": 188274, "fee": 8500, "full_cost": 196774, "rate": 20.0, "schedule": [ { "month": 1, "payment": 43261, "principal": 29095, "interest": 14167, "balance": 820905 }, ... ], "note": "Расчёт предварительный, по демо-ставке. Это не оферта." }`.
+Для овердрафта `monthly_payment` — проценты за месяц при полном использовании, `schedule` пустой.
 
-### `POST /v1/score/batch`
-`{ "items": [ScoringFeatures, ...] }` (до 200) → `{ "items": [ScoreResult, ...] }` в том же порядке.
-Для симуляций «что если» в карте маршрута (backend меняет признаки и прогоняет политику).
-
-### `POST /v1/precheck`
+### `POST /v1/precheck` — шаг 3 (без заявки и БКИ), тело `Applicant`
 ```json
-// req
-{ "features": { ...ScoringFeatures }, "variants": [], "min_amount": 500000, "max_term_months": 60 }
-// 200
-{ "model_version": "scorecard-1.0", "chance": "MEDIUM", "chance_percent": 42, "grade": "C", "pd": 0.0712, "monthly_payment": 54606,
-  "hints": [
-    { "change": { "revenue_confirmed": true }, "chance": "HIGH", "chance_percent": 50, "grade": "B", "text": "Подтвердите выручку выпиской — шансы высокие" },
-    { "change": { "amount": 1050000 }, "chance": "HIGH", "chance_percent": 46, "grade": "B", "text": "При сумме до 1 050 000 ₽ шансы высокие" }
-  ] }
+{ "chance": "MEDIUM", "expected_outcome": "COUNTER_OFFER", "score": 72,
+  "amount_range": { "low": 2550000, "high": 2850000 }, "requested_amount": 3000000,
+  "cost": { "product": "WORKING_CAPITAL", "amount": 3000000, "term_months": 18, "rate": 20.0, "monthly_payment": 194290, "fee": 30000, "full_cost": 527213 },
+  "reasons": [ { "code": "L_TURNOVER", "kind": "LIMIT", "category": "Финансовые показатели", "text": "Сумму ограничивает оборот, а не баллы", "shortfall": null },
+               { "code": "B_TURNOVER", "kind": "FACTOR", "category": "Финансовые показатели", "text": "Поступления на счёт нерегулярны", "shortfall": 15 } ],
+  "offers": [ { "kind": "WITHIN_ESTIMATE", "product": "WORKING_CAPITAL", "amount": 2850000, "term_months": 18, "cost": { "...": "..." } } ],
+  "owner_note": "Кредитную историю проверим после подачи — результат может измениться.",
+  "valid_days": 30, "disclaimer": "Это оценка по текущим данным, а не решение банка. Действует 30 дней." }
 ```
-Если `variants` пусто, ML сам перебирает: сумму −10…−60% (шаг 50 000 ₽, не ниже `min_amount`), срок до `max_term_months`, подтверждение выручки.
-В `hints` — по одному лучшему варианту каждого вида, только улучшающие шансы.
+`chance`: `HIGH` (ожидается одобрение) | `MEDIUM` (иные условия) | `LOW` (отказ). `amount_range` — «высота», `requested_amount` — «вершина».
 
-### `POST /v1/recommend`
+### `POST /v1/decision` — Б3 + Б4, тело `Applicant`
 ```json
-// req
-{ "purpose": "EQUIPMENT", "amount": 1500000, "term_months": 36 }
-// 200
-{ "items": [ { "product_code": "EQUIPMENT", "name": "Кредит на оборудование", "fit": "BEST", "reason": "...", "fits_request": true } ] }
+{ "outcome": "COUNTER_OFFER", "requested_amount": 3000000, "amount": 2850000, "term_months": 18,
+  "cost": { "monthly_payment": 184575, "fee": 28500, "full_cost": 500852, "...": "..." },
+  "limit": { "limit": 2850000, "binding": "TURNOVER", "components": { "TURNOVER": 2850000, "DEBT": 3900000, "PAYMENT": 4014626, "PRODUCT_MAX": 5000000 } },
+  "reasons": [ { "code": "L_TURNOVER", "...": "..." }, { "code": "B_TURNOVER", "...": "..." } ],
+  "specialist": { "required": true, "triggers": ["AMOUNT_ABOVE_2M"] },
+  "score": { "score": 72, "owner_source": "BKI", "factors": [ { "factor": "turnover_regularity", "label": "Регулярность оборотов", "layer": "BUSINESS", "reason_code": "B_TURNOVER", "value": 0.336, "points": 5, "max_points": 20, "shortfall": 15 } ], "stops": [], "turnover_monthly_avg": 1900000 },
+  "offers": [ ... ] }
 ```
-Если лучший по задаче продукт не подходит по сумме/сроку, вперёд поднимается подходящая альтернатива.
+- `outcome`: `APPROVED` | `COUNTER_OFFER` | `INFO_REQUESTED` | `REJECTED` | `SUSPENDED_115FZ`.
+- `specialist.required = true` → backend ставит «У специалиста»; `outcome` — рекомендация системы. Триггеры: `AMOUNT_ABOVE_2M`, `BORDERLINE_SCORE`, `MISMATCH_UNRESOLVED`, `CLIENT_DISPUTE`.
+- `reasons`: при отказе по стопу — стоп + до 4 факторов с наибольшим недобором; иначе до 4 причин.
+- Для овердрафта `cost.monthly_payment` — проценты за месяц при полном использовании, `full_cost` — за год с комиссией.
 
-### `POST /v1/explain`
+### `POST /v1/route` — маршрут и «Пересчитать»
+`{ "applicant": Applicant, "assume_done": ["S_TAX"], "specialist_decision": null }` → (P3)
 ```json
-// req
-{ "outcome": "COUNTER_OFFER", "requested_amount": 1500000, "offer": { "amount": 1150000, "term_months": 36, "rate": 19.5 },
-  "reasons": [ "AMOUNT_ABOVE_LIMIT" ], "factors": [ ...factors из ScoreResult ], "use_llm": true }
-// 200
-{ "text": "Мы готовы выдать 1 150 000 ₽ вместо 1 500 000 ₽ ...", "template_text": "...", "recommendations": [ "Подтвердите выручку выпиской — лимит может вырасти." ], "source": "TEMPLATE" }
+{ "status": "ACTIVE", "holds": "STOP", "target_amount": 1200000, "current_score": 53, "current_available_amount": 0,
+  "steps": [ { "code": "S_TAX", "kind": "STOP", "action": "Погасить сальдо ЕНС", "term": "недели", "months": 0.5, "points_gain": 0 },
+             { "code": "O_DEBT", "kind": "FACTOR", "action": "Закрыть кредитки или снизить лимиты", "term": "недели", "months": 0.5, "points_gain": 8, "bki_delay_business_days": 2 },
+             { "code": "B_TURNOVER", "kind": "FACTOR", "action": "Вести всю выручку через один счёт", "term": "3–6 мес.", "months": 3.0, "points_gain": 12 } ],
+  "time_gain_points": 4, "horizon_months": 3.0, "horizon_text": "~3 мес.", "reachable": true,
+  "projection": { "score": 77, "limit": 1100000, "available_amount": 1100000, "outcome": "COUNTER_OFFER", "amount": 1100000, "cost": { "full_cost": 254649, "...": "..." } },
+  "advice": [], "message": "...", "disclaimer": "Это ориентир при текущем темпе, а не обещание одобрения." }
 ```
-- `outcome`: `APPROVED` | `COUNTER_OFFER` | `REJECTED` | `INFO_REQUESTED` | `MANUAL_REVIEW`.
-- Коды `reasons`: `DSCR_LOW`, `AMOUNT_ABOVE_LIMIT`, `OVERDUE_90`, `OVERDUE`, `TAX_DEBT`, `COMPANY_INACTIVE`, `FICTITIOUS_SIGNS`, `YOUNG_BUSINESS`, `REVENUE_UNCONFIRMED`, `HIGH_RISK`, `BORDERLINE_RISK`.
-- `source`: `LLM` | `TEMPLATE` (LLM выключен или не ответил за `LLM_TIMEOUT_SECONDS`).
+- `status`: `ACTIVE` | `READY` (нет стопов, ≥ 70 баллов и лимит ≥ суммы — можно подать новую заявку) | `NO_ROUTE` (115-ФЗ, банкротство, запрещённая отрасль).
+- `holds` — что держит результат: `SCORE` | `STOP` | `TIME_WINDOW` | `TURNOVER` | `STOP_PERMANENT` | `NONCREDIT` | `NONE`.
+- `assume_done` — шаги, отмеченные клиентом: прогноз по тем же правилам. Не создаёт заявку и не ходит в БКИ.
+- `specialist_decision` `{outcome, reason_code, amount?}` — путь G: маршрут от решения специалиста (`based_on = SPECIALIST`), причина специалиста становится первым шагом; код не из справочника → `422`.
 
-### `GET /v1/products` · `GET /health`
-Справочник продуктов, как его видит ML · `{ "status": "ok", "model_version": "scorecard-1.0", "llm": "disabled" }`.
+### `POST /v1/explain` — текст для клиента
+`{ "decision": Decision }` или `{ "precheck": Precheck }` или `{ "route": Route }`, плюс `"use_llm": true` →
+`{ "text": "...", "template_text": "...", "source": "TEMPLATE" | "LLM", "fallback_reason": null }`.
+LLM только пересказывает шаблон; ответ с новыми числами, кодами, «одобрено» вне одобрения или обещаниями отбрасывается.
+115-ФЗ — всегда шаблон.
+
+### Вспомогательные
+- `POST /v1/score`, `POST /v1/limit` — отдельно Б3 и лимит (для карточки специалиста).
+- `GET /v1/reasons` — справочник причин (специалист выбирает код из него же).
+- `GET /v1/policy` — действующие веса, пороги, продукты.
+- `GET /health` → `{ "status": "ok", "policy_version": "policy-2026.10-1", "llm": { "enabled": false, "model": null } }`.
 
 ---
 

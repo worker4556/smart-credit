@@ -1,0 +1,38 @@
+# Единый запуск. Сейчас здесь ML-часть; backend, frontend, mocks и postgres добавляются сюда же.
+#   docker compose up --build                    # без LLM: разбор фраз правилами, тексты шаблонами
+#   docker compose --profile llm up --build      # + локальная LLM с открытыми весами (Ollama)
+services:
+  ml:
+    build: ./ml
+    ports: ["8001:8001"]
+    environment:
+      OLLAMA_URL: ${OLLAMA_URL:-}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-8}
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:0.12.6
+    profiles: ["llm"]
+    ports: ["11434:11434"]
+    volumes: ["ollama:/root/.ollama"]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # Однократно скачивает веса модели в volume (~2,5 ГБ для qwen3:4b)
+  ollama-pull:
+    image: ollama/ollama:0.12.6
+    profiles: ["llm"]
+    depends_on:
+      ollama: {condition: service_healthy}
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["ollama", "pull", "${OLLAMA_MODEL:-qwen3:4b}"]
+    restart: "no"
+
+volumes:
+  ollama:
