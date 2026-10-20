@@ -1,0 +1,100 @@
+"""Помощник при отказе и нехватке: отвечает только по фактам решения и маршрута, LLM не может подсунуть лишнего."""
+import pytest
+from conftest import PERSONAS, applicant
+from fastapi.testclient import TestClient
+
+from service import llm
+from service.assistant import answer
+from service.decision import decide
+from service.main import app
+from service.route import build_route
+
+client = TestClient(app)
+
+
+def test_why_for_p3_template(policy):
+    a = answer(policy, "почему мне отказали?", decide(policy, applicant("P3")), None, use_llm=False)
+    assert a.topic == "WHY" and "Налоговая задолженность" in a.answer and a.source == "TEMPLATE"
+    assert a.answer.endswith("Решение принимает банк по правилам. Помощник только объясняет.")
+
+
+def test_what_to_do_uses_route(policy):
+    r = build_route(policy, applicant("P3"))
+    a = answer(policy, "что мне сделать?", decide(policy, applicant("P3")), r, use_llm=False)
+    assert a.topic == "WHAT_TO_DO" and "Погасить сальдо ЕНС" in a.answer and "~3 мес." in a.answer
+
+
+def test_term_question(policy):
+    a = answer(policy, "что такое долговая нагрузка?", decide(policy, applicant("P3")), None, use_llm=False)
+    assert a.topic == "TERM" and "Какая часть дохода уходит на платежи по кредитам" in a.answer
+    assert a.terms == ["Долговая нагрузка"]
+
+
+def test_p4_no_shortcut(policy):
+    r = build_route(policy, applicant("P4"))
+    a = answer(policy, "когда можно подать снова?", decide(policy, applicant("P4")), r, use_llm=False)
+    assert a.topic == "WHEN" and "ускорить нельзя" in a.answer
+
+
+def test_p5_what_to_upload(policy):
+    a = answer(policy, "что нужно загрузить?", decide(policy, applicant("P5")), None, use_llm=False)
+    assert a.topic == "WHAT_TO_DO" and "выписку другого банка" in a.answer
+
+
+def test_p2_why_less(policy):
+    a = answer(policy, "почему дают меньше?", decide(policy, applicant("P2")), None, use_llm=False)
+    assert a.topic == "AMOUNT" and "2 850 000 ₽" in a.answer and "3 000 000 ₽" in a.answer
+
+
+def test_115_never_calls_llm(policy, monkeypatch):
+    monkeypatch.setattr(llm, "chat", lambda *a, **k: pytest.fail("LLM вызвана для 115-ФЗ"))
+    a = answer(policy, "почему?", decide(policy, applicant("ZSK")), None)
+    assert a.topic == "NONCREDIT" and a.source == "TEMPLATE" and "115-ФЗ" in a.answer
+
+
+def test_approved_not_needed(policy):
+    a = answer(policy, "почему?", decide(policy, applicant("P1")), None, use_llm=False)
+    assert a.topic == "NOT_NEEDED"
+
+
+def test_llm_answer_accepted_when_faithful(policy, fake_llm):
+    fake_llm("Главная причина — налоговая задолженность. Сначала погасите сальдо ЕНС.")
+    a = answer(policy, "почему отказ?", decide(policy, applicant("P3")), None)
+    assert a.source == "LLM" and a.template_answer != a.answer
+
+
+@pytest.mark.parametrize("bad", ["Возьмите 2 000 000 ₽ — так одобрят.", "Причина S_TAX.",
+                                 "Гарантирую одобрение через месяц."])
+def test_llm_answer_rejected(policy, fake_llm, bad):
+    fake_llm(bad)
+    a = answer(policy, "а если взять 2 млн?", decide(policy, applicant("P3")), None)
+    assert a.source == "TEMPLATE" and a.fallback_reason and a.answer == a.template_answer
+
+
+def test_llm_not_ready_falls_back(policy, monkeypatch):
+    monkeypatch.setattr(llm, "OLLAMA_URL", "http://fake")
+    monkeypatch.setattr(llm, "ready", lambda: False)
+    a = answer(policy, "почему отказ?", decide(policy, applicant("P3")), None)
+    assert a.source == "TEMPLATE"
+
+
+def test_off_topic(policy):
+    a = answer(policy, "какая погода в Москве?", decide(policy, applicant("P3")), None, use_llm=False)
+    assert a.topic == "OFF_TOPIC" and "разобраться с решением" in a.answer
+
+
+def test_endpoint_answers():
+    d = client.post("/v1/decision", json=PERSONAS["P3"]["decision"]).json()
+    r = client.post("/v1/assistant", json={"question": "почему отказ?", "context": {"decision": d}, "use_llm": False})
+    assert r.status_code == 200 and r.json()["topic"] == "WHY"
+
+
+def test_endpoint_validation():
+    assert client.post("/v1/assistant", json={"question": "", "context": {}}).status_code == 422
+    assert client.post("/v1/assistant", json={"question": "x" * 501, "context": {}}).status_code == 422
+    assert client.post("/v1/assistant", json={"question": "почему?", "context": {}}).status_code == 422
+
+
+def test_what_does_it_mean_without_term_explains_decision(policy):
+    a = answer(policy, "что это значит?", decide(policy, applicant("P3")), None, use_llm=False)
+    assert a.topic == "WHY" and "Налоговая задолженность" in a.answer

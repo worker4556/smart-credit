@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from . import llm
 from .config import get_policy
 from .decision import RequestError, decide, limit, offers, precheck, validate_request
+from .assistant import AssistantAnswer, answer
 from .glossary import lookup
 from .explain import Explanation, explain_decision, explain_precheck, explain_route
 from .intent import Intent, parse
@@ -49,6 +50,17 @@ class QuoteRequest(BaseModel):
 
 class WeatherRequest(QuoteRequest):
     rate: float | None = Field(default=None, gt=0, le=100, description="Ставка решения; по умолчанию — ставка продукта")
+
+
+class AssistantContext(BaseModel):
+    decision: Decision | None = None
+    route: Route | None = None
+
+
+class AssistantRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=500, examples=["почему мне отказали?"])
+    context: AssistantContext
+    use_llm: bool = True
 
 
 class DecisionWithOffers(Decision):
@@ -146,6 +158,14 @@ def explain_endpoint(req: ExplainRequest) -> Explanation:
 @app.get("/v1/reasons", summary="Справочник причин — для специалиста и фронта")
 def reasons() -> dict:
     return {"items": [{"code": c, **r} for c, r in get_policy().reasons.items()]}
+
+
+@app.post("/v1/assistant", response_model=AssistantAnswer,
+          summary="Помощник при отказе и нехватке: ответ только по фактам решения и маршрута")
+def assistant_endpoint(req: AssistantRequest) -> AssistantAnswer:
+    if not req.context.decision and not req.context.route:
+        raise HTTPException(422, "Нужно решение или маршрут в context")
+    return answer(get_policy(), req.question, req.context.decision, req.context.route, req.use_llm)
 
 
 @app.get("/v1/glossary", summary="Словарь простых слов")
