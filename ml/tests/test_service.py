@@ -68,3 +68,29 @@ def test_route_rejects_unknown_specialist_code():
     r = client.post("/v1/route", json={"applicant": PERSONAS["P1"]["decision"],
                                        "specialist_decision": {"outcome": "REJECTED", "reason_code": "NOPE"}})
     assert r.status_code == 422
+
+
+def _p1(**req):
+    body = PERSONAS["P1"]["decision"]
+    return {**body, "request": {**body["request"], **req}}
+
+
+def test_term_outside_range_is_422_not_clamped():
+    for path in ("/v1/precheck", "/v1/decision", "/v1/score", "/v1/limit"):
+        r = client.post(path, json=_p1(term_months=60))
+        assert r.status_code == 422, path
+        err = r.json()["detail"][0]
+        assert err["loc"] == ["body", "request", "term_months"] and "от 3 до 36" in err["msg"]
+
+
+def test_amount_below_minimum_is_422():
+    r = client.post("/v1/decision", json=_p1(amount=50_000))
+    assert r.status_code == 422 and r.json()["detail"][0]["loc"][-1] == "amount"
+
+
+def test_route_and_quote_validate_term():
+    r = client.post("/v1/route", json={"applicant": _p1(term_months=60)})
+    assert r.status_code == 422 and r.json()["detail"][0]["loc"] == ["body", "applicant", "request", "term_months"]
+    q = client.post("/v1/quote", json={"product": "WORKING_CAPITAL", "amount": 850_000, "term_months": 60})
+    assert q.status_code == 422
+    assert client.post("/v1/quote", json={"product": "OVERDRAFT", "amount": 300_000, "term_months": 6}).status_code == 422

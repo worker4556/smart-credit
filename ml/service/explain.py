@@ -50,6 +50,12 @@ def decision_template(policy: Policy, d: Decision) -> str:
     if d.outcome == "APPROVED":
         return f"Заявка одобрена: {rub(d.amount)} на {d.term_months} мес. " + _cost_line(d.cost)
     if d.outcome == "COUNTER_OFFER":
+        if d.amount == d.requested_amount and d.cost:
+            base = policy.products[d.cost.product]["rate"]
+            why = "оценка ниже порога одобрения" if d.cost.rate > base else first
+            return (f"Банк готов выдать всю сумму {rub(d.amount)} на {d.term_months} мес., но на других условиях: "
+                    f"ставка {d.cost.rate:g}% вместо {base:g}%. " + _cost_line(d.cost)
+                    + (f" Почему: {why}." if why else ""))
         return (f"Вы хотели {rub(d.requested_amount)} — банк может предложить {rub(d.amount)} на {d.term_months} мес. "
                 + _cost_line(d.cost) + (f" Почему не вся сумма: {first}." if first else ""))
     if d.outcome == "INFO_REQUESTED":

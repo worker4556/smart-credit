@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from .config import Policy
 from .decision import available_amount, decide, limit
-from .finance import cost
+from .finance import cost, rate_for
 from .schemas import Applicant, Cost
 from .scoring import avg_turnover, effective_turnover, score
 
@@ -287,7 +287,8 @@ def build_route(policy: Policy, a: Applicant, assume_done: list[str] | None = No
     fdec = decide(policy, final, stage="PRECHECK")
     projection = Projection(score=fsc.score, limit=flim.limit, available_amount=available_amount(policy, fsc, flim),
                             outcome=fdec.outcome, amount=fdec.amount,
-                            cost=cost(policy, a.request.product, fdec.amount, fdec.term_months) if fdec.amount else None)
+                            cost=cost(policy, a.request.product, fdec.amount, fdec.term_months,
+                                      rate_for(policy, a.request.product, fsc.score)) if fdec.amount else None)
     ready = not sc.stops and sc.score >= approve and lim0.limit >= a.request.amount \
         and not (specialist and specialist.outcome == "REJECTED")
     return Route(status="READY" if ready else "ACTIVE", holds=holds, steps=steps, time_gain_points=time_gain,

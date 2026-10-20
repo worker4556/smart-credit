@@ -32,18 +32,31 @@ def term_of(policy: Policy, product: str, term_months: int | None) -> int:
     return max(p["min_term"], min(term, p["max_term"]))
 
 
-def cost(policy: Policy, product: str, amount: int, term_months: int | None) -> Cost:
+def rate_for(policy: Policy, product: str, score: int | None = None) -> float:
+    """Ставка с учётом оценки: базовая от порога одобрения, ниже — надбавка полосы «иных условий»."""
+    base = float(policy.products[product]["rate"])
+    d = policy.decision
+    if score is None or score >= d["approve_score"]:
+        return base
+    for band in d["counter_bands"]:
+        if score >= band["min"]:
+            return base + float(band.get("rate_add", 0))
+    return base
+
+
+def cost(policy: Policy, product: str, amount: int, term_months: int | None, rate: float | None = None) -> Cost:
     p = policy.products[product]
     term = term_of(policy, product, term_months)
+    rate = float(p["rate"]) if rate is None else rate
     fee = round(amount * p["fee_percent"] / 100)
     if product == "WORKING_CAPITAL":
-        pay = annuity(amount, p["rate"], term)
+        pay = annuity(amount, rate, term)
         # Полная стоимость = платежи за срок − тело + комиссия (от неокруглённого платежа, как в спецификации)
-        return Cost(product=product, amount=amount, term_months=term, rate=p["rate"],
+        return Cost(product=product, amount=amount, term_months=term, rate=rate,
                     monthly_payment=round(pay), fee=fee, full_cost=round(pay * term - amount + fee))
-    monthly = amount * p["rate"] / 100 * p["days_in_month"] / 365
-    yearly = amount * p["rate"] / 100
-    return Cost(product=product, amount=amount, term_months=term, rate=p["rate"],
+    monthly = amount * rate / 100 * p["days_in_month"] / 365
+    yearly = amount * rate / 100
+    return Cost(product=product, amount=amount, term_months=term, rate=rate,
                 monthly_payment=round(monthly), fee=fee, full_cost=round(yearly + fee))
 
 

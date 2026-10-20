@@ -109,3 +109,84 @@ def test_route_specialist_permanent_reason(policy):
     from service.route import SpecialistDecision
     r = build_route(policy, applicant("P1"), specialist=SpecialistDecision(outcome="REJECTED", reason_code="S_INDUSTRY"))
     assert r.status == "NO_ROUTE"
+
+
+# ---------- иные условия при 50–69 баллах всегда отличаются от запроса ----------
+
+def _band_60_69(policy):
+    """P1 с ухудшенными факторами: 60–69 баллов, сумма в пределах лимита × 0,75."""
+    a = mutate(applicant("P1"), "owner", max_dpd_24m=40, card_utilization=0.9)
+    a = mutate(a, "company", fssp_debt=30_000, business_age_months=8, okved="41.20")
+    a = mutate(a, "account", rko_months=4)
+    return mutate(a, "request", amount=300_000)
+
+
+def test_band_counter_offer_differs_by_rate(policy):
+    d = decide(policy, _band_60_69(policy))
+    assert 60 <= d.score.score <= 69
+    assert d.outcome == "COUNTER_OFFER" and d.amount == d.requested_amount == 300_000
+    assert d.cost.rate == policy.products["WORKING_CAPITAL"]["rate"] + 2.0
+    assert d.reasons[0].code == "R_RISK_PRICE"
+
+
+def test_band_50_59_has_higher_premium(policy):
+    a = mutate(applicant("P4"), "owner", months_since_90plus=None)
+    d = decide(policy, a)
+    assert 50 <= d.score.score <= 59
+    assert d.cost.rate == policy.products["WORKING_CAPITAL"]["rate"] + 4.0
+
+
+def test_offers_and_precheck_use_risk_rate(policy):
+    from service.decision import offers, precheck
+    a = _band_60_69(policy)
+    d = decide(policy, a)
+    assert offers(policy, a, d)[0].cost.rate == d.cost.rate
+    assert precheck(policy, a).cost.rate == d.cost.rate
+
+
+def test_approval_keeps_base_rate(policy):
+    d = decide(policy, applicant("P1"))
+    assert d.outcome == "APPROVED" and d.cost.rate == policy.products["WORKING_CAPITAL"]["rate"]
+
+
+def test_band_explanation_names_the_rate(policy):
+    from service.explain import decision_template
+    text = decision_template(policy, decide(policy, _band_60_69(policy)))
+    assert "всю сумму" in text and "ставка 22% вместо 20%" in text
+
+
+# ---------- «Нужны данные» — только если заявлено больше, чем видно по счёту ----------
+
+def test_underdeclared_revenue_needs_no_data(policy):
+    from service.decision import precheck
+    a = mutate(applicant("P1"), "checks", declared_monthly_revenue=100_000)
+    assert decide(policy, a).outcome == "APPROVED"
+    assert "D_MISMATCH" not in [r.code for r in precheck(policy, a).reasons]
+
+
+def test_overdeclared_revenue_needs_data(policy):
+    d = decide(policy, applicant("P5"))
+    assert d.outcome == "INFO_REQUESTED" and d.reasons[0].code == "D_MISMATCH"
+
+
+# ---------- запрос вне параметров продукта — явная ошибка, а не обрезка ----------
+
+def test_term_outside_product_range_rejected(policy):
+    import pytest
+
+    from service.decision import RequestError, validate_request
+    for req, field in [(dict(product="WORKING_CAPITAL", amount=850_000, term_months=60), "term_months"),
+                       (dict(product="WORKING_CAPITAL", amount=850_000, term_months=2), "term_months"),
+                       (dict(product="OVERDRAFT", amount=300_000, term_months=6), "term_months"),
+                       (dict(product="WORKING_CAPITAL", amount=50_000, term_months=12), "amount")]:
+        a = mutate(applicant("P1"), "request", **req)
+        with pytest.raises(RequestError) as exc:
+            validate_request(policy, a.request)
+        assert exc.value.field == field
+
+
+def test_valid_requests_pass(policy):
+    from service.decision import validate_request
+    for key in ("P1", "P2", "P3", "P4", "P5"):
+        validate_request(policy, applicant(key).request)
+    validate_request(policy, mutate(applicant("P5"), "request", term_months=12).request)

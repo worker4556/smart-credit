@@ -12,12 +12,12 @@ from pydantic import BaseModel, Field
 
 from . import llm
 from .config import get_policy
-from .decision import decide, limit, offers, precheck
+from .decision import RequestError, decide, limit, offers, precheck, validate_request
 from .explain import Explanation, explain_decision, explain_precheck, explain_route
 from .intent import Intent, parse
 from .route import Route, SpecialistDecision, build_route
 from .finance import quote
-from .schemas import Applicant, Decision, LimitResult, Offer, Precheck, ProductCode, Quote, ScoreResult
+from .schemas import Applicant, Decision, LimitResult, LoanRequest, Offer, Precheck, ProductCode, Quote, ScoreResult
 from .scoring import score
 
 logging.basicConfig(level=logging.INFO, format='{"level":"%(levelname)s","logger":"%(name)s","msg":"%(message)s"}')
@@ -56,6 +56,16 @@ class ExplainRequest(BaseModel):
     use_llm: bool = True
 
 
+def _validated(a: Applicant, *loc: str) -> Applicant:
+    """Параметры запроса в пределах продукта, иначе 422 в формате ошибок валидации FastAPI."""
+    try:
+        validate_request(get_policy(), a.request)
+    except RequestError as exc:
+        raise HTTPException(422, [{"loc": ["body", *loc, "request", exc.field], "msg": exc.message,
+                                   "type": "value_error.product_range"}])
+    return a
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok", "policy_version": get_policy().version, "llm": llm.status()}
@@ -68,36 +78,40 @@ def intent(req: IntentRequest) -> Intent:
 
 @app.post("/v1/precheck", response_model=Precheck, summary="Шаг 3: предоценка без заявки и без БКИ")
 def precheck_endpoint(a: Applicant) -> Precheck:
-    return precheck(get_policy(), a)
+    return precheck(get_policy(), _validated(a))
 
 
 @app.post("/v1/score", response_model=ScoreResult, summary="Б3: баллы по 9 факторам и стоп-факторы")
 def score_endpoint(a: Applicant) -> ScoreResult:
-    return score(get_policy(), a)
+    return score(get_policy(), _validated(a))
 
 
 @app.post("/v1/limit", response_model=LimitResult, summary="Доступная сумма по формуле продукта")
 def limit_endpoint(a: Applicant) -> LimitResult:
-    return limit(get_policy(), a)
+    return limit(get_policy(), _validated(a))
 
 
 @app.post("/v1/decision", response_model=DecisionWithOffers, summary="Б3 + Б4: исход, сумма, стоимость, причины, триггеры специалиста")
 def decision_endpoint(a: Applicant) -> DecisionWithOffers:
     policy = get_policy()
-    d = decide(policy, a)
+    d = decide(policy, _validated(a))
     return DecisionWithOffers(**d.model_dump(), offers=offers(policy, a, d))
 
 
 @app.post("/v1/route", response_model=Route, summary="Маршрут к одобрению и «Пересчитать»")
 def route_endpoint(req: RouteRequest) -> Route:
     try:
-        return build_route(get_policy(), req.applicant, req.assume_done, req.specialist_decision)
+        return build_route(get_policy(), _validated(req.applicant, "applicant"), req.assume_done, req.specialist_decision)
     except ValueError as exc:
         raise HTTPException(422, str(exc))
 
 
 @app.post("/v1/quote", response_model=Quote, summary="Калькулятор для ползунков: платёж, переплата, график — без скоринга")
 def quote_endpoint(req: QuoteRequest) -> Quote:
+    try:
+        validate_request(get_policy(), LoanRequest(product=req.product, amount=req.amount, term_months=req.term_months))
+    except RequestError as exc:
+        raise HTTPException(422, [{"loc": ["body", exc.field], "msg": exc.message, "type": "value_error.product_range"}])
     return quote(get_policy(), req.product, req.amount, req.term_months)
 
 

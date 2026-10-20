@@ -2,11 +2,38 @@
 from __future__ import annotations
 
 from .config import Policy
-from .finance import cost, principal_for_payment, round_down, term_of
-from .schemas import (AmountRange, Applicant, Decision, LimitResult, Offer, Precheck, Reason, ScoreResult, Specialist)
+from .finance import cost, principal_for_payment, rate_for, round_down, term_of
+from .schemas import (AmountRange, Applicant, Decision, LimitResult, LoanRequest, Offer, Precheck, Reason, ScoreResult,
+                      Specialist)
 from .scoring import avg_turnover, score
 
 LIMIT_REASON = {"TURNOVER": "L_TURNOVER", "DEBT": "B_DEBT_RATIO", "PAYMENT": "B_AMOUNT", "PRODUCT_MAX": "B_AMOUNT"}
+
+
+# ---------- проверка запроса по параметрам продукта ----------
+
+class RequestError(ValueError):
+    """Запрос вне параметров продукта: сообщаем явно, а не обрезаем молча."""
+
+    def __init__(self, field: str, message: str):
+        super().__init__(message)
+        self.field = field
+        self.message = message
+
+
+def _rub(x: int) -> str:
+    return f"{x:,}".replace(",", " ") + " ₽"
+
+
+def validate_request(policy: Policy, req: LoanRequest) -> None:
+    p = policy.products[req.product]
+    if req.amount < p["min_amount"]:
+        raise RequestError("amount", f"Минимальная сумма для продукта «{p['name']}» — {_rub(p['min_amount'])}")
+    if req.product == "OVERDRAFT":
+        if req.term_months is not None and req.term_months != p["term"]:
+            raise RequestError("term_months", f"Овердрафт открывается на {p['term']} мес., срок выбирать не нужно")
+    elif req.term_months is not None and not p["min_term"] <= req.term_months <= p["max_term"]:
+        raise RequestError("term_months", f"Срок для продукта «{p['name']}»: от {p['min_term']} до {p['max_term']} мес.")
 
 
 # ---------- лимит ----------
@@ -60,11 +87,13 @@ def factor_reasons(policy: Policy, sc: ScoreResult, n: int | None = None) -> lis
 
 
 def turnover_mismatch(policy: Policy, a: Applicant) -> bool:
+    """Заявлено больше, чем видно банку: часть выручки идёт мимо счёта — её можно подтвердить выпиской.
+    Если заявлено меньше, банк опирается на данные счёта и ничего не запрашивает."""
     declared = a.checks.declared_monthly_revenue
     t = avg_turnover(a)
     if not declared or t <= 0:
         return False
-    return abs(declared - t) / t > policy.decision["turnover_mismatch"]
+    return (declared - t) / t > policy.decision["turnover_mismatch"]
 
 
 # ---------- решение (Б4) ----------
@@ -79,7 +108,8 @@ def decide(policy: Policy, a: Applicant, stage: str = "DECISION") -> Decision:
     def result(outcome, amount=None, reasons=(), lim=None, term_=term) -> Decision:
         return Decision(policy_version=policy.version, outcome=outcome, requested_amount=req.amount,
                         amount=amount, term_months=term_ if amount else None,
-                        cost=cost(policy, req.product, amount, term_) if amount else None,
+                        cost=cost(policy, req.product, amount, term_, rate_for(policy, req.product, sc.score))
+                        if amount else None,
                         limit=lim, reasons=list(reasons), specialist=_specialist(policy, a, sc, outcome), score=sc)
 
     if stage == "DECISION":
@@ -114,6 +144,9 @@ def decide(policy: Policy, a: Applicant, stage: str = "DECISION") -> Decision:
     reasons = factor_reasons(policy, sc)
     if sc.score >= d["approve_score"]:
         reasons = [reason(policy, LIMIT_REASON[lim.binding])] + reasons
+    else:
+        # Полоса 50–69: иные условия всегда отличаются от запроса — как минимум ценой риска
+        reasons = [reason(policy, "R_RISK_PRICE")] + reasons
     return result("COUNTER_OFFER", amount, reasons[: d["max_reasons"]], lim)
 
 
@@ -151,7 +184,7 @@ def offers(policy: Policy, a: Applicant, dec: Decision) -> list[Offer]:
     def add(kind, product, amount, term):
         if amount and all((o.product, o.amount, o.term_months) != (product, amount, term) for o in out):
             out.append(Offer(kind=kind, product=product, amount=amount, term_months=term,
-                             cost=cost(policy, product, amount, term)))
+                             cost=cost(policy, product, amount, term, rate_for(policy, product, dec.score.score))))
 
     term = term_of(policy, req.product, req.term_months)
     if dec.outcome == "APPROVED":
@@ -192,7 +225,8 @@ def precheck(policy: Policy, a: Applicant) -> Precheck:
         if a.owner.source == "SELF_REPORTED" else None
     return Precheck(policy_version=policy.version, chance=CHANCE[dec.outcome], expected_outcome=dec.outcome,
                     score=sc.score, amount_range=AmountRange(low=low, high=high), requested_amount=a.request.amount,
-                    cost=cost(policy, a.request.product, a.request.amount, a.request.term_months),
+                    cost=cost(policy, a.request.product, a.request.amount, a.request.term_months,
+                              rate_for(policy, a.request.product, sc.score)),
                     reasons=reasons[: policy.decision["max_reasons"] + len(sc.stops)],
                     offers=offers(policy, a, dec), owner_note=note, valid_days=pc["valid_days"],
                     disclaimer=pc["disclaimer"])

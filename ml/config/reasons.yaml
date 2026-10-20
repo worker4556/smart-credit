@@ -97,6 +97,11 @@ reasons:
     text: Отрасль не кредитуется по программе
     permanent: true
 
+  R_RISK_PRICE:
+    kind: PRICE
+    category: Финансовые показатели
+    text: Оценка ниже порога одобрения — ставка выше базовой
+    step: {action: Пройти шаги маршрута — при оценке от 70 баллов действует базовая ставка, term: по маршруту, months: null, effect: advice}
   L_TURNOVER:
     kind: LIMIT
     category: Финансовые показатели
