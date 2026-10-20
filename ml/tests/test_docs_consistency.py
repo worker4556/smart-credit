@@ -9,7 +9,7 @@ from service.main import app
 REPO = Path(__file__).resolve().parents[2]
 OPENAPI_FILE = REPO / "docs" / "openapi-ml.yaml"
 API_CONTRACT = REPO / "docs" / "api-contract.md"
-BACKEND_MD_FILE = REPO / "backend" / "INSTRUCTIONS.md"
+BACKEND_MD_FILE = REPO / "docs" / "team" / "backend-instructions.md"
 DECISIONS_MD_FILE = REPO / "docs" / "decisions.md"
 ML_README_FILE = REPO / "ml" / "README.md"
 
