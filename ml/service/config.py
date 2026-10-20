@@ -12,7 +12,7 @@ CONFIG_DIR = Path(os.getenv("POLICY_DIR", Path(__file__).resolve().parent.parent
 
 
 class Policy:
-    def __init__(self, policy: dict[str, Any], reasons: dict[str, Any]):
+    def __init__(self, policy: dict[str, Any], reasons: dict[str, Any], glossary: dict[str, Any] | None = None):
         self.raw = policy
         self.version: str = policy["version"]
         self.factors: dict[str, dict] = policy["factors"]
@@ -23,6 +23,7 @@ class Policy:
         self.precheck: dict = policy["precheck"]
         self.route: dict = policy["route"]
         self.reasons: dict[str, dict] = reasons["reasons"]
+        self.glossary: list[dict] = (glossary or {}).get("terms", [])
         self._validate()
 
     def _validate(self) -> None:
@@ -50,4 +51,6 @@ def get_policy() -> Policy:
         policy = yaml.safe_load(f)
     with open(CONFIG_DIR / "reasons.yaml", encoding="utf-8") as f:
         reasons = yaml.safe_load(f)
-    return Policy(policy, reasons)
+    with open(CONFIG_DIR / "glossary.yaml", encoding="utf-8") as f:
+        glossary = yaml.safe_load(f)
+    return Policy(policy, reasons, glossary)

@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from . import llm
 from .config import get_policy
 from .decision import RequestError, decide, limit, offers, precheck, validate_request
+from .glossary import lookup
 from .explain import Explanation, explain_decision, explain_precheck, explain_route
 from .intent import Intent, parse
 from .route import Route, SpecialistDecision, build_route
@@ -145,6 +146,19 @@ def explain_endpoint(req: ExplainRequest) -> Explanation:
 @app.get("/v1/reasons", summary="Справочник причин — для специалиста и фронта")
 def reasons() -> dict:
     return {"items": [{"code": c, **r} for c, r in get_policy().reasons.items()]}
+
+
+@app.get("/v1/glossary", summary="Словарь простых слов")
+def glossary_endpoint() -> dict:
+    return {"items": get_policy().glossary}
+
+
+@app.get("/v1/glossary/{term}", summary="Один термин по названию или форме слова")
+def glossary_term(term: str) -> dict:
+    found = lookup(get_policy(), term)
+    if not found:
+        raise HTTPException(404, "Термин не найден в словаре")
+    return found
 
 
 @app.get("/v1/policy", summary="Действующие веса, пороги и продукты")
