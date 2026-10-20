@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from service import llm
 from service.config import get_policy
 from service.schemas import Applicant, Owner
 
@@ -31,3 +32,20 @@ def with_statement(key: str) -> Applicant:
     a = applicant(key)
     return a.model_copy(update={"account": a.account.model_copy(
         update={"external_turnover_monthly": PERSONAS[key]["statement_external_turnover"]})})
+
+
+@pytest.fixture(autouse=True)
+def _fresh_llm_ready_cache():
+    llm.reset_ready_cache()
+    yield
+    llm.reset_ready_cache()
+
+
+@pytest.fixture
+def fake_llm(monkeypatch):
+    """Подменяет ответ модели; LLM считается включённой и готовой."""
+    def install(answer):
+        monkeypatch.setattr(llm, "OLLAMA_URL", "http://fake")
+        monkeypatch.setattr(llm, "ready", lambda: True)
+        monkeypatch.setattr(llm, "chat", lambda *a, **kw: answer)
+    return install

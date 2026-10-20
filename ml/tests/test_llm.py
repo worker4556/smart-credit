@@ -7,15 +7,6 @@ from service.decision import decide
 from service.route import build_route
 
 
-@pytest.fixture
-def fake_llm(monkeypatch):
-    """Подменяет ответ модели; LLM считается включённой."""
-    def install(answer):
-        monkeypatch.setattr(llm, "OLLAMA_URL", "http://fake")
-        monkeypatch.setattr(llm, "chat", lambda *a, **kw: answer)
-    return install
-
-
 # ---------- разбор фразы ----------
 
 @pytest.mark.parametrize("text,purpose,amount,term,product", [

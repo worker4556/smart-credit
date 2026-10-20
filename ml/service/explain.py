@@ -136,7 +136,7 @@ SYSTEM = (
 def render(template: str, outcome: str | None, use_llm: bool, noncredit: bool = False) -> Explanation:
     if noncredit or not use_llm or not llm.enabled():
         return Explanation(text=template, template_text=template, source="TEMPLATE")
-    out = llm.chat(SYSTEM, template, temperature=0.2)
+    out = llm.chat(SYSTEM, template, temperature=0.2, timeout=llm.TEXT_TIMEOUT)
     if not isinstance(out, str):
         return Explanation(text=template, template_text=template, source="TEMPLATE", fallback_reason="LLM недоступна")
     problem = check_llm_text(out, template, outcome)

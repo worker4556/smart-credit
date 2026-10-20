@@ -198,7 +198,7 @@ def parse(text: str, use_llm: bool = True) -> Intent:
     purpose, amount, term = purpose_by_rules(text), _pick_amount(text, cands), (terms[0] if terms else None)
     source = "RULES"
 
-    out = llm.chat(LLM_SYSTEM, text, schema=LLM_SCHEMA) if use_llm else None
+    out = llm.chat(LLM_SYSTEM, text, schema=LLM_SCHEMA, timeout=llm.INTENT_TIMEOUT, max_tokens=80) if use_llm else None
     if isinstance(out, dict):
         source = "LLM"
         if out.get("purpose") in PURPOSE_TEXT and (out["purpose"] != "OTHER" or purpose is None):
