@@ -1,0 +1,30 @@
+{"text": "нужно 800 тыс. на закупку к сезону", "purpose": "PURCHASE", "amount": 800000, "term_months": null}
+{"text": "Нужно 850 тысяч на 2 года на сезонную закупку кофе и сиропов", "purpose": "PURCHASE", "amount": 850000, "term_months": 24}
+{"text": "хочу взять 3 млн на 18 месяцев чтобы закупить товар на маркетплейсы", "purpose": "PURCHASE", "amount": 3000000, "term_months": 18}
+{"text": "1,2 млн на запчасти и расходники, на два года", "purpose": "PURCHASE", "amount": 1200000, "term_months": 24}
+{"text": "500 тыс на материалы для студии на год", "purpose": "PURCHASE", "amount": 500000, "term_months": 12}
+{"text": "нужен запас на месяц, выручка около 900 тыс, хочу 300 тыс", "purpose": "CASH_GAP", "amount": 300000, "term_months": 1}
+{"text": "Покупатели задерживают оплату, нужно 400 000 рублей перекрыть зарплату", "purpose": "CASH_GAP", "amount": 400000, "term_months": null}
+{"text": "кассовый разрыв на 2 месяца, примерно полмиллиона", "purpose": "CASH_GAP", "amount": 500000, "term_months": 2}
+{"text": "Нечем платить аренду и налоги в этом месяце, нужно 250к", "purpose": "CASH_GAP", "amount": 250000, "term_months": null}
+{"text": "пока маркетплейс не перечислит деньги, нужно 700 тысяч на три недели", "purpose": "CASH_GAP", "amount": 700000, "term_months": 1}
+{"text": "Выиграли тендер, нужно 2 млн на исполнение контракта на 9 месяцев", "purpose": "CONTRACT", "amount": 2000000, "term_months": 9}
+{"text": "Пришёл крупный заказ от сети, надо 1.5 млн на полгода", "purpose": "CONTRACT", "amount": 1500000, "term_months": 6}
+{"text": "госзаказ на поставку, нужно 4 миллиона на 12 месяцев", "purpose": "CONTRACT", "amount": 4000000, "term_months": 12}
+{"text": "Хочу купить новую кофемашину за 900 тыс в рассрочку на 3 года", "purpose": "EQUIPMENT", "amount": 900000, "term_months": 36}
+{"text": "нужен станок с ЧПУ, стоит 2,4 млн, срок 24 мес", "purpose": "EQUIPMENT", "amount": 2400000, "term_months": 24}
+{"text": "Купить фургон для доставки, миллион на полтора года", "purpose": "EQUIPMENT", "amount": 1000000, "term_months": 18}
+{"text": "Хочу открыть вторую точку, нужно 1,8 млн на 3 года", "purpose": "EXPANSION", "amount": 1800000, "term_months": 36}
+{"text": "расширить производство, 2 миллиона на 30 месяцев", "purpose": "EXPANSION", "amount": 2000000, "term_months": 30}
+{"text": "ремонт помещения под второй зал, триста тысяч", "purpose": "EXPANSION", "amount": 300000, "term_months": null}
+{"text": "закупить ткани для пошива на 600 тыс на 8 месяцев", "purpose": "PURCHASE", "amount": 600000, "term_months": 8}
+{"text": "Надо закупить партию стройматериалов, 1 200 000 руб на год", "purpose": "PURCHASE", "amount": 1200000, "term_months": 12}
+{"text": "денег не хватает до поступления оплаты от клиентов, 150 тысяч", "purpose": "CASH_GAP", "amount": 150000, "term_months": null}
+{"text": "Нужно пополнить ассортимент к новому году, 350 тыс на 6 мес", "purpose": "PURCHASE", "amount": 350000, "term_months": 6}
+{"text": "нужно двести тысяч на зарплату сотрудникам на месяц", "purpose": "CASH_GAP", "amount": 200000, "term_months": 1}
+{"text": "Хочу 5 млн на закупку сырья для пекарни на 36 месяцев", "purpose": "PURCHASE", "amount": 5000000, "term_months": 36}
+{"text": "оборот 2 млн в месяц, хочу взять 1 млн на корм для зоомагазина на год", "purpose": "PURCHASE", "amount": 1000000, "term_months": 12}
+{"text": "Нужен холодильник для кафе, примерно 450 тыс", "purpose": "EQUIPMENT", "amount": 450000, "term_months": null}
+{"text": "чтобы исполнить договор с застройщиком нужны 3,5 млн на 10 мес", "purpose": "CONTRACT", "amount": 3500000, "term_months": 10}
+{"text": "подушка на время сезонного спада, 600 000 на пару месяцев", "purpose": "CASH_GAP", "amount": 600000, "term_months": 2}
+{"text": "Не знаю какой кредит, нужны деньги на развитие, 1 млн", "purpose": "EXPANSION", "amount": 1000000, "term_months": null}

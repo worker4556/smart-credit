@@ -1,0 +1,15 @@
+{"text": "Добрый день, мне бы 450 тысяч на закупку саженцев к весне, отдам за 10 месяцев", "purpose": "PURCHASE", "amount": 450000, "term_months": 10}
+{"text": "клиенты платят с отсрочкой 60 дней, а поставщикам платить сейчас — нужно около 800к", "purpose": "CASH_GAP", "amount": 800000, "term_months": null}
+{"text": "Хотим взять полтора миллиона на 2 года, чтобы закупить больше товара под распродажу", "purpose": "PURCHASE", "amount": 1500000, "term_months": 24}
+{"text": "нужно 3 млн под исполнение муниципального контракта, срок 14 месяцев", "purpose": "CONTRACT", "amount": 3000000, "term_months": 14}
+{"text": "купить второй гриль и вытяжку, около 700 тыс на 24 мес", "purpose": "EQUIPMENT", "amount": 700000, "term_months": 24}
+{"text": "Сезонный провал, не хватает на зарплату и аренду, 350 000 на 2 месяца", "purpose": "CASH_GAP", "amount": 350000, "term_months": 2}
+{"text": "Хочу открыть пункт выдачи заказов, 900 тысяч на три года", "purpose": "EXPANSION", "amount": 900000, "term_months": 36}
+{"text": "выручка 1,2 млн в месяц, нужно 600 тыс на закупку упаковки на год", "purpose": "PURCHASE", "amount": 600000, "term_months": 12}
+{"text": "2,5 млн на закупку сырья для производства мебели, 18 мес", "purpose": "PURCHASE", "amount": 2500000, "term_months": 18}
+{"text": "Нужно перекрыть налоги до конца месяца, 120 тыс", "purpose": "CASH_GAP", "amount": 120000, "term_months": null}
+{"text": "нужна машина для доставки цветов, 1,3 млн на 4 года", "purpose": "EQUIPMENT", "amount": 1300000, "term_months": 48}
+{"text": "Хочу 400 тысяч на ремонт второго кабинета в клинике на год", "purpose": "EXPANSION", "amount": 400000, "term_months": 12}
+{"text": "Пришёл заказ от Wildberries на крупную партию, надо 2 млн на полгода", "purpose": "CONTRACT", "amount": 2000000, "term_months": 6}
+{"text": "Нужно 250 тыс на закупку кормов на 6 месяцев", "purpose": "PURCHASE", "amount": 250000, "term_months": 6}
+{"text": "ждём оплату по актам, а платить подрядчикам сейчас, нужен миллион на месяц", "purpose": "CASH_GAP", "amount": 1000000, "term_months": 1}

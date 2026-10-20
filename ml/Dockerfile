@@ -3,12 +3,12 @@ COPY --from=ghcr.io/astral-sh/uv:0.11.14 /uv /usr/local/bin/uv
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy PYTHONUNBUFFERED=1 PATH="/app/.venv/bin:$PATH"
 WORKDIR /app
 
-# Только рантайм-зависимости (без train/dev групп) — версии из uv.lock
+# Только рантайм-зависимости (без dev) — версии из uv.lock
 COPY pyproject.toml uv.lock .python-version ./
 RUN uv sync --frozen --no-default-groups
 
 COPY service ./service
-COPY artifacts ./artifacts
+COPY config ./config
 
 RUN useradd --create-home --uid 10001 app
 USER app

@@ -1,87 +1,96 @@
-import pytest
+"""HTTP-контракт сервиса (docs/api-contract.md, раздел C)."""
+from conftest import PERSONAS, precheck_applicant
 from fastapi.testclient import TestClient
 
-from service.features import FEATURES, ScoringFeatures, derive
 from service.main import app
-from service.scorecard import load_scorecard
 
 client = TestClient(app)
-
-SOKOLOVA = dict(legal_form="IP", okved="56.10", company_age_months=25, annual_revenue=4_800_000,
-                requested_amount=1_500_000, term_months=36, product_code="EQUIPMENT",
-                active_loans_count=1, existing_monthly_payments=60_000)
-VECTOR = dict(legal_form="OOO", okved="46.90", company_age_months=79, annual_revenue=48_000_000,
-              requested_amount=5_000_000, term_months=36, active_loans_count=1,
-              existing_monthly_payments=120_000, revenue_confirmed=True)
-
-
-def score(**overrides):
-    return load_scorecard().score(ScoringFeatures(**{**SOKOLOVA, **overrides}))
 
 
 def test_health():
     body = client.get("/health").json()
-    assert body["status"] == "ok"
-    assert body["model_version"] == "scorecard-1.0"
+    assert body["status"] == "ok" and body["policy_version"]
+    assert body["llm"]["enabled"] is False
 
 
-def test_every_bin_has_points():
-    sc = load_scorecard()
-    for f in FEATURES:
-        assert set(sc.points[f.name]) == set(f.bins), f.name
-        assert sc.points[f.name][f.reference] == 0
+def test_intent():
+    r = client.post("/v1/intent", json={"text": "нужно 800 тыс. на закупку к сезону", "use_llm": False})
+    assert r.status_code == 200
+    assert r.json()["amount"] == 800_000 and r.json()["product"] == "WORKING_CAPITAL"
 
 
-@pytest.mark.parametrize("field,worse,better", [
-    ("max_dpd_12m", 95, 0),
-    ("tax_debt", 200_000, 0),
-    ("mass_address", True, False),
-    ("company_age_months", 3, 60),
-    ("requested_amount", 4_000_000, 500_000),
-])
-def test_risk_direction(field, worse, better):
-    assert score(**{field: worse})["score"] < score(**{field: better})["score"]
+def test_precheck():
+    r = client.post("/v1/precheck", json=precheck_applicant("P2").model_dump())
+    assert r.status_code == 200
+    body = r.json()
+    assert body["chance"] == "MEDIUM" and body["valid_days"] == 30 and "не решение банка" in body["disclaimer"]
 
 
-def test_pd_is_consistent_with_grade():
-    r = score()
-    assert 0 < r["pd"] < 1
-    assert r["grade"] in "ABCDE"
-    assert sum(f["points"] for f in r["factors"]) + load_scorecard().base_points == r["score"]
+def test_decision_with_offers():
+    body = client.post("/v1/decision", json=PERSONAS["P1"]["decision"]).json()
+    assert body["outcome"] == "APPROVED" and body["cost"]["full_cost"] == 196_774
+    assert body["offers"][0]["kind"] == "REQUESTED"
 
 
-def test_demo_personas():
-    assert client.post("/v1/score", json={"features": VECTOR}).json()["grade"] == "A"
-    assert client.post("/v1/score", json={"features": {**SOKOLOVA, "max_dpd_12m": 95}}).json()["chance"] == "LOW"
+def test_route_and_recalculate():
+    a = PERSONAS["P3"]["decision"]
+    first = client.post("/v1/route", json={"applicant": a}).json()
+    again = client.post("/v1/route", json={"applicant": a, "assume_done": ["S_TAX"]}).json()
+    assert first["projection"]["score"] == 77
+    assert "S_TAX" not in [s["code"] for s in again["steps"]]
 
 
-def test_precheck_suggests_revenue_confirmation_for_sokolova():
-    r = client.post("/v1/precheck", json={"features": SOKOLOVA, "max_term_months": 60}).json()
-    assert r["chance"] == "MEDIUM"
-    kinds = {("revenue" if h["change"].get("revenue_confirmed") else "amount" if h["change"].get("amount") else "term") for h in r["hints"]}
-    assert "revenue" in kinds
-    assert all(h["chance_percent"] > r["chance_percent"] for h in r["hints"])
+def test_explain_decision():
+    d = client.post("/v1/decision", json=PERSONAS["P3"]["decision"]).json()
+    e = client.post("/v1/explain", json={"decision": d, "use_llm": False}).json()
+    assert e["source"] == "TEMPLATE" and "налоговая задолженность" in e["text"]
 
 
-def test_debt_burden_uses_annuity():
-    d = derive(ScoringFeatures(**SOKOLOVA))
-    assert 50_000 < d["_monthly_payment"] < 60_000
-    assert d["debt_burden"] == pytest.approx((60_000 + d["_monthly_payment"]) / 400_000, rel=1e-3)
+def test_explain_requires_payload():
+    assert client.post("/v1/explain", json={}).status_code == 422
+
+
+def test_reasons_dictionary():
+    items = {i["code"] for i in client.get("/v1/reasons").json()["items"]}
+    assert {"B_TURNOVER", "S_TAX", "S_90_12", "L_TURNOVER", "D_MISMATCH", "D_DOC"} <= items
 
 
 def test_validation_error():
-    assert client.post("/v1/score", json={"features": {**SOKOLOVA, "requested_amount": -1}}).status_code == 422
+    assert client.post("/v1/decision", json={"request": {"product": "LEASING", "amount": 1}}).status_code == 422
 
 
-def test_recommend_moves_fitting_product_up():
-    items = client.post("/v1/recommend", json={"purpose": "CASH_GAP", "amount": 5_000_000, "term_months": 12}).json()["items"]
-    assert items[0]["product_code"] == "CREDIT_LINE" and items[0]["fit"] == "BEST"
+def test_quote_endpoint():
+    body = client.post("/v1/quote", json={"product": "WORKING_CAPITAL", "amount": 850000, "term_months": 24}).json()
+    assert body["monthly_payment"] == 43_261 and len(body["schedule"]) == 24
 
 
-def test_explain_falls_back_to_template():
-    r = client.post("/v1/explain", json={"outcome": "COUNTER_OFFER", "requested_amount": 1_500_000,
-                                         "offer": {"amount": 1_150_000, "term_months": 36, "rate": 19.5},
-                                         "reasons": ["AMOUNT_ABOVE_LIMIT"]}).json()
-    assert r["source"] == "TEMPLATE"
-    assert "1 150 000 ₽" in r["text"]
-    assert r["recommendations"]
+def test_route_rejects_unknown_specialist_code():
+    r = client.post("/v1/route", json={"applicant": PERSONAS["P1"]["decision"],
+                                       "specialist_decision": {"outcome": "REJECTED", "reason_code": "NOPE"}})
+    assert r.status_code == 422
+
+
+def _p1(**req):
+    body = PERSONAS["P1"]["decision"]
+    return {**body, "request": {**body["request"], **req}}
+
+
+def test_term_outside_range_is_422_not_clamped():
+    for path in ("/v1/precheck", "/v1/decision", "/v1/score", "/v1/limit"):
+        r = client.post(path, json=_p1(term_months=60))
+        assert r.status_code == 422, path
+        err = r.json()["detail"][0]
+        assert err["loc"] == ["body", "request", "term_months"] and "от 3 до 36" in err["msg"]
+
+
+def test_amount_below_minimum_is_422():
+    r = client.post("/v1/decision", json=_p1(amount=50_000))
+    assert r.status_code == 422 and r.json()["detail"][0]["loc"][-1] == "amount"
+
+
+def test_route_and_quote_validate_term():
+    r = client.post("/v1/route", json={"applicant": _p1(term_months=60)})
+    assert r.status_code == 422 and r.json()["detail"][0]["loc"] == ["body", "applicant", "request", "term_months"]
+    q = client.post("/v1/quote", json={"product": "WORKING_CAPITAL", "amount": 850_000, "term_months": 60})
+    assert q.status_code == 422
+    assert client.post("/v1/quote", json={"product": "OVERDRAFT", "amount": 300_000, "term_months": 6}).status_code == 422
