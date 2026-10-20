@@ -1,21 +1,27 @@
-# Единый запуск. Сейчас здесь ML-часть; backend, frontend, mocks и postgres добавляются сюда же.
-#   docker compose up --build                    # без LLM: разбор фраз правилами, тексты шаблонами
-#   docker compose --profile llm up --build      # + локальная LLM с открытыми весами (Ollama)
+# Единый запуск. Сейчас здесь ML-часть; backend, frontend и postgres добавляются сюда же.
+#   docker compose up --build      # всё, включая локальную LLM с открытыми весами (Ollama)
+# Первый запуск сам скачивает модель (~1,4 ГБ для qwen3:1.7b). Пока она качается, ml работает на шаблонах
+# (GET /health → llm.ready = false), после загрузки помощник включается без перезапуска.
+# Отключить LLM: OLLAMA_URL= в .env. На Mac для разработки быстрее нативная Ollama: OLLAMA_URL=http://host.docker.internal:11434
 services:
   ml:
     build: ./ml
     ports: ["8001:8001"]
     environment:
-      OLLAMA_URL: ${OLLAMA_URL:-}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
-      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-8}
+      OLLAMA_URL: ${OLLAMA_URL-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:1.7b}
+      LLM_TEXT_TIMEOUT_SECONDS: ${LLM_TEXT_TIMEOUT_SECONDS:-30}
+      LLM_INTENT_TIMEOUT_SECONDS: ${LLM_INTENT_TIMEOUT_SECONDS:-15}
     restart: unless-stopped
+    # без depends_on на ollama: сервис стартует сразу и не ждёт модель
 
   ollama:
     image: ollama/ollama:0.12.6
-    profiles: ["llm"]
     ports: ["11434:11434"]
     volumes: ["ollama:/root/.ollama"]
+    environment:
+      OLLAMA_KEEP_ALIVE: 24h
+    mem_limit: 6g
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 10s
@@ -23,15 +29,15 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # Однократно скачивает веса модели в volume (~2,5 ГБ для qwen3:4b)
+  # Однократно: скачать веса в том ollama и прогреть модель первым запросом
   ollama-pull:
     image: ollama/ollama:0.12.6
-    profiles: ["llm"]
     depends_on:
       ollama: {condition: service_healthy}
     environment:
       OLLAMA_HOST: http://ollama:11434
-    entrypoint: ["ollama", "pull", "${OLLAMA_MODEL:-qwen3:4b}"]
+      MODEL: ${OLLAMA_MODEL:-qwen3:1.7b}
+    entrypoint: ["sh", "-c", "ollama pull \"$$MODEL\" && ollama run \"$$MODEL\" 'привет' > /dev/null && echo 'model ready'"]
     restart: "no"
 
 volumes:
