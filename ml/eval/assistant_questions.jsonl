@@ -1,0 +1,30 @@
+{"persona": "P3", "question": "почему мне отказали?", "expect_topic": "WHY", "off_topic": false}
+{"persona": "P3", "question": "из-за чего отказ, если я плачу налоги?", "expect_topic": "WHY", "off_topic": false}
+{"persona": "P3", "question": "что мне сделать, чтобы дали кредит?", "expect_topic": "WHAT_TO_DO", "off_topic": false}
+{"persona": "P3", "question": "как повысить шансы?", "expect_topic": "WHAT_TO_DO", "off_topic": false}
+{"persona": "P3", "question": "когда можно подать заявку снова?", "expect_topic": "WHEN", "off_topic": false}
+{"persona": "P3", "question": "через сколько примерно станет лучше?", "expect_topic": "WHEN", "off_topic": false}
+{"persona": "P3", "question": "что такое сальдо ЕНС?", "expect_topic": "TERM", "off_topic": false}
+{"persona": "P3", "question": "что значит долговая нагрузка?", "expect_topic": "TERM", "off_topic": false}
+{"persona": "P3", "question": "а если взять 2 млн?", "expect_topic": "AMOUNT", "off_topic": false}
+{"persona": "P4", "question": "почему отказ, я же всё погасила?", "expect_topic": "WHY", "off_topic": false}
+{"persona": "P4", "question": "можно как-то ускорить?", "expect_topic": "WHEN", "off_topic": false}
+{"persona": "P4", "question": "когда я смогу получить кредит?", "expect_topic": "WHEN", "off_topic": false}
+{"persona": "P4", "question": "что мне делать сейчас?", "expect_topic": "WHAT_TO_DO", "off_topic": false}
+{"persona": "P4", "question": "что такое кредитная история?", "expect_topic": "TERM", "off_topic": false}
+{"persona": "P4", "question": "что значит ФССП?", "expect_topic": "TERM", "off_topic": false}
+{"persona": "P4", "question": "почему нельзя подать в другой банк?", "expect_topic": "WHY", "off_topic": false}
+{"persona": "P4", "question": "сколько ждать повторной оценки?", "expect_topic": "WHEN", "off_topic": false}
+{"persona": "P4", "question": "почему мне отказали?", "expect_topic": "WHY", "off_topic": false}
+{"persona": "P5", "question": "что нужно загрузить?", "expect_topic": "WHAT_TO_DO", "off_topic": false}
+{"persona": "P5", "question": "какую выписку нужно?", "expect_topic": "WHAT_TO_DO", "off_topic": false}
+{"persona": "P5", "question": "почему банк просит данные?", "expect_topic": "WHY", "off_topic": false}
+{"persona": "P5", "question": "что такое овердрафт?", "expect_topic": "TERM", "off_topic": false}
+{"persona": "P5", "question": "зачем вам выписка из другого банка?", "expect_topic": "WHY", "off_topic": false}
+{"persona": "P5", "question": "что будет после загрузки?", "expect_topic": "WHAT_TO_DO", "off_topic": false}
+{"persona": "P2", "question": "почему дают меньше, чем я просил?", "expect_topic": "AMOUNT", "off_topic": false}
+{"persona": "P2", "question": "почему не всю сумму?", "expect_topic": "AMOUNT", "off_topic": false}
+{"persona": "P2", "question": "что такое лимит?", "expect_topic": "TERM", "off_topic": false}
+{"persona": "P2", "question": "как получить полную сумму?", "expect_topic": "WHAT_TO_DO", "off_topic": false}
+{"persona": "P3", "question": "какая погода в Москве?", "expect_topic": "OFF_TOPIC", "off_topic": true}
+{"persona": "P4", "question": "посоветуй хороший фильм", "expect_topic": "OFF_TOPIC", "off_topic": true}

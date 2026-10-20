@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import json
+import statistics
 import sys
 import time
 from pathlib import Path
@@ -22,8 +23,11 @@ def main() -> int:
     rows = [json.loads(line) for line in (Path(__file__).parent / name).read_text("utf-8").splitlines() if line.strip()]
     ok = {"purpose": 0, "amount": 0, "term_months": 0, "all": 0}
     started = time.perf_counter()
+    times = []
     for row in rows:
-        got = parse(row["text"], use_llm=llm.enabled())
+        t0 = time.perf_counter()
+        got = parse(row["text"], use_llm=llm.ready())
+        times.append(time.perf_counter() - t0)
         hits = {k: getattr(got, k) == row[k] for k in ("purpose", "amount", "term_months")}
         for k, v in hits.items():
             ok[k] += v
@@ -32,10 +36,11 @@ def main() -> int:
             print(f"✗ {row['text']}\n    ожидали {row['purpose']}/{row['amount']}/{row['term_months']}, "
                   f"получили {got.purpose}/{got.amount}/{got.term_months} ({got.source})")
     n = len(rows)
-    mode = f"LLM {llm.OLLAMA_MODEL}" if llm.enabled() else "только правила"
+    mode = f"LLM {llm.OLLAMA_MODEL}" if llm.ready() else "только правила"
     print(f"\nНабор: {name}; режим: {mode}; фраз: {n}; {time.perf_counter() - started:.1f} с")
     for k in ("purpose", "amount", "term_months", "all"):
         print(f"  {k:12} {ok[k] / n:6.1%}")
+    print(f"  медиана времени разбора {statistics.median(times):.2f} с")
     passed = ok["all"] / n >= TARGET
     print("Цель ≥ 80% по всем трём полям:", "достигнута" if passed else "НЕ достигнута")
     return 0 if passed else 1

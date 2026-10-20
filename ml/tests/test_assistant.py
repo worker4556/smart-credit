@@ -98,3 +98,14 @@ def test_endpoint_validation():
 def test_what_does_it_mean_without_term_explains_decision(policy):
     a = answer(policy, "что это значит?", decide(policy, applicant("P3")), None, use_llm=False)
     assert a.topic == "WHY" and "Налоговая задолженность" in a.answer
+
+
+@pytest.mark.parametrize("question,topic", [
+    ("можно как-то ускорить?", "WHEN"),
+    ("зачем вам выписка из другого банка?", "WHY"),
+    ("что будет после загрузки?", "WHAT_TO_DO"),
+])
+def test_classify_everyday_wording(policy, question, topic):
+    from service.assistant import classify
+    from service.glossary import find_terms
+    assert classify(question, find_terms(policy, question)) == topic
