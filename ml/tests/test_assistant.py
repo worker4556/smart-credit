@@ -109,3 +109,51 @@ def test_classify_everyday_wording(policy, question, topic):
     from service.assistant import classify
     from service.glossary import find_terms
     assert classify(question, find_terms(policy, question)) == topic
+
+
+# ---------- исправления по итоговой проверке ----------
+
+@pytest.mark.parametrize("persona,bad", [
+    ("P3", "Если взять 2 млн, шансы вырастут."),
+    ("P3", "Возьмите 1 млн — так проще."),
+    ("P4", "С 3 млн вам дадут через 2 месяца."),
+])
+def test_llm_cannot_echo_client_number_or_promise(policy, fake_llm, persona, bad):
+    fake_llm(bad)
+    r = build_route(policy, applicant(persona))
+    a = answer(policy, "а если взять 2 млн?", decide(policy, applicant(persona)), r)
+    assert a.source == "TEMPLATE" and a.fallback_reason
+
+
+def test_llm_cannot_offer_the_requested_amount(policy, fake_llm):
+    fake_llm("Банк готов выдать вам 3 000 000 ₽ на 18 мес.")
+    a = answer(policy, "почему отказ?", decide(policy, applicant("P2")), build_route(policy, applicant("P2")))
+    assert a.source == "TEMPLATE"
+
+
+def test_term_115_never_goes_to_llm_and_does_not_say_suspended(policy, monkeypatch):
+    monkeypatch.setattr(llm, "OLLAMA_URL", "http://fake")
+    monkeypatch.setattr(llm, "ready", lambda: True)
+    monkeypatch.setattr(llm, "chat", lambda *a, **k: pytest.fail("LLM вызвана для 115-ФЗ"))
+    a = answer(policy, "что такое 115-ФЗ?", decide(policy, applicant("P3")), None)
+    assert a.topic == "TERM" and a.source == "TEMPLATE" and "приостановлена" not in a.answer
+
+
+def test_psk_question_answer_does_not_say_psk(policy):
+    for q in ("что такое ПСК?", "что такое переплата?"):
+        a = answer(policy, q, decide(policy, applicant("P3")), None, use_llm=False)
+        assert a.topic == "TERM" and "ПСК" not in a.answer
+
+
+def test_disclaimer_paraphrase_with_approval_genitive_is_accepted(policy, fake_llm):
+    fake_llm("Ориентир — примерно 3 месяца. Это ориентир, а не обещание одобрения.")
+    r = build_route(policy, applicant("P3"))
+    assert answer(policy, "когда подать снова?", decide(policy, applicant("P3")), r).source == "LLM"
+
+
+def test_amount_answer_for_full_amount_counter_offer_talks_about_rate(policy):
+    d = decide(policy, applicant("P2"))
+    d = d.model_copy(update={"amount": d.requested_amount,
+                             "cost": d.cost.model_copy(update={"amount": d.requested_amount, "rate": 22.0})})
+    a = answer(policy, "почему не вся сумма?", d, None, use_llm=False)
+    assert "Почему не вся сумма" not in a.answer and "22%" in a.answer and "20%" in a.answer

@@ -31,5 +31,4 @@ def test_glossary_endpoints():
 
 def test_our_texts_never_say_psk(policy):
     for t in policy.glossary:
-        if t["term"] != "ПСК, переплата":
-            assert "ПСК" not in t["plain"] + t["more"]
+        assert "ПСК" not in t["term"] + t["plain"] + t["more"]

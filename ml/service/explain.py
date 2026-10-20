@@ -91,35 +91,43 @@ def route_template(policy: Policy, r: Route) -> str:
 
 # ---------- проверка ответа LLM ----------
 
-FORBIDDEN = ("гарант", "обязательно получите", "точно одобр", "100%", "пск", "115")
+FORBIDDEN = ("гарант", "обязательно получите", "точно одобр", "100%", "пск", "115",
+             "дадут", "выдаст", "выдадут", "получите")   # обещания результата
+APPROVED_WORD_RE = re.compile(r"одобрен[оаы]?\b|одобрят|одобрим|одобрю")   # «одобрения» в оговорке — можно
 CODE_RE = re.compile(r"\b[A-Z]{1,2}_[A-Z0-9_]+\b")
+_NUM_RE = re.compile(r"(\d+(?:[  ]\d{3})*(?:[.,]\d+)?)\s*(млн|миллион\w*|тыс\w*|₽|руб\w*)?", re.IGNORECASE)
 
 
-def _numbers(text: str) -> set[str]:
-    joined = re.sub(r"(?<=\d)[  ](?=\d{3}\b)", "", text)
-    return set(re.findall(r"\d+(?:[.,]\d+)?", joined))
-
-
-def _allowed_numbers(template: str) -> set[str]:
-    out = set()
-    for n in _numbers(template):
-        out.add(n)
-        if n.isdigit() and int(n) >= 1000 and int(n) % 1000 == 0:
-            out.add(str(int(n) // 1000))  # «850 000 ₽» можно сказать как «850 тыс. ₽»
-    return out
+def _values(text: str) -> tuple[set[int], set[str]]:
+    """Суммы (число с единицей или ≥ 1000) — в рублях; мелкие числа без единицы — как есть."""
+    money, small = set(), set()
+    for num, unit in _NUM_RE.findall(text):
+        v = float(num.replace(" ", "").replace(" ", "").replace(",", "."))
+        unit = (unit or "").lower()
+        if unit.startswith(("млн", "миллион")):
+            money.add(round(v * 1_000_000))
+        elif unit.startswith("тыс"):
+            money.add(round(v * 1_000))
+        elif unit or v >= 1000:
+            money.add(round(v))
+        else:
+            small.add(num)
+    return money, small
 
 
 def check_llm_text(text: str, template: str, outcome: str | None) -> str | None:
     """None — текст прошёл проверку, иначе — причина отказа."""
     if CODE_RE.search(text):
         return "в тексте код причины"
-    extra = _numbers(text) - _allowed_numbers(template)
+    money, small = _values(text)
+    ok_money, ok_small = _values(template)
+    extra = sorted(money - ok_money) + sorted(small - ok_small)
     if extra:
-        return f"числа, которых нет на входе: {sorted(extra)}"
+        return f"числа, которых нет на входе: {extra}"
     low = text.lower()
     if any(w in low for w in FORBIDDEN):
         return "запрещённая формулировка"
-    if "одобр" in low and outcome != "APPROVED":
+    if outcome != "APPROVED" and APPROVED_WORD_RE.search(low):
         return "слово «одобрено» вне решения об одобрении"
     if len(text) > 2 * len(template) + 200:
         return "слишком длинно"

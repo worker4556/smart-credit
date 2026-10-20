@@ -68,3 +68,10 @@ def test_model_default_is_the_same_everywhere():
     env = read(REPO / ".env.example")
     assert f"OLLAMA_MODEL:-{llm.OLLAMA_MODEL}" in compose and f"OLLAMA_MODEL={llm.OLLAMA_MODEL}" in env
     assert llm.OLLAMA_MODEL in read(ML_README_FILE)
+
+
+def test_readme_does_not_promise_what_compose_cannot_start():
+    readme = read(REPO / "README.md")
+    compose = read(REPO / "docker-compose.yml")
+    if "localhost:3000" in readme and '"3000:' not in compose:
+        assert "Статус сборки" in readme, "README обещает :3000, а compose его не поднимает"
