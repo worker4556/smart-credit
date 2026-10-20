@@ -46,7 +46,10 @@ export default function CompanyPage({
   update,
   next,
   setToast,
+  lookupCompany,
+  profileCompany,
 }: CompanyPageProps) {
+  const profileCompanyPresent = Boolean(profileCompany && data.inn === profileCompany.inn);
   return (
     <>
       <StepTitle
@@ -55,6 +58,7 @@ export default function CompanyPage({
         subtitle="ИНН — единственное, что нужно напечатать. Остальное подставим сами."
       />
       <Paper className="company-panel">
+        {profileCompany && !data.companyOk && data.inn === profileCompany.inn && <Alert severity="info" sx={{ mb: 2 }}>ИНН загружен из личного кабинета. Проверьте данные компании.</Alert>}
         <Box className="inn-entry">
           <Box className="field-label">
             <Typography fontWeight={700}>ИНН компании или ИП</Typography>
@@ -70,6 +74,7 @@ export default function CompanyPage({
             onChange={(e) => {
               update("inn", e.target.value.replace(/\D/g, "").slice(0, 12));
               update("companyOk", false);
+              update("company", undefined);
             }}
             placeholder="Введите 10 или 12 цифр"
             helperText="ИНН: 10 цифр у компаний, 12 цифр у ИП. Он указан в свидетельстве или на сайте ФНС."
@@ -80,15 +85,26 @@ export default function CompanyPage({
           />
           <Button
             variant="outlined"
-            onClick={() => {
-              update("companyOk", true);
-              setToast("Демо-данные компании загружены");
-              setTimeout(() => setToast(""), 2500);
+            onClick={async () => {
+              try {
+                const company = profileCompanyPresent ? profileCompany! : await lookupCompany(data.inn);
+                update("company", company);
+                update("companyOk", true);
+                setToast("Данные компании загружены");
+                setTimeout(() => setToast(""), 2500);
+              } catch (error) {
+                setToast(
+                  error instanceof Error
+                    ? error.message
+                    : "Не удалось найти компанию",
+                );
+                setTimeout(() => setToast(""), 3500);
+              }
             }}
             disabled={data.inn.length !== 10 && data.inn.length !== 12}
             startIcon={<Autorenew />}
           >
-            Найти компанию
+            {profileCompanyPresent ? "Показать данные" : "Найти компанию"}
           </Button>
         </Box>
         {data.companyOk && (
@@ -99,10 +115,10 @@ export default function CompanyPage({
               </IconBubble>
               <Box>
                 <Typography className="eyebrow">
-                  КОМПАНИЯ НАЙДЕНА · ДЕМО-ДАННЫЕ
+                  ПРОВЕРЬТЕ КОМПАНИЮ
                 </Typography>
                 <Typography variant="h5" fontWeight={800}>
-                  ООО «Ромашка Трейд»
+                  {data.company?.name ?? "Компания найдена"}
                 </Typography>
               </Box>
               <Chip
@@ -115,21 +131,18 @@ export default function CompanyPage({
             <Box className="company-facts">
               <Box>
                 <span>Деятельность</span>
-                <b>Торговля продуктами</b>
+                <b>{data.company?.activity ?? "Деятельность будет уточнена"}</b>
               </Box>
               <Box>
                 <span>Работает с</span>
-                <b>2022 года</b>
+                <b>{data.company?.registration_year ?? "—"} года</b>
               </Box>
               <Box>
                 <span>Руководитель</span>
-                <b>Иванов И. И. · Москва</b>
+                <b>{data.company?.region ?? "Регион будет уточнен"}</b>
               </Box>
             </Box>
-            <Alert severity="info" className="source-alert">
-              Информация получена из демонстрационного реестра. Перед отправкой
-              заявки проверьте, что это ваша компания.
-            </Alert>
+            <Alert severity="info" className="source-alert">Проверьте, что это ваша компания, и подтвердите выбор.</Alert>
           </Box>
         )}
       </Paper>

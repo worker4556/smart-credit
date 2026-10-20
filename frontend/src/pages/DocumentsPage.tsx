@@ -40,8 +40,13 @@ import {
 } from "../components/ApplicationShell";
 import { formatMoney as money, formatNumber as format } from "../utils/format";
 import { goals } from "../data/application";
-import type { PageProps } from "../types";
-export default function DocumentsPage({ data, update, next }: PageProps) {
+import type { DocumentsPageProps } from "../types";
+export default function DocumentsPage({
+  data,
+  update,
+  next,
+  uploadFile,
+}: DocumentsPageProps) {
   return (
     <>
       <StepTitle
@@ -122,10 +127,13 @@ export default function DocumentsPage({ data, update, next }: PageProps) {
                 hidden
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls"
-                onChange={(e) =>
-                  e.target.files?.[0] &&
-                  update("docs", { ...data.docs, [id]: e.target.files[0].name })
-                }
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  void uploadFile(file).then(() =>
+                    update("docs", { ...data.docs, [id]: file.name }),
+                  );
+                }}
               />
             </Button>
           </Box>

@@ -5,6 +5,8 @@ interface RouteMapProps {
   summitLabel?: string;
   compact?: boolean;
   restricted?: boolean;
+  currentAmount?: number;
+  targetAmount?: number;
 }
 
 export default function RouteMap({
@@ -12,6 +14,8 @@ export default function RouteMap({
   summitLabel = "Возможная вершина",
   compact = false,
   restricted = false,
+  currentAmount,
+  targetAmount,
 }: RouteMapProps) {
   return (
     <Box className={`route-map ${compact ? "compact" : ""}`}>
@@ -71,11 +75,19 @@ export default function RouteMap({
         </svg>
         <Box className="map-label current-label">
           <Typography>{currentLabel}</Typography>
-          <b>{restricted ? "600 000 ₽" : "1 050 000 ₽"}</b>
+          <b>
+            {currentAmount != null
+              ? `${currentAmount.toLocaleString("ru-RU")} ₽`
+              : "Уточняется"}
+          </b>
         </Box>
         <Box className="map-label summit-label">
           <Typography>{summitLabel}</Typography>
-          <b>{restricted ? "1 500 000 ₽" : "1 500 000 ₽"}</b>
+          <b>
+            {targetAmount != null
+              ? `${targetAmount.toLocaleString("ru-RU")} ₽`
+              : "Укажите сумму"}
+          </b>
         </Box>
         {restricted && (
           <Box className="map-obstacle">Ограничение по лимиту</Box>

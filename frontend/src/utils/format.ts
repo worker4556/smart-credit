@@ -8,12 +8,5 @@ import { defaultData as defaultApplication } from "../data/application";
 import type { ApplicationData } from "../types";
 
 export function loadApplication(): ApplicationData {
-  try {
-    const saved = JSON.parse(
-      localStorage.getItem("credit-demo") || "{}",
-    ) as Partial<ApplicationData>;
-    return { ...defaultApplication, ...saved };
-  } catch {
-    return defaultApplication;
-  }
+  return defaultApplication;
 }

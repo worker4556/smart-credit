@@ -40,10 +40,15 @@ import {
 } from "../components/ApplicationShell";
 import { formatMoney as money, formatNumber as format } from "../utils/format";
 import { goals } from "../data/application";
-import type { PageProps } from "../types";
+import type { GoalPageProps, PersonaId } from "../types";
 import RouteMap from "../components/RouteMap";
 
-export default function GoalPage({ data, update, next }: PageProps) {
+export default function GoalPage({
+  data,
+  update,
+  next,
+  selectPersona,
+}: GoalPageProps) {
   return (
     <>
       <StepTitle
@@ -51,15 +56,20 @@ export default function GoalPage({ data, update, next }: PageProps) {
         title="Путь к финансированию начинается с вашего плана"
         subtitle="Покажем текущую оценку, возможную вершину и шаги, которые помогут приблизиться к ней."
       />
-      <RouteMap />
+      <RouteMap
+        targetAmount={data.amount}
+        currentAmount={data.precheck?.amountHigh}
+      />
       <Box className="route-overview">
         <Box>
           <Typography className="eyebrow">ПРЕДВАРИТЕЛЬНАЯ ОЦЕНКА</Typography>
           <Typography variant="h5" fontWeight={800}>
-            Шансы: средние
+            {data.precheck
+              ? `Шансы: ${data.precheck.chance.toLowerCase()}`
+              : "Оценку уточним по данным заявки"}
           </Typography>
           <Typography color="text.secondary">
-            Оценка по демонстрационному профилю, не обещание решения.
+            Оценка по текущим данным, а не обещание решения.
           </Typography>
         </Box>
         <Box>
@@ -80,7 +90,10 @@ export default function GoalPage({ data, update, next }: PageProps) {
           <SelectCard
             key={t}
             selected={data.goal === t}
-            onClick={() => update("goal", t)}
+            onClick={() => {
+              update("goal", t);
+              if (t.includes("кассов")) update("term", 12);
+            }}
             icon={
               i === "receipt" ? (
                 <ReceiptLong />

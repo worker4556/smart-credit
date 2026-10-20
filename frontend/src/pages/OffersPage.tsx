@@ -50,7 +50,7 @@ export default function OffersPage({
   setSelectedOffer,
   monthly,
   chosen,
-  setToast,
+  setToast: _setToast,
 }: OffersPageProps) {
   return (
     <>
@@ -59,6 +59,52 @@ export default function OffersPage({
         title="Вот что нам подходит"
         subtitle="Сравните варианты. Все условия пока предварительные."
       />
+      {data.precheck && (
+        <Paper className="precheck-card">
+          <Box className="precheck-amounts">
+            <Box>
+              <Typography className="eyebrow">ТЕКУЩАЯ ВЫСОТА</Typography>
+              <Typography variant="h5" fontWeight={800}>
+                {money(data.precheck.amountLow)} — {money(data.precheck.amountHigh)}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography className="eyebrow">ВАША ВЕРШИНА</Typography>
+              <Typography variant="h5" fontWeight={800}>
+                {money(data.amount)}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography className="eyebrow">ПРЕДВАРИТЕЛЬНЫЙ ШАНС</Typography>
+              <Typography variant="h5" fontWeight={800}>
+                {data.precheck.chance}
+              </Typography>
+            </Box>
+          </Box>
+          {(data.precheck.reasons ?? []).map((reason, index) => (
+            <Typography key={reason.code ?? index} className="precheck-reason">
+              • {reason.text}
+            </Typography>
+          ))}
+          <Typography className="precheck-explanation">
+            {data.precheck.text}
+          </Typography>
+          <Typography className="precheck-disclaimer">
+            {data.precheck.disclaimer ?? "Это оценка по текущим данным, а не решение банка. Действует 30 дней"}
+          </Typography>
+        </Paper>
+      )}
+      {goalOffers.length === 0 && (
+        <Paper className="empty-offers">
+          <Typography variant="h6" fontWeight={800}>
+            Пока нет подходящих предложений
+          </Typography>
+          <Typography color="text.secondary">
+            Можно отправить заявку на проверку или вернуться и изменить сумму и
+            срок.
+          </Typography>
+        </Paper>
+      )}
       <Box className="offers-layout">
         <Box className="offers-list">
           {goalOffers.map((o, i) => (
@@ -89,17 +135,8 @@ export default function OffersPage({
                 <Box className="offer-explain">
                   <CheckCircle fontSize="small" />
                   <span>
-                    <b>Почему подходит:</b> {o.why}
+                    {o.why && <><b>Почему подходит:</b> {o.why}</>}
                   </span>
-                </Box>
-                <Box className="offer-bottom">
-                  <span>Предварительные шансы</span>
-                  <Box className="chance-dots">
-                    {[1, 2, 3].map((n) => (
-                      <i key={n} className={n <= o.chance ? "on" : ""} />
-                    ))}
-                  </Box>
-                  <b>{o.chance === 3 ? "Высокие" : "Средние"}</b>
                 </Box>
               </CardContent>
             </Card>
@@ -107,17 +144,30 @@ export default function OffersPage({
         </Box>
         <Paper className="recommend-card">
           <Typography className="eyebrow">ВАШ ВЫБОР</Typography>
-          <Typography variant="h5" fontWeight={800}>
-            {chosen.name}
-          </Typography>
-          <Typography variant="h4" className="rec-payment">
-            {selectedOffer === 0 ? money(monthly) : chosen.amount}
-          </Typography>
-          <Typography color="text.secondary">
-            {selectedOffer === 0
-              ? "в месяц · предварительно"
-              : "подходящее предложение"}
-          </Typography>
+          {chosen ? (
+            <>
+              <Typography variant="h5" fontWeight={800}>
+                {chosen.name}
+              </Typography>
+              <Typography variant="h4" className="rec-payment">
+                {chosen.amount || money(monthly)}
+              </Typography>
+              <Typography color="text.secondary">
+                {selectedOffer === 0
+                  ? "в месяц · предварительно"
+                  : "подходящее предложение"}
+              </Typography>
+            </>
+          ) : (
+            <>
+              <Typography variant="h5" fontWeight={800}>
+                Нет подходящего предложения
+              </Typography>
+              <Typography color="text.secondary">
+                Заявку всё равно можно отправить на проверку.
+              </Typography>
+            </>
+          )}
           <Divider />
           <Typography fontWeight={700}>Что понадобится</Typography>
           <Stack spacing={1} className="needed-list">
@@ -136,7 +186,7 @@ export default function OffersPage({
             onClick={() => next(5)}
             endIcon={<ArrowForward />}
           >
-            Выбрать этот вариант
+            {chosen ? "Выбрать этот вариант" : "Продолжить без предложения"}
           </Button>
           <Button variant="text" color="inherit" onClick={() => next(1)}>
             Изменить сумму или срок
@@ -154,14 +204,16 @@ export default function OffersPage({
           Кредит на оборудование · Рефинансирование · Льготные программы
           поддержки бизнеса
         </Typography>
-        <Button onClick={() => setToast("Каталог доступен в демо-версии")}>
-          Смотреть каталог <ArrowForward />
-        </Button>
+        <Typography variant="body2" color="text.secondary">Дополнительные продукты доступны в каталоге банка.</Typography>
       </Box>
       <FooterNav
         onBack={() => next(3)}
         onNext={() => next(5)}
-        next="Продолжить с выбранным вариантом"
+        next={
+          goalOffers.length
+            ? "Продолжить с выбранным вариантом"
+            : "Продолжить без предложения"
+        }
       />
     </>
   );
