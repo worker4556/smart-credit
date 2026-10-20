@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .config import Policy
-from .finance import cost, principal_for_payment, rate_for, round_down, term_of
+from .finance import cost, principal_for_payment, rate_for, round_down, term_of, weather
 from .schemas import (AmountRange, Applicant, Decision, LimitResult, LoanRequest, Offer, Precheck, Reason, ScoreResult,
                       Specialist)
 from .scoring import avg_turnover, score
@@ -106,11 +106,12 @@ def decide(policy: Policy, a: Applicant, stage: str = "DECISION") -> Decision:
     d = policy.decision
 
     def result(outcome, amount=None, reasons=(), lim=None, term_=term) -> Decision:
+        rate = rate_for(policy, req.product, sc.score)
         return Decision(policy_version=policy.version, outcome=outcome, requested_amount=req.amount,
                         amount=amount, term_months=term_ if amount else None,
-                        cost=cost(policy, req.product, amount, term_, rate_for(policy, req.product, sc.score))
-                        if amount else None,
-                        limit=lim, reasons=list(reasons), specialist=_specialist(policy, a, sc, outcome), score=sc)
+                        cost=cost(policy, req.product, amount, term_, rate) if amount else None,
+                        limit=lim, reasons=list(reasons), specialist=_specialist(policy, a, sc, outcome), score=sc,
+                        weather=weather(policy, req.product, amount, term_, rate) if amount else None)
 
     if stage == "DECISION":
         # 1. 115-ФЗ — некредитная причина, маршрут не строится
@@ -183,8 +184,10 @@ def offers(policy: Policy, a: Applicant, dec: Decision) -> list[Offer]:
 
     def add(kind, product, amount, term):
         if amount and all((o.product, o.amount, o.term_months) != (product, amount, term) for o in out):
+            rate = rate_for(policy, product, dec.score.score)
             out.append(Offer(kind=kind, product=product, amount=amount, term_months=term,
-                             cost=cost(policy, product, amount, term, rate_for(policy, product, dec.score.score))))
+                             cost=cost(policy, product, amount, term, rate),
+                             weather=weather(policy, product, amount, term, rate)))
 
     term = term_of(policy, req.product, req.term_months)
     if dec.outcome == "APPROVED":
@@ -223,10 +226,11 @@ def precheck(policy: Policy, a: Applicant) -> Precheck:
         reasons = [reason(policy, "D_MISMATCH")] + reasons
     note = "Кредитную историю проверим после подачи — результат может измениться." \
         if a.owner.source == "SELF_REPORTED" else None
+    rate = rate_for(policy, a.request.product, sc.score)
     return Precheck(policy_version=policy.version, chance=CHANCE[dec.outcome], expected_outcome=dec.outcome,
                     score=sc.score, amount_range=AmountRange(low=low, high=high), requested_amount=a.request.amount,
-                    cost=cost(policy, a.request.product, a.request.amount, a.request.term_months,
-                              rate_for(policy, a.request.product, sc.score)),
+                    cost=cost(policy, a.request.product, a.request.amount, a.request.term_months, rate),
+                    weather=weather(policy, a.request.product, a.request.amount, a.request.term_months, rate),
                     reasons=reasons[: policy.decision["max_reasons"] + len(sc.stops)],
                     offers=offers(policy, a, dec), owner_note=note, valid_days=pc["valid_days"],
                     disclaimer=pc["disclaimer"])

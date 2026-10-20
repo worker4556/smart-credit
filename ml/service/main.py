@@ -16,8 +16,9 @@ from .decision import RequestError, decide, limit, offers, precheck, validate_re
 from .explain import Explanation, explain_decision, explain_precheck, explain_route
 from .intent import Intent, parse
 from .route import Route, SpecialistDecision, build_route
-from .finance import quote
-from .schemas import Applicant, Decision, LimitResult, LoanRequest, Offer, Precheck, ProductCode, Quote, ScoreResult
+from .finance import quote, weather
+from .schemas import (Applicant, Decision, LimitResult, LoanRequest, Offer, Precheck, ProductCode, Quote, ScoreResult,
+                      Weather)
 from .scoring import score
 
 logging.basicConfig(level=logging.INFO, format='{"level":"%(levelname)s","logger":"%(name)s","msg":"%(message)s"}')
@@ -43,6 +44,10 @@ class QuoteRequest(BaseModel):
     product: ProductCode
     amount: int = Field(gt=0)
     term_months: int | None = Field(default=None, ge=1, le=60)
+
+
+class WeatherRequest(QuoteRequest):
+    rate: float | None = Field(default=None, gt=0, le=100, description="Ставка решения; по умолчанию — ставка продукта")
 
 
 class DecisionWithOffers(Decision):
@@ -108,11 +113,21 @@ def route_endpoint(req: RouteRequest) -> Route:
 
 @app.post("/v1/quote", response_model=Quote, summary="Калькулятор для ползунков: платёж, переплата, график — без скоринга")
 def quote_endpoint(req: QuoteRequest) -> Quote:
+    _check_product_range(req.product, req.amount, req.term_months)
+    return quote(get_policy(), req.product, req.amount, req.term_months)
+
+
+def _check_product_range(product: str, amount: int, term_months: int | None) -> None:
     try:
-        validate_request(get_policy(), LoanRequest(product=req.product, amount=req.amount, term_months=req.term_months))
+        validate_request(get_policy(), LoanRequest(product=product, amount=amount, term_months=term_months))
     except RequestError as exc:
         raise HTTPException(422, [{"loc": ["body", exc.field], "msg": exc.message, "type": "value_error.product_range"}])
-    return quote(get_policy(), req.product, req.amount, req.term_months)
+
+
+@app.post("/v1/weather", response_model=Weather, summary="«Погода»: стоимость при росте ставки и при просрочке")
+def weather_endpoint(req: WeatherRequest) -> Weather:
+    _check_product_range(req.product, req.amount, req.term_months)
+    return weather(get_policy(), req.product, req.amount, req.term_months, req.rate)
 
 
 @app.post("/v1/explain", response_model=Explanation, summary="Текст для клиента: шаблон или пересказ LLM с проверкой")

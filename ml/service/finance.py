@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 
 from .config import Policy
-from .schemas import Cost, PaymentRow, Quote
+from .schemas import Cost, PaymentRow, Quote, Weather, WeatherRow
 
 
 def annuity(principal: float, annual_rate: float, months: int) -> float:
@@ -83,3 +83,20 @@ def quote(policy: Policy, product: str, amount: int, term_months: int | None) ->
     return Quote(product=product, amount=amount, term_months=c.term_months, rate=c.rate,
                  monthly_payment=c.monthly_payment, total_paid=amount + interest, interest=interest, fee=c.fee,
                  full_cost=c.full_cost, schedule=rows, note="Расчёт предварительный, по демо-ставке. Это не оферта.")
+
+
+def weather(policy: Policy, product: str, amount: int, term_months: int | None, rate: float | None = None) -> Weather:
+    """«Погода»: сейчас / ставка выше на rate_up_pp / задержка платежа на overdue_days с пени."""
+    w = policy.raw["weather"]
+    base = cost(policy, product, amount, term_months, rate)
+    up = cost(policy, product, amount, term_months, base.rate + float(w["rate_up_pp"]))
+    overdue_sum = base.monthly_payment if product == "WORKING_CAPITAL" else amount
+    penalty = round(overdue_sum * float(w["penalty_per_day"]) * int(w["overdue_days"]))
+
+    def row(code: str, c: Cost, full: int, note: str | None = None) -> WeatherRow:
+        return WeatherRow(code=code, title=w["titles"][code], rate=c.rate, monthly_payment=c.monthly_payment,
+                          full_cost=full, delta_full_cost=full - base.full_cost, note=note)
+
+    return Weather(rows=[row("BASE", base, base.full_cost), row("RATE_UP", up, up.full_cost),
+                         row("OVERDUE_30", base, base.full_cost + penalty, w["overdue_note"])],
+                   disclaimer=w["disclaimer"])

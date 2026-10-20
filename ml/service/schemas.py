@@ -131,6 +131,22 @@ class Quote(BaseModel):
     note: str
 
 
+class WeatherRow(BaseModel):
+    code: Literal["BASE", "RATE_UP", "OVERDUE_30"]
+    title: str
+    rate: float
+    monthly_payment: int
+    full_cost: int
+    delta_full_cost: int = Field(description="Насколько полная стоимость больше, чем в строке BASE")
+    note: str | None = None
+
+
+class Weather(BaseModel):
+    """«Погода»: стоимость при неблагоприятных условиях. Иллюстрация, на решение не влияет."""
+    rows: list[WeatherRow]
+    disclaimer: str
+
+
 class LimitResult(BaseModel):
     product: ProductCode
     limit: int
@@ -152,6 +168,7 @@ class Offer(BaseModel):
     amount: int
     term_months: int
     cost: Cost
+    weather: Weather | None = None
 
 
 class Specialist(BaseModel):
@@ -170,6 +187,7 @@ class Decision(BaseModel):
     reasons: list[Reason]
     specialist: Specialist
     score: ScoreResult
+    weather: Weather | None = Field(default=None, description="Только когда в решении есть сумма")
 
 
 class AmountRange(BaseModel):
@@ -190,3 +208,4 @@ class Precheck(BaseModel):
     owner_note: str | None
     valid_days: int
     disclaimer: str
+    weather: Weather | None = None
