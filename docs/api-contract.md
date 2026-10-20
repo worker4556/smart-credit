@@ -212,7 +212,8 @@
 # C. ml — движок одобрения (`http://ml:8001`)
 
 Статус: **реализовано** (`ml/`), по спецификации MVP «Маршрут к одобрению». Вызывает только backend. Без состояния.
-Swagger: `http://localhost:8001/docs`. Одна модель правил (`ml/config/policy.yaml`, `ml/config/reasons.yaml`) считает
+Swagger: `http://localhost:8001/docs`. **Машиночитаемый контракт — [`docs/openapi-ml.yaml`](openapi-ml.yaml)**, он генерируется из
+кода (`uv run python -m service.export_openapi`), а тест не даёт ему разойтись с кодом. Одна модель правил (`ml/config/policy.yaml`, `ml/config/reasons.yaml`) считает
 предоценку, скоринг (Б3), решение (Б4), причины и маршрут — backend не дублирует эту логику, а сохраняет результат
 и переводит статусы по `outcome` и `specialist.required`.
 
@@ -245,6 +246,18 @@ Swagger: `http://localhost:8001/docs`. Одна модель правил (`ml/c
 `{ "product": "WORKING_CAPITAL", "amount": 850000, "term_months": 24 }` →
 `{ "monthly_payment": 43261, "total_paid": 1038274, "interest": 188274, "fee": 8500, "full_cost": 196774, "rate": 20.0, "schedule": [ { "month": 1, "payment": 43261, "principal": 29095, "interest": 14167, "balance": 820905 }, ... ], "note": "Расчёт предварительный, по демо-ставке. Это не оферта." }`.
 Для овердрафта `monthly_payment` — проценты за месяц при полном использовании, `schedule` пустой.
+
+### `POST /v1/weather` — «Погода»: стоимость при неблагоприятных условиях
+Тело как у `/v1/quote` + необязательный `rate` (ставка решения). Иллюстрация рисков, **на решение не влияет**. P1 →
+```json
+{ "rows": [ { "code": "BASE", "title": "Сейчас", "rate": 20.0, "monthly_payment": 43261, "full_cost": 196774, "delta_full_cost": 0, "note": null },
+            { "code": "RATE_UP", "title": "Если ставка вырастет на 2 п.п. — например, при плавающей ставке или рефинансировании", "rate": 22.0, "monthly_payment": 44096, "full_cost": 216814, "delta_full_cost": 20040, "note": null },
+            { "code": "OVERDUE_30", "title": "Если задержать платёж на 30 дней", "rate": 20.0, "monthly_payment": 43261, "full_cost": 198072, "delta_full_cost": 1298, "note": "Просрочка попадёт в кредитную историю владельца …" } ],
+  "disclaimer": "Это иллюстрация рисков, а не условия банка." }
+```
+Пени — 0,1% в день от просроченной суммы (для кредита — один платёж, для овердрафта — весь лимит) за 30 дней.
+Тот же расчёт приходит полем `weather` в `/v1/precheck` (на запрошенную сумму), в каждом элементе `offers[]` и в
+`/v1/decision` — только когда в решении есть сумма (`APPROVED`, `COUNTER_OFFER`), иначе `null`.
 
 ### `POST /v1/precheck` — шаг 3 (без заявки и БКИ), тело `Applicant`
 ```json
@@ -296,13 +309,28 @@ Swagger: `http://localhost:8001/docs`. Одна модель правил (`ml/c
 `{ "decision": Decision }` или `{ "precheck": Precheck }` или `{ "route": Route }`, плюс `"use_llm": true` →
 `{ "text": "...", "template_text": "...", "source": "TEMPLATE" | "LLM", "fallback_reason": null }`.
 LLM только пересказывает шаблон; ответ с новыми числами, кодами, «одобрено» вне одобрения или обещаниями отбрасывается.
-115-ФЗ — всегда шаблон.
+115-ФЗ — всегда шаблон. Вызывать в фоне в момент решения и сохранять (LLM на CPU отвечает до 30 с).
+
+### `POST /v1/assistant` — помощник при отказе и нехватке
+`{ "question": "почему мне отказали?", "context": { "decision": Decision, "route": Route | null }, "use_llm": true }` →
+```json
+{ "answer": "Главная причина: Налоговая задолженность. … Решение принимает банк по правилам. Помощник только объясняет.",
+  "template_answer": "…", "source": "TEMPLATE", "fallback_reason": null, "topic": "WHY", "terms": [] }
+```
+- `question` 1–500 символов; в `context` нужен `decision` или `route`, иначе `422`.
+- `topic`: `WHY` | `WHAT_TO_DO` | `WHEN` | `TERM` | `AMOUNT` | `OFF_TOPIC` | `NONCREDIT` (115-ФЗ — фиксированный текст, LLM не вызывается) | `NOT_NEEDED` (одобрено).
+- Отвечает только по фактам решения и маршрута и по словарю; проверка ответа LLM — как у `/v1/explain`.
+- Чтобы клиент не ждал: сначала `use_llm: false` (шаблон мгновенно), затем `use_llm: true` и подмена текста, если `source = LLM`.
+
+### `GET /v1/glossary` · `GET /v1/glossary/{term}` — словарь простых слов
+`{ "items": [ { "term": "Овердрафт", "aliases": ["овердрафт"], "plain": "Деньги сверх остатка на счёте. Платите только за дни, когда они взяты", "more": "…" } ] }`.
+Один термин — по названию или форме слова («овердрафта»), неизвестный → `404`. 15 терминов — дословно из «Макета», раздел 4.
 
 ### Вспомогательные
 - `POST /v1/score`, `POST /v1/limit` — отдельно Б3 и лимит (для карточки специалиста).
 - `GET /v1/reasons` — справочник причин (специалист выбирает код из него же).
 - `GET /v1/policy` — действующие веса, пороги, продукты.
-- `GET /health` → `{ "status": "ok", "policy_version": "policy-2026.10-2", "llm": { "enabled": false, "model": null } }`.
+- `GET /health` → `{ "status": "ok", "policy_version": "policy-2026.10-2", "llm": { "enabled": true, "ready": false, "model": "qwen3:1.7b" } }`; `ready = false`, пока модель скачивается, — все тексты в это время шаблонные.
 
 ---
 
