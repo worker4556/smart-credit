@@ -49,7 +49,7 @@ export default function CompanyPage({
   lookupCompany,
   profileCompany,
 }: CompanyPageProps) {
-  const profileCompanyPresent = Boolean(profileCompany && data.inn === profileCompany.inn);
+  const companyFromStorage = [data.company, profileCompany].find((company) => company?.inn === data.inn);
   return (
     <>
       <StepTitle
@@ -58,7 +58,7 @@ export default function CompanyPage({
         subtitle="ИНН — единственное, что нужно напечатать. Остальное подставим сами."
       />
       <Paper className="company-panel">
-        {profileCompany && !data.companyOk && data.inn === profileCompany.inn && <Alert severity="info" sx={{ mb: 2 }}>ИНН загружен из личного кабинета. Проверьте данные компании.</Alert>}
+        {data.inn && !data.companyOk && <Alert severity="info" sx={{ mb: 2 }}>ИНН загружен из личного кабинета. Проверьте данные компании.</Alert>}
         <Box className="inn-entry">
           <Box className="field-label">
             <Typography fontWeight={700}>ИНН компании или ИП</Typography>
@@ -87,7 +87,7 @@ export default function CompanyPage({
             variant="outlined"
             onClick={async () => {
               try {
-                const company = profileCompanyPresent ? profileCompany! : await lookupCompany(data.inn);
+                const company = await lookupCompany(data.inn);
                 update("company", company);
                 update("companyOk", true);
                 setToast("Данные компании загружены");
@@ -104,10 +104,10 @@ export default function CompanyPage({
             disabled={data.inn.length !== 10 && data.inn.length !== 12}
             startIcon={<Autorenew />}
           >
-            {profileCompanyPresent ? "Показать данные" : "Найти компанию"}
+            Найти компанию
           </Button>
         </Box>
-        {data.companyOk && (
+        {data.companyOk || companyFromStorage ? (
           <Box className="company-found">
             <Box className="company-title">
               <IconBubble lime>
@@ -118,7 +118,7 @@ export default function CompanyPage({
                   ПРОВЕРЬТЕ КОМПАНИЮ
                 </Typography>
                 <Typography variant="h5" fontWeight={800}>
-                  {data.company?.name ?? "Компания найдена"}
+                  {data.company?.name ?? companyFromStorage?.name ?? "Компания найдена"}
                 </Typography>
               </Box>
               <Chip
@@ -131,26 +131,32 @@ export default function CompanyPage({
             <Box className="company-facts">
               <Box>
                 <span>Деятельность</span>
-                <b>{data.company?.activity ?? "Деятельность будет уточнена"}</b>
+                <b>{data.company?.activity ?? companyFromStorage?.activity ?? "Деятельность будет уточнена"}</b>
               </Box>
               <Box>
                 <span>Работает с</span>
-                <b>{data.company?.registration_year ?? "—"} года</b>
+                <b>{data.company?.registration_year ?? companyFromStorage?.registration_year ?? "—"} года</b>
               </Box>
               <Box>
                 <span>Руководитель</span>
-                <b>{data.company?.region ?? "Регион будет уточнен"}</b>
+                <b>{data.company?.region ?? companyFromStorage?.region ?? "Регион будет уточнен"}</b>
               </Box>
             </Box>
             <Alert severity="info" className="source-alert">Проверьте, что это ваша компания, и подтвердите выбор.</Alert>
           </Box>
-        )}
+        ) : null}
       </Paper>
       <FooterNav
         onBack={() => next(1)}
-        onNext={() => next(3)}
+        onNext={() => {
+          if (companyFromStorage) {
+            update("company", companyFromStorage);
+            update("companyOk", true);
+          }
+          next(3);
+        }}
         next="Да, это моя компания"
-        disabled={!data.companyOk}
+        disabled={!data.companyOk && !companyFromStorage}
         note="Ваши данные сохраняются автоматически"
       />
     </>

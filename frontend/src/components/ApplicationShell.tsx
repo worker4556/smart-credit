@@ -36,6 +36,7 @@ interface HeaderProps {
   setScreen: (screen: number) => void;
   userName?: string;
   openProfile?: () => void;
+  onLogout?: () => void;
 }
 interface StepTitleProps {
   eyebrow: string;
@@ -62,7 +63,7 @@ interface SelectCardProps {
 export function IconBubble({ children, lime = false }: IconBubbleProps) {
   return <Box className={`icon-bubble ${lime ? "lime" : ""}`}>{children}</Box>;
 }
-export function Header({ screen, setScreen, userName = "Клиент", openProfile }: HeaderProps) {
+export function Header({ screen, setScreen, userName = "Клиент", openProfile, onLogout }: HeaderProps) {
   return (
     <AppBar position="sticky" color="inherit" elevation={0} className="appbar">
       <Toolbar className="toolbar">
@@ -84,10 +85,20 @@ export function Header({ screen, setScreen, userName = "Клиент", openProfi
           <Button>Помощь</Button>
         </Box>
         <Box className="head-actions">
-          <Button className="profile-link" onClick={openProfile} aria-label="Открыть личный кабинет">
+          <Button
+            className="profile-link"
+            component="a"
+            href="/profile"
+            onClick={(event) => {
+              event.preventDefault();
+              openProfile?.();
+            }}
+            aria-label="Открыть личный кабинет"
+          >
             <Avatar className="user-avatar">{userName.slice(0, 1).toLocaleUpperCase()}</Avatar>
             <Box className="user-name">{userName}<br /><span>Личный кабинет</span></Box>
           </Button>
+          <Button className="logout-button" color="inherit" onClick={onLogout}>Выйти</Button>
           <IconButton className="menu-mobile">
             <MenuIcon />
           </IconButton>
