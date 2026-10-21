@@ -49,12 +49,14 @@ def classify(question: str, terms: list[dict]) -> Topic:
     return "TERM" if terms else "OFF_TOPIC"
 
 
-def facts(policy: Policy, decision: Decision | None, route: Route | None) -> list[str]:
-    """Всё, что помощнику разрешено знать: тексты причин, условия решения, шаги маршрута."""
+def facts(policy: Policy, decision: Decision | None, route: Route | None, topic: Topic | None = None) -> list[str]:
+    """Всё, что помощнику разрешено знать: тексты причин, условия решения, шаги маршрута.
+    Запрошенная сумма — только в вопросах о сумме: иначе модель может выдать её за предложение банка."""
     out: list[str] = []
     if decision:
         out.append(f"Решение: {OUTCOME_TEXT[decision.outcome]}.")
-        out.append(f"Запрошено: {rub(decision.requested_amount)}.")
+        if topic == "AMOUNT":
+            out.append(f"Клиент хотел: {rub(decision.requested_amount)}.")
         if decision.amount and decision.cost:
             c = decision.cost
             out.append(f"Банк может предложить: {rub(decision.amount)} на {decision.term_months} мес., ставка {c.rate:g}%, "
@@ -96,6 +98,12 @@ def template(policy: Policy, topic: Topic, question: str, decision: Decision | N
         else:
             actions = [policy.reason(r.code).get("step", {}).get("action") for r in reasons]
             body = " ".join(f"{i}) {x}." for i, x in enumerate([x for x in actions if x], 1)) or a["no_route_yet"]
+    elif (topic == "AMOUNT" and decision and decision.amount and decision.cost and decision.outcome == "COUNTER_OFFER"
+          and decision.amount == decision.requested_amount):
+        base = policy.products[decision.cost.product]["rate"]
+        first = next((r.text for r in reasons), "")
+        body = (f"Банк готов выдать всю сумму {rub(decision.amount)} на {decision.term_months} мес., но ставка "
+                f"{decision.cost.rate:g}% вместо {base:g}%." + (f" Почему: {first}." if first else ""))
     elif topic == "AMOUNT" and decision and decision.amount and decision.outcome == "COUNTER_OFFER":
         first = next((r.text for r in reasons), "")
         body = (f"Вы хотели {rub(decision.requested_amount)} — банк может предложить {rub(decision.amount)} "
@@ -132,9 +140,9 @@ def answer(policy: Policy, question: str, decision: Decision | None, route: Rout
     tmpl = template(policy, topic, question, decision, route, terms)
     result = AssistantAnswer(answer=tmpl, template_answer=tmpl, source="TEMPLATE", topic=topic,
                              terms=[t["term"] for t in terms])
-    if not use_llm or topic == "OFF_TOPIC":
-        return result
-    known = facts(policy, decision, route) + [f"{t['term']}: {t['plain']}. {t['more']}" for t in terms]
+    if not use_llm or topic == "OFF_TOPIC" or any(t["term"] == "115-ФЗ" for t in terms):
+        return result                                   # про 115-ФЗ — только фиксированный текст
+    known = facts(policy, decision, route, topic) + [f"{t['term']}: {t['plain']}. {t['more']}" for t in terms]
     out = llm.chat(SYSTEM, "Факты:\n- " + "\n- ".join(known) + f"\n\nВопрос клиента: {question}",
                    temperature=0.2, timeout=llm.TEXT_TIMEOUT) if llm.ready() else None
     if not isinstance(out, str):
