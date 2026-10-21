@@ -94,7 +94,8 @@ def weather(policy: Policy, product: str, amount: int, term_months: int | None, 
     penalty = round(overdue_sum * float(w["penalty_per_day"]) * int(w["overdue_days"]))
 
     def row(code: str, c: Cost, full: int, note: str | None = None) -> WeatherRow:
-        return WeatherRow(code=code, title=w["titles"][code], rate=c.rate, monthly_payment=c.monthly_payment,
+        title = w["titles"][code].format(rate_up_pp=float(w["rate_up_pp"]), overdue_days=int(w["overdue_days"]))
+        return WeatherRow(code=code, title=title, rate=c.rate, monthly_payment=c.monthly_payment,
                           full_cost=full, delta_full_cost=full - base.full_cost, note=note)
 
     return Weather(rows=[row("BASE", base, base.full_cost), row("RATE_UP", up, up.full_cost),

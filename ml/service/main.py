@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from . import llm
 from .config import get_policy
@@ -32,6 +32,7 @@ app = FastAPI(title="Smart Credit ML — движок одобрения", versi
 
 
 class IntentRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
     text: str = Field(min_length=1, max_length=500, examples=["нужно 800 тыс. на закупку к сезону"])
     use_llm: bool = True
 
@@ -58,6 +59,7 @@ class AssistantContext(BaseModel):
 
 
 class AssistantRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
     question: str = Field(min_length=1, max_length=500, examples=["почему мне отказали?"])
     context: AssistantContext
     use_llm: bool = True

@@ -11,7 +11,8 @@ import httpx
 log = logging.getLogger(__name__)
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "")  # пусто — LLM выключен
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:1.7b")
+DEFAULT_MODEL = "qwen3:1.7b"                                            # открытые веса, Apache 2.0
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", DEFAULT_MODEL)
 TEXT_TIMEOUT = float(os.getenv("LLM_TEXT_TIMEOUT_SECONDS", "30"))      # пересказ и помощник
 INTENT_TIMEOUT = float(os.getenv("LLM_INTENT_TIMEOUT_SECONDS", "15"))  # разбор фразы клиента
 READY_TTL = 10.0                                                       # кэш проверки готовности, с

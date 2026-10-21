@@ -91,9 +91,11 @@ def route_template(policy: Policy, r: Route) -> str:
 
 # ---------- проверка ответа LLM ----------
 
-FORBIDDEN = ("гарант", "обязательно получите", "точно одобр", "100%", "пск", "115",
+FORBIDDEN = ("гарант", "обязательно получите", "точно одобр", "100%", "пск",
              "дадут", "выдаст", "выдадут", "получите")   # обещания результата
 APPROVED_WORD_RE = re.compile(r"одобрен[оаы]?\b|одобрят|одобрим|одобрю")   # «одобрения» в оговорке — можно
+LAW_115_RE = re.compile(r"115\s*-?\s*ф\s*з", re.IGNORECASE)      # «115-ФЗ», но не «115 000 ₽»
+SENTENCE_END = (".", "!", "?", "…", "»", ")", '"')
 CODE_RE = re.compile(r"\b[A-Z]{1,2}_[A-Z0-9_]+\b")
 _NUM_RE = re.compile(r"(\d+(?:[  ]\d{3})*(?:[.,]\d+)?)\s*(млн|миллион\w*|тыс\w*|₽|руб\w*)?", re.IGNORECASE)
 
@@ -125,8 +127,10 @@ def check_llm_text(text: str, template: str, outcome: str | None) -> str | None:
     if extra:
         return f"числа, которых нет на входе: {extra}"
     low = text.lower()
-    if any(w in low for w in FORBIDDEN):
+    if any(w in low for w in FORBIDDEN) or LAW_115_RE.search(low):
         return "запрещённая формулировка"
+    if not text.rstrip().endswith(SENTENCE_END):
+        return "ответ обрезан на полуслове"
     if outcome != "APPROVED" and APPROVED_WORD_RE.search(low):
         return "слово «одобрено» вне решения об одобрении"
     if len(text) > 2 * len(template) + 200:
