@@ -46,7 +46,10 @@ export default function CompanyPage({
   update,
   next,
   setToast,
+  lookupCompany,
+  profileCompany,
 }: CompanyPageProps) {
+  const companyFromStorage = [data.company, profileCompany].find((company) => company?.inn === data.inn);
   return (
     <>
       <StepTitle
@@ -55,6 +58,7 @@ export default function CompanyPage({
         subtitle="ИНН — единственное, что нужно напечатать. Остальное подставим сами."
       />
       <Paper className="company-panel">
+        {data.inn && !data.companyOk && <Alert severity="info" sx={{ mb: 2 }}>ИНН загружен из личного кабинета. Проверьте данные компании.</Alert>}
         <Box className="inn-entry">
           <Box className="field-label">
             <Typography fontWeight={700}>ИНН компании или ИП</Typography>
@@ -70,6 +74,7 @@ export default function CompanyPage({
             onChange={(e) => {
               update("inn", e.target.value.replace(/\D/g, "").slice(0, 12));
               update("companyOk", false);
+              update("company", undefined);
             }}
             placeholder="Введите 10 или 12 цифр"
             helperText="ИНН: 10 цифр у компаний, 12 цифр у ИП. Он указан в свидетельстве или на сайте ФНС."
@@ -80,10 +85,21 @@ export default function CompanyPage({
           />
           <Button
             variant="outlined"
-            onClick={() => {
-              update("companyOk", true);
-              setToast("Демо-данные компании загружены");
-              setTimeout(() => setToast(""), 2500);
+            onClick={async () => {
+              try {
+                const company = await lookupCompany(data.inn);
+                update("company", company);
+                update("companyOk", true);
+                setToast("Данные компании загружены");
+                setTimeout(() => setToast(""), 2500);
+              } catch (error) {
+                setToast(
+                  error instanceof Error
+                    ? error.message
+                    : "Не удалось найти компанию",
+                );
+                setTimeout(() => setToast(""), 3500);
+              }
             }}
             disabled={data.inn.length !== 10 && data.inn.length !== 12}
             startIcon={<Autorenew />}
@@ -91,7 +107,7 @@ export default function CompanyPage({
             Найти компанию
           </Button>
         </Box>
-        {data.companyOk && (
+        {data.companyOk || companyFromStorage ? (
           <Box className="company-found">
             <Box className="company-title">
               <IconBubble lime>
@@ -99,10 +115,10 @@ export default function CompanyPage({
               </IconBubble>
               <Box>
                 <Typography className="eyebrow">
-                  КОМПАНИЯ НАЙДЕНА · ДЕМО-ДАННЫЕ
+                  ПРОВЕРЬТЕ КОМПАНИЮ
                 </Typography>
                 <Typography variant="h5" fontWeight={800}>
-                  ООО «Ромашка Трейд»
+                  {data.company?.name ?? companyFromStorage?.name ?? "Компания найдена"}
                 </Typography>
               </Box>
               <Chip
@@ -115,29 +131,32 @@ export default function CompanyPage({
             <Box className="company-facts">
               <Box>
                 <span>Деятельность</span>
-                <b>Торговля продуктами</b>
+                <b>{data.company?.activity ?? companyFromStorage?.activity ?? "Деятельность будет уточнена"}</b>
               </Box>
               <Box>
                 <span>Работает с</span>
-                <b>2022 года</b>
+                <b>{data.company?.registration_year ?? companyFromStorage?.registration_year ?? "—"} года</b>
               </Box>
               <Box>
                 <span>Руководитель</span>
-                <b>Иванов И. И. · Москва</b>
+                <b>{data.company?.region ?? companyFromStorage?.region ?? "Регион будет уточнен"}</b>
               </Box>
             </Box>
-            <Alert severity="info" className="source-alert">
-              Информация получена из демонстрационного реестра. Перед отправкой
-              заявки проверьте, что это ваша компания.
-            </Alert>
+            <Alert severity="info" className="source-alert">Проверьте, что это ваша компания, и подтвердите выбор.</Alert>
           </Box>
-        )}
+        ) : null}
       </Paper>
       <FooterNav
         onBack={() => next(1)}
-        onNext={() => next(3)}
+        onNext={() => {
+          if (companyFromStorage) {
+            update("company", companyFromStorage);
+            update("companyOk", true);
+          }
+          next(3);
+        }}
         next="Да, это моя компания"
-        disabled={!data.companyOk}
+        disabled={!data.companyOk && !companyFromStorage}
         note="Ваши данные сохраняются автоматически"
       />
     </>

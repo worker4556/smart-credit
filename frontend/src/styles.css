@@ -14,6 +14,20 @@ body {
   margin: 0;
   background: #f1f1f1;
 }
+.login-page, .profile-page, .role-placeholder { min-height: calc(100vh - 40px); display: grid; place-items: center; padding: 32px; }
+.login-card, .profile-card, .role-placeholder > .MuiPaper-root { width: min(100%, 520px); padding: 36px; display: flex; flex-direction: column; gap: 18px; border-radius: 20px !important; }
+.login-card .brand-mark { align-self: flex-start; }
+.profile-page { align-content: start; justify-items: center; }
+.profile-page > .MuiButton-root { width: min(100%, 900px); justify-content: flex-start; }
+.profile-card { width: min(100%, 900px); margin-top: 20px; }
+.profile-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.profile-facts > div { display: grid; gap: 5px; }
+.profile-facts span { color: #707070; font-size: 13px; }
+.profile-link { color: inherit !important; text-transform: none !important; display: flex; gap: 10px; }
+.demo-account-picker { min-width: 205px; }
+.demo-account-picker .MuiSelect-select { padding-block: 8px; font-size: 12px; }
+.role-placeholder { text-align: center; }
+.role-name { margin-top: 12px !important; }
 .appbar {
   border-bottom: 1px solid #e3e3e3 !important;
   background: rgba(255, 255, 255, 0.94) !important;
@@ -85,13 +99,7 @@ body {
   align-items: center;
   gap: 13px;
 }
-.demo-chip {
-  background: #f2f2f2 !important;
-  color: #555 !important;
-  font-size: 9px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.08em;
-}
+
 .notification {
   color: #444 !important;
 }
@@ -174,7 +182,7 @@ body {
 }
 .rail-item.done {
   color: #242424;
-  cursor: pointer;
+  cursor: default;
 }
 .rail-item.current {
   background: #fff1ef;
@@ -1173,18 +1181,7 @@ body {
   margin-left: auto;
   font-size: 9px;
 }
-.demo-controls {
-  margin-top: 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #999;
-}
-.demo-controls .MuiButton-root {
-  font-size: 9px;
-  min-width: 0;
-  color: #666;
-}
+
 .toast-msg {
   position: fixed;
   bottom: 30px;
@@ -1272,7 +1269,6 @@ body {
     font-size: 7px !important;
   }
   .navlinks,
-  .demo-chip,
   .notification,
   .user-name {
     display: none !important;
@@ -1280,6 +1276,8 @@ body {
   .head-actions {
     gap: 7px;
   }
+  .demo-account-picker { min-width: 130px; max-width: 145px; }
+  .demo-account-picker .MuiSelect-select { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .menu-mobile {
     display: inline-flex !important;
   }
@@ -1575,12 +1573,6 @@ body {
   }
   .bottom-help span {
     display: none;
-  }
-  .demo-controls {
-    flex-wrap: wrap;
-  }
-  .demo-controls > p {
-    width: 100%;
   }
   .toast-msg {
     bottom: 15px;
@@ -1955,3 +1947,4 @@ body {
   border-radius: 50%;
   box-shadow: 0 0 0 5px #ef312422;
 }
+

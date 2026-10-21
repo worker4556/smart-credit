@@ -13,7 +13,9 @@ import {
   Radio,
   Avatar,
   IconButton,
-  Tooltip,
+  FormControl,
+  MenuItem,
+  Select,
 } from "@mui/material";
 import AccountBalanceWallet from "@mui/icons-material/AccountBalanceWallet";
 import ArrowBack from "@mui/icons-material/ArrowBack";
@@ -22,7 +24,6 @@ import CheckCircle from "@mui/icons-material/CheckCircle";
 import ChevronRight from "@mui/icons-material/ChevronRight";
 import HelpOutline from "@mui/icons-material/HelpOutline";
 import MenuIcon from "@mui/icons-material/Menu";
-import NotificationsNone from "@mui/icons-material/NotificationsNone";
 import ReceiptLong from "@mui/icons-material/ReceiptLong";
 import ShieldOutlined from "@mui/icons-material/ShieldOutlined";
 import Storefront from "@mui/icons-material/Storefront";
@@ -36,6 +37,12 @@ interface IconBubbleProps {
 interface HeaderProps {
   screen: number;
   setScreen: (screen: number) => void;
+  userName?: string;
+  openProfile?: () => void;
+  demoAccounts?: Array<{ id: string; label: string }>;
+  selectedDemoId?: string;
+  onDemoAccountChange?: (id: string) => void;
+  onLogout?: () => void;
 }
 interface StepTitleProps {
   eyebrow: string;
@@ -62,7 +69,7 @@ interface SelectCardProps {
 export function IconBubble({ children, lime = false }: IconBubbleProps) {
   return <Box className={`icon-bubble ${lime ? "lime" : ""}`}>{children}</Box>;
 }
-export function Header({ screen, setScreen }: HeaderProps) {
+export function Header({ screen, setScreen, userName = "Клиент", openProfile, demoAccounts = [], selectedDemoId = "P1", onDemoAccountChange, onLogout }: HeaderProps) {
   return (
     <AppBar position="sticky" color="inherit" elevation={0} className="appbar">
       <Toolbar className="toolbar">
@@ -84,18 +91,25 @@ export function Header({ screen, setScreen }: HeaderProps) {
           <Button>Помощь</Button>
         </Box>
         <Box className="head-actions">
-          <Tooltip title="Демо-проект">
-            <Chip size="small" label="ДЕМО-КАБИНЕТ" className="demo-chip" />
-          </Tooltip>
-          <IconButton className="notification">
-            <NotificationsNone />
-          </IconButton>
-          <Avatar className="user-avatar">А</Avatar>
-          <Box className="user-name">
-            Александр
-            <br />
-            <span>ИП · Москва</span>
-          </Box>
+          <FormControl size="small" className="demo-account-picker">
+            <Select value={selectedDemoId} onChange={(event) => onDemoAccountChange?.(event.target.value)} aria-label="Демо-аккаунт">
+              {demoAccounts.map((account) => <MenuItem key={account.id} value={account.id}>{account.label}</MenuItem>)}
+            </Select>
+          </FormControl>
+          <Button
+            className="profile-link"
+            component="a"
+            href="/profile"
+            onClick={(event) => {
+              event.preventDefault();
+              openProfile?.();
+            }}
+            aria-label="Открыть личный кабинет"
+          >
+            <Avatar className="user-avatar">{userName.slice(0, 1).toLocaleUpperCase()}</Avatar>
+            <Box className="user-name">{userName}<br /><span>Личный кабинет</span></Box>
+          </Button>
+          <Button onClick={onLogout} className="logout-button">Выйти</Button>
           <IconButton className="menu-mobile">
             <MenuIcon />
           </IconButton>
@@ -132,7 +146,6 @@ export function StepRail({ screen, setScreen }: HeaderProps) {
           <Box
             key={l}
             className={`rail-item ${screen === i ? "current" : ""} ${screen > i || screen === 7 ? "done" : ""}`}
-            onClick={() => screen > i && setScreen(i)}
           >
             <Box className="rail-dot">
               {screen > i || screen === 7 ? (
@@ -158,7 +171,7 @@ export function StepRail({ screen, setScreen }: HeaderProps) {
           Мои заявки
         </Button>
       </Paper>
-      <Typography className="rail-foot">Альфа-Бизнес · Демо-продукт</Typography>
+      <Typography className="rail-foot">Альфа-Бизнес</Typography>
     </Box>
   );
 }

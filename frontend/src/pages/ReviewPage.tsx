@@ -47,6 +47,7 @@ export default function ReviewPage({
   next,
   monthly,
   submit,
+  loading,
 }: ReviewPageProps) {
   return (
     <>
@@ -80,11 +81,11 @@ export default function ReviewPage({
             <Box className="review-copy">
               <Typography className="eyebrow">О КОМПАНИИ</Typography>
               <Typography fontWeight={750}>
-                ООО «Ромашка Трейд» · ИНН {data.inn}
+                {data.company?.name ?? "Компания"} · ИНН {data.inn}
               </Typography>
               <Typography color="text.secondary">
-                Выручка {data.revenue} в год · кредиты:{" "}
-                {data.hasLoans.toLowerCase()}
+                Выручка {data.monthlyRevenue.toLocaleString("ru-RU")} ₽ в месяц
+                · кредиты: {data.hasLoans.toLowerCase()}
               </Typography>
             </Box>
             <Button onClick={() => next(2)}>Изменить</Button>
@@ -138,13 +139,12 @@ export default function ReviewPage({
             fullWidth
             size="large"
             onClick={submit}
-            disabled={!data.consent1 || !data.consent2}
+            disabled={!data.consent1 || !data.consent2 || loading}
           >
             Отправить заявку <ArrowForward />
           </Button>
           <Typography variant="caption" color="text.secondary">
-            Нажимая кнопку, вы соглашаетесь на проверку заявки. Это
-            демонстрационный сценарий.
+            Нажимая кнопку, вы подтверждаете указанные согласия и отправляете заявку.
           </Typography>
         </Paper>
       </Box>
@@ -156,7 +156,7 @@ export default function ReviewPage({
         onBack={() => next(5)}
         onNext={submit}
         next="Отправить заявку"
-        disabled={!data.consent1 || !data.consent2}
+        disabled={!data.consent1 || !data.consent2 || loading}
       />
     </>
   );
