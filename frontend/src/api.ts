@@ -27,7 +27,7 @@ async function request<T>(path: string, init: RequestInit = {}, authenticated = 
   return response.json() as Promise<T>;
 }
 
-export interface UserProfile { name: string; role?: "CLIENT" | "SPECIALIST" | "ADMIN"; inn: string; company?: Company; email?: string; phone?: string; region?: string; }
+export interface UserProfile { name: string; role?: "CLIENT" | "SPECIALIST" | "ADMIN"; inn: string; company?: Company; email?: string; phone?: string; region?: string; demoId?: string; }
 export interface LoginResponse { accessToken?: string; access_token?: string; token?: string; role: "CLIENT" | "SPECIALIST" | "ADMIN"; user?: UserProfile; }
 export interface ApplicationResponse extends Partial<ApplicationData> { id?: string; applicationId?: string; outcome: ApplicationData["outcome"]; decisionText?: string; decisionAmount?: number; decisionRate?: number; decisionMonthly?: number; reasons?: string[]; activity?: ApplicationData["activity"]; }
 export interface PrecheckResponse extends Precheck { goalOffers: LoanOffer[]; amountLow: number; amountHigh: number; text: string; }

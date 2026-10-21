@@ -13,6 +13,9 @@ import {
   Radio,
   Avatar,
   IconButton,
+  FormControl,
+  MenuItem,
+  Select,
 } from "@mui/material";
 import AccountBalanceWallet from "@mui/icons-material/AccountBalanceWallet";
 import ArrowBack from "@mui/icons-material/ArrowBack";
@@ -36,7 +39,9 @@ interface HeaderProps {
   setScreen: (screen: number) => void;
   userName?: string;
   openProfile?: () => void;
-  onLogout?: () => void;
+  demoAccounts?: Array<{ id: string; label: string }>;
+  selectedDemoId?: string;
+  onDemoAccountChange?: (id: string) => void;
 }
 interface StepTitleProps {
   eyebrow: string;
@@ -63,7 +68,7 @@ interface SelectCardProps {
 export function IconBubble({ children, lime = false }: IconBubbleProps) {
   return <Box className={`icon-bubble ${lime ? "lime" : ""}`}>{children}</Box>;
 }
-export function Header({ screen, setScreen, userName = "Клиент", openProfile, onLogout }: HeaderProps) {
+export function Header({ screen, setScreen, userName = "Клиент", openProfile, demoAccounts = [], selectedDemoId = "P1", onDemoAccountChange }: HeaderProps) {
   return (
     <AppBar position="sticky" color="inherit" elevation={0} className="appbar">
       <Toolbar className="toolbar">
@@ -85,6 +90,11 @@ export function Header({ screen, setScreen, userName = "Клиент", openProfi
           <Button>Помощь</Button>
         </Box>
         <Box className="head-actions">
+          <FormControl size="small" className="demo-account-picker">
+            <Select value={selectedDemoId} onChange={(event) => onDemoAccountChange?.(event.target.value)} aria-label="Демо-аккаунт">
+              {demoAccounts.map((account) => <MenuItem key={account.id} value={account.id}>{account.label}</MenuItem>)}
+            </Select>
+          </FormControl>
           <Button
             className="profile-link"
             component="a"
@@ -98,7 +108,6 @@ export function Header({ screen, setScreen, userName = "Клиент", openProfi
             <Avatar className="user-avatar">{userName.slice(0, 1).toLocaleUpperCase()}</Avatar>
             <Box className="user-name">{userName}<br /><span>Личный кабинет</span></Box>
           </Button>
-          <Button className="logout-button" color="inherit" onClick={onLogout}>Выйти</Button>
           <IconButton className="menu-mobile">
             <MenuIcon />
           </IconButton>
@@ -135,7 +144,6 @@ export function StepRail({ screen, setScreen }: HeaderProps) {
           <Box
             key={l}
             className={`rail-item ${screen === i ? "current" : ""} ${screen > i || screen === 7 ? "done" : ""}`}
-            onClick={() => screen > i && setScreen(i)}
           >
             <Box className="rail-dot">
               {screen > i || screen === 7 ? (
