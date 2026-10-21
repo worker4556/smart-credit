@@ -67,6 +67,8 @@ def test_model_default_is_the_same_everywhere():
     compose = read(REPO / "docker-compose.yml")
     env = read(REPO / ".env.example")
     assert f"OLLAMA_MODEL:-{llm.OLLAMA_MODEL}" in compose and f"OLLAMA_MODEL={llm.OLLAMA_MODEL}" in env
+    assert f"OLLAMA_MODEL={llm.OLLAMA_MODEL}" in read(REPO / "llm" / "Dockerfile")
+    assert llm.OLLAMA_MODEL in read(REPO / "THIRD_PARTY_NOTICES.md")
     assert llm.OLLAMA_MODEL in read(ML_README_FILE)
 
 

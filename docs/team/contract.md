@@ -5,13 +5,8 @@
 > [backend-instructions.md](backend-instructions.md). Контракт ML (бэкенд ↔ ML) — [docs/api-contract.md, раздел C](../api-contract.md)
 > и [docs/openapi-ml.yaml](../openapi-ml.yaml).
 
-> **Статус ML на 21.10.2026:** «Погода» (`weather`), помощник (`/v1/assistant`), словарь (`/v1/glossary`), калькулятор с
-> графиком и `docs/openapi-ml.yaml` готовы в ветке `ml/weather-assistant` и придут в `main` следующим ML-обновлением.
-> Делайте эндпоинты и экраны под этот контракт сразу; до прихода обновления помощник, термины и «Погода» будут отвечать
-> ошибкой ML — это ожидаемо.
-
 ```
-браузер ─► localhost:3000 nginx (собранный фронт, /api → backend) ─► backend :8000 ─► ml :8001 ─► ollama :11434
+браузер ─► localhost:3000 nginx (собранный фронт, /api → backend) ─► backend :8000 ─► ml :8001 ─► llm :11434
                                                                          ├─► моки = ml/fixtures/personas.json
                                                                          └─► postgres :5432
 ```
@@ -82,6 +77,7 @@ P6 (бухгалтер) — Won't в MVP: учётки нет.
 
 | Метод и путь | Тело | Ответ |
 |---|---|---|
+| `POST /intent` | `{text}` — фраза клиента, 1–500 символов | `IntentResponse` |
 | `POST /quote` | `{goal, amount, term}` | `Quote` |
 | `POST /applications` | `ApplicationData` | `ApplicationResponse` (статус `DRAFT`) |
 | `PUT /applications/{id}` | `ApplicationData` | `ApplicationResponse`; только в `DRAFT`, иначе `409` |
@@ -96,6 +92,26 @@ P6 (бухгалтер) — Won't в MVP: учётки нет.
 | `POST /applications/{id}/accept` | `{amount?, term?}` в пределах предложения | `204` |
 | `POST /applications/{id}/decline` · `/sign` · `/withdraw` | — | `204` |
 | `GET /glossary` · `GET /glossary/{term}` | — | словарь / термин (`404`, если нет) |
+
+### `IntentResponse` — «опишите задачу своими словами» (первый экран)
+`{ "text": "нужно 800 тыс. на закупку к сезону" }` →
+```json
+{ "goal": "Закупить товар или материалы", "amount": 800000, "term": null, "missing": ["term"],
+  "productReason": "Оборотный кредит: вся сумма сразу, равные платежи на срок от 6 месяцев.",
+  "needsConfirmation": true, "source": "LLM" }
+```
+- `goal` — **текст одной из карточек `GoalPage`** (бэкенд переводит цель ML в карточку):
+
+  | Цель ML | Карточка |
+  |---|---|
+  | `PURCHASE`, `CONTRACT` | «Закупить товар или материалы» |
+  | `CASH_GAP` | «Перекрыть кассовый разрыв» |
+  | `EQUIPMENT` | «Купить оборудование или технику» |
+  | `EXPANSION`, `OTHER` | «Закрыть текущие расходы» |
+  | не распознана | `null` |
+- `missing` — что не удалось понять (`goal`, `amount`, `term`): эти поля клиент заполняет в форме.
+- Продукт по-прежнему определяется карточкой цели (раздел 2), а не фразой.
+- Модель берёт сумму и срок только из чисел, которые есть во фразе. Если модель недоступна, разбирают правила (`source: "RULES"`). Ответ до 20 с.
 
 ### `Quote`
 ```json

@@ -49,7 +49,7 @@
 | `types.ts → ApplicationRoute` | `{steps, horizon_text, disclaimer}` | `{status, holds, basedOn, steps, horizonText, message, advice, projectedAmount, disclaimer, text}` |
 | `api.ts → recalculateRoute` | тело `{done: [...]}` | `{doneSteps: [...]}` — коды шагов (`step.code`) |
 | `ApplicationResponse` | — | + `number`, `status`, `decisionTerm`, `decisionFullCost`, `decisionWeather`, `infoRequest`, `routeAvailable`, `assistantAvailable` |
-| `api.ts` (новое) | — | `assistant(id, question, useLlm)`, `glossary()`, `decline(id)`, `sign(id)`, `withdraw(id)` |
+| `api.ts` (новое) | — | `intent(text)`, `assistant(id, question, useLlm)`, `glossary()`, `decline(id)`, `sign(id)`, `withdraw(id)` |
 
 `Outcome` у вас уже правильный: `review | specialist | approved | partial | info | rejected | suspended`.
 
@@ -57,6 +57,7 @@
 
 | Экран | Что поменять |
 |---|---|
+| `GoalPage` — фраза (новое, Must: история US-02) | Карточка «Пока не знаю, подскажите» открывает поле **«Опишите, что нужно, своими словами»** и кнопку «Разобрать» → `POST /intent {text}`. Пока ждём (до 20 с) — «Разбираем задачу…». Ответ подставить: выделить карточку `goal`, выставить ползунки `amount` и `term`, сверху — «Проверьте, правильно ли мы поняли»; поля из `missing` подсветить. Клиент подтверждает или правит — **автоматически дальше не переходить**. Ошибка или пустой ответ — остаётся обычная форма, без сообщения об ошибке |
 | `AmountPage` | Платёж и переплата — из `POST /quote` (уже так). Для цели «Перекрыть кассовый разрыв» ползунок срока **скрыть** (овердрафт всегда 12 мес.). Ошибку `400` показывать под суммой (уже так) |
 | `FinancePage` | Вопрос о кредитах: **«Сколько вы лично платите по кредитам и кредиткам в месяц?»** — нужны личные платежи владельца, кредиты бизнеса банк видит по счёту сам. Вопрос о просрочках: **«Были ли просрочки по кредитам за 2 года, включая закрытые?»** («включая закрытые» — из карточки P4). Выручку в месяц можно предзаполнить `company.averageMonthlyTurnover`, но поле редактируемое |
 | `FinancePage` → залог | Вопрос оставить или убрать — решают аналитики; в расчёт он не идёт |

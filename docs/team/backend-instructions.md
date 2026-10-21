@@ -74,6 +74,7 @@ def build_applicant(app, persona: dict, stage: str) -> dict:
 
 | Когда | Вызов ML | Таймаут бэкенда | Что делать с ответом |
 |---|---|---|---|
+| `POST /intent` | `/v1/intent {text, use_llm: true}` | `timeout=20`, **без повторов** | → `IntentResponse`: цель ML → текст карточки по таблице контракта, `term_months` → `term`, в `missing`: `purpose` → `goal`, `term_months` → `term` |
 | `POST /quote` | `/v1/quote {product, amount, term_months}` | `timeout=5`, до 3 повторов | → `Quote` (контракт) |
 | `POST /applications/{id}/precheck` | `/v1/precheck` (stage PRECHECK) → `/v1/explain {precheck, use_llm: false}` | 5 с | сохранить, срок действия 30 дней → `PrecheckResponse` |
 | фоновая обработка после `submit` | `/v1/decision` (stage DECISION) | 5 с, до 3 повторов | статус по разделу 4; ответ сохранить целиком |
@@ -167,7 +168,7 @@ SUBMITTED → IN_REVIEW; паузы ~1,5 с между этапами, чтоб�
 
 ## 6. Упаковка — всё по одной кнопке
 
-В `docker-compose.yml` уже есть `frontend`, `ml`, `ollama`, `ollama-pull`. Добавить:
+В `docker-compose.yml` уже есть `frontend`, `ml`, `llm`. Добавить:
 
 | Сервис | Что | Зависит от |
 |---|---|---|
@@ -175,8 +176,8 @@ SUBMITTED → IN_REVIEW; паузы ~1,5 с между этапами, чтоб�
 | `backend` | `./backend/Dockerfile` (python:3.12-slim + `uv sync --frozen`); при старте — создание таблиц и сиды, затем uvicorn на 8000; том `./ml/fixtures:/app/ml/fixtures:ro` — `personas.py` уже ищет файл по `/app/ml/fixtures/personas.json`; env: `DATABASE_URL`, `ML_URL=http://ml:8001`, `SECRET_KEY` | `postgres` и `ml` — `condition: service_healthy` |
 | `frontend` | уже есть; добавить `depends_on: backend` | `backend` |
 
-- `ml` уже имеет healthcheck в Dockerfile. `backend` не зависит от `ollama`: ML работает и без готовой модели.
-- LLM включена по умолчанию: `ollama` запускается всегда, `ollama-pull` сам качает модель `qwen3:1.7b`.
+- `ml` уже имеет healthcheck в Dockerfile. `backend` не зависит от `llm`: ML работает и без готовой модели.
+- LLM включена по умолчанию: сервис `llm` (папка `llm/`) запускается всегда и сам качает модель `qwen3:1.7b` — [llm/README.md](../../llm/README.md).
   Выключить — `OLLAMA_URL=` в `.env`.
 - `SECRET_KEY` — из `.env`, в `.env.example` заглушка.
 

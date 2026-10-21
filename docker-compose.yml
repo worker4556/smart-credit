@@ -1,7 +1,7 @@
-# Единый запуск. Сейчас здесь ML-часть; backend, frontend и postgres добавляются сюда же.
-#   docker compose up --build      # всё, включая локальную LLM с открытыми весами (Ollama)
-# Первый запуск сам скачивает модель (~1,4 ГБ для qwen3:1.7b). Пока она качается, ml работает на шаблонах
-# (GET /health → llm.ready = false), после загрузки помощник включается без перезапуска.
+# Единый запуск всего проекта:  docker compose up --build  →  http://localhost:3000
+# Сервисы: frontend (nginx) → backend → ml → llm. Бэкенд и postgres добавляет бэкендер (docs/team/backend-instructions.md).
+# LLM включена по умолчанию: при первом запуске llm скачивает модель (~1,4 ГБ), пока она качается — ml отвечает шаблонами
+# (GET ml:8001/health → llm.ready = false), потом помощник включается сам. Подробно — llm/README.md.
 # Отключить LLM: OLLAMA_URL= в .env. На Mac для разработки быстрее нативная Ollama: OLLAMA_URL=http://host.docker.internal:11434
 services:
   frontend:
@@ -13,38 +13,22 @@ services:
     build: ./ml
     ports: ["8001:8001"]
     environment:
-      OLLAMA_URL: ${OLLAMA_URL-http://ollama:11434}
+      OLLAMA_URL: ${OLLAMA_URL-http://llm:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:1.7b}
       LLM_TEXT_TIMEOUT_SECONDS: ${LLM_TEXT_TIMEOUT_SECONDS:-30}
       LLM_INTENT_TIMEOUT_SECONDS: ${LLM_INTENT_TIMEOUT_SECONDS:-15}
     restart: unless-stopped
-    # без depends_on на ollama: сервис стартует сразу и не ждёт модель
+    # без depends_on на llm: ml стартует сразу и не ждёт модель
 
-  ollama:
-    image: ollama/ollama:0.12.6
+  # Локальная LLM с открытыми весами (Ollama + qwen3:1.7b): сама качает и прогревает модель — llm/README.md
+  llm:
+    build: ./llm
     ports: ["11434:11434"]
-    volumes: ["ollama:/root/.ollama"]
+    volumes: ["llm-models:/root/.ollama"]
     environment:
-      OLLAMA_KEEP_ALIVE: 24h
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:1.7b}
     mem_limit: 6g
-    healthcheck:
-      test: ["CMD", "ollama", "list"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
     restart: unless-stopped
 
-  # Однократно: скачать веса в том ollama и прогреть модель первым запросом
-  ollama-pull:
-    image: ollama/ollama:0.12.6
-    depends_on:
-      ollama: {condition: service_healthy}
-    environment:
-      OLLAMA_HOST: http://ollama:11434
-      MODEL: ${OLLAMA_MODEL:-qwen3:1.7b}
-    entrypoint: ["sh", "-c", "ollama pull \"$$MODEL\" && ollama run \"$$MODEL\" 'привет' > /dev/null && echo 'model ready'"]
-    restart: "no"
-
 volumes:
-  ollama:
-
+  llm-models:

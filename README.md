@@ -64,7 +64,7 @@ docker compose up --build
 | `frontend/` | React + Vite + TypeScript, nginx | 3000 |
 | `backend/` | FastAPI + PostgreSQL | 8000 |
 | `ml/` | FastAPI: движок одобрения на правилах, «Погода», словарь, помощник | 8001 |
-| `ollama` | локальная LLM с открытыми весами | 11434 |
+| `llm/` | Ollama + `qwen3:1.7b`: локальная LLM с открытыми весами, только для `ml` — [llm/README.md](llm/README.md) | 11434 |
 
 ## Как работаем
 
