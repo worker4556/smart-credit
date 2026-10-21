@@ -5,6 +5,11 @@
 > [backend-instructions.md](backend-instructions.md). Контракт ML (бэкенд ↔ ML) — [docs/api-contract.md, раздел C](../api-contract.md)
 > и [docs/openapi-ml.yaml](../openapi-ml.yaml).
 
+> **Статус ML на 21.10.2026:** «Погода» (`weather`), помощник (`/v1/assistant`), словарь (`/v1/glossary`), калькулятор с
+> графиком и `docs/openapi-ml.yaml` готовы в ветке `ml/weather-assistant` и придут в `main` следующим ML-обновлением.
+> Делайте эндпоинты и экраны под этот контракт сразу; до прихода обновления помощник, термины и «Погода» будут отвечать
+> ошибкой ML — это ожидаемо.
+
 ```
 браузер ─► localhost:3000 nginx (собранный фронт, /api → backend) ─► backend :8000 ─► ml :8001 ─► ollama :11434
                                                                          ├─► моки = ml/fixtures/personas.json
