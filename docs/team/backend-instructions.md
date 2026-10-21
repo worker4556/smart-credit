@@ -173,13 +173,19 @@ SUBMITTED → IN_REVIEW; паузы ~1,5 с между этапами, чтоб�
 | Сервис | Что | Зависит от |
 |---|---|---|
 | `postgres` | `postgres:16.4-alpine`, том `pgdata`, healthcheck `pg_isready` | — |
-| `backend` | `./backend/Dockerfile` (python:3.12-slim + `uv sync --frozen`); при старте — создание таблиц и сиды, затем uvicorn на 8000; том `./ml/fixtures:/app/ml/fixtures:ro` — `personas.py` уже ищет файл по `/app/ml/fixtures/personas.json`; env: `DATABASE_URL`, `ML_URL=http://ml:8001`, `SECRET_KEY` | `postgres` и `ml` — `condition: service_healthy` |
+| `backend` | `image: ghcr.io/worker4556/smart-credit-backend:${IMAGE_TAG:-latest}` + `build: ./backend` — как у остальных сервисов; `./backend/Dockerfile` (python:3.12-slim + `uv sync --frozen`); при старте — создание таблиц и сиды, затем uvicorn на 8000; том `./ml/fixtures:/app/ml/fixtures:ro` — `personas.py` уже ищет файл по `/app/ml/fixtures/personas.json`; env: `DATABASE_URL`, `ML_URL=http://ml:8001`, `SECRET_KEY` | `postgres` и `ml` — `condition: service_healthy` |
 | `frontend` | уже есть; добавить `depends_on: backend` | `backend` |
 
 - `ml` уже имеет healthcheck в Dockerfile. `backend` не зависит от `llm`: ML работает и без готовой модели.
 - LLM включена по умолчанию: сервис `llm` (папка `llm/`) запускается всегда и сам качает модель `qwen3:1.7b` — [llm/README.md](../../llm/README.md).
   Выключить — `OLLAMA_URL=` в `.env`.
 - `SECRET_KEY` — из `.env`, в `.env.example` заглушка.
+- **Готовые образы для жюри.** Как только в `backend/` появится `Dockerfile`, GitHub Actions (`.github/workflows/images.yml`)
+  сам соберёт и опубликует `ghcr.io/worker4556/smart-credit-backend` при каждом пуше в `main` — ничего настраивать не нужно.
+  Жюри запускает `docker compose pull && docker compose up`: без сборки, без PyPI и npm. Всё, что нужно сервису в работе
+  (включая `ml/fixtures/personas.json`), должно быть внутри образа или в томах compose — не на машине жюри.
+- **Память:** весь проект должен укладываться в ~3 ГБ (компьютер жюри — 8 ГБ). Postgres и бэкенд — без лишних
+  воркеров: один процесс uvicorn достаточно.
 
 ## 7. Тесты (pytest, ML поднят)
 

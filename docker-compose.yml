@@ -1,15 +1,19 @@
-# Единый запуск всего проекта:  docker compose up --build  →  http://localhost:3000
+# Единый запуск всего проекта → http://localhost:3000
+#   docker compose pull && docker compose up    — готовые образы с GitHub (быстро, без сборки)
+#   docker compose up --build                   — собрать всё из исходников
 # Сервисы: frontend (nginx) → backend → ml → llm. Бэкенд и postgres добавляет бэкендер (docs/team/backend-instructions.md).
-# LLM включена по умолчанию: при первом запуске llm скачивает модель (~1,4 ГБ), пока она качается — ml отвечает шаблонами
-# (GET ml:8001/health → llm.ready = false), потом помощник включается сам. Подробно — llm/README.md.
-# Отключить LLM: OLLAMA_URL= в .env. На Mac для разработки быстрее нативная Ollama: OLLAMA_URL=http://host.docker.internal:11434
+# Модель qwen3:1.7b вшита в образ llm: после запуска готова сразу, интернет не нужен. Подробно — llm/README.md.
+# Память: ~3 ГБ на всё (llm ≤ 3 ГБ). Отключить LLM: OLLAMA_URL= в .env.
+
 services:
   frontend:
+    image: ghcr.io/worker4556/smart-credit-frontend:${IMAGE_TAG:-latest}
     build: ./frontend
     ports: ["3000:3000"]
     restart: unless-stopped
 
   ml:
+    image: ghcr.io/worker4556/smart-credit-ml:${IMAGE_TAG:-latest}
     build: ./ml
     ports: ["8001:8001"]
     environment:
@@ -20,15 +24,15 @@ services:
     restart: unless-stopped
     # без depends_on на llm: ml стартует сразу и не ждёт модель
 
-  # Локальная LLM с открытыми весами (Ollama + qwen3:1.7b): сама качает и прогревает модель — llm/README.md
+  # Локальная LLM с открытыми весами: Ollama + вшитая модель — llm/README.md
   llm:
-    build: ./llm
+    image: ghcr.io/worker4556/smart-credit-llm:${IMAGE_TAG:-latest}
+    build:
+      context: ./llm
+      args:
+        OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:1.7b}
     ports: ["11434:11434"]
-    volumes: ["llm-models:/root/.ollama"]
     environment:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:1.7b}
-    mem_limit: 6g
+    mem_limit: 3g
     restart: unless-stopped
-
-volumes:
-  llm-models:

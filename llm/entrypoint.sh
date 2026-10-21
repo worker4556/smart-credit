@@ -1,6 +1,7 @@
 #!/bin/sh
-# Сервис локальной LLM: поднять Ollama, при первом запуске скачать модель, прогреть её.
-# ml не ждёт этот сервис: пока модель качается, ml отвечает шаблонами (GET ml:8001/health → llm.ready = false).
+# Сервис локальной LLM: поднять Ollama и прогреть вшитую в образ модель.
+# Если в .env указали другую модель, чем при сборке, — скачать её (нужен интернет; лучше пересобрать образ).
+# ml не ждёт этот сервис: пока модель не готова, ml отвечает шаблонами (GET ml:8001/health → llm.ready = false).
 set -e
 
 MODEL="${OLLAMA_MODEL:-qwen3:1.7b}"
@@ -11,9 +12,9 @@ SERVER_PID=$!
 until ollama list >/dev/null 2>&1; do sleep 1; done
 
 if ollama list | awk 'NR > 1 {print $1}' | grep -qx "$MODEL"; then
-  echo "llm: модель $MODEL уже скачана"
+  echo "llm: модель $MODEL на месте"
 else
-  echo "llm: скачиваю $MODEL — один раз, дальше она хранится в томе llm-models"
+  echo "llm: модели $MODEL нет в образе — скачиваю (лучше пересобрать: docker compose build llm)"
   ollama pull "$MODEL"
 fi
 
