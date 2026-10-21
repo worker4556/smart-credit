@@ -21,6 +21,7 @@ services:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:1.7b}
       LLM_TEXT_TIMEOUT_SECONDS: ${LLM_TEXT_TIMEOUT_SECONDS:-30}
       LLM_INTENT_TIMEOUT_SECONDS: ${LLM_INTENT_TIMEOUT_SECONDS:-15}
+      ML_SERVICE_TOKEN: ${ML_SERVICE_TOKEN:-}   # тот же токен передаёт backend в X-Service-Token
     restart: unless-stopped
     # без depends_on на llm: ml стартует сразу и не ждёт модель
 

@@ -35,7 +35,8 @@ def test_openapi_file_is_current():
 
 def test_contract_section_c_mentions_every_endpoint():
     section_c = api_contract_section("C")
-    mentioned = set(re.findall(r"/v1/[a-z]+(?:/\{[a-z_]+\})?", section_c)) | ({"/health"} if "/health" in section_c else set())
+    mentioned = set(re.findall(r"/v1/[a-z]+(?:/\{[a-z_]+\})?", section_c))
+    mentioned |= {p for p in ("/health", "/metrics") if p in section_c}
     assert ml_paths() <= mentioned, ml_paths() - mentioned
 
 

@@ -85,6 +85,10 @@ def build_applicant(app, persona: dict, stage: str) -> dict:
 | карточка специалиста | `/v1/limit` для `WORKING_CAPITAL` и `OVERDRAFT`, `/v1/reasons` | 5 с | лимиты по продуктам, справочник |
 | `GET /admin/system` | `GET {ML_URL}/health` | 5 с | `llm: {enabled, ready, model}` |
 
+- Во все вызовы ML передавай `X-Request-ID` (тот же, что у запроса фронта) и `X-Service-Token` из `ML_SERVICE_TOKEN`
+  (одинаковое значение у `backend` и `ml` в `.env`; пусто — проверка выключена).
+- Поле `audit` из ответов ML (`policy_version`, `input_hash`, `decided_at`) сохраняй вместе с решением и показывай в
+  журнале заявки специалисту: решение воспроизводимо и прослеживаемо.
 - Повторы — только для вызовов без LLM. Вызов с LLM не повторять: клиент ждал бы до 2 минут, а очередь на
   процессоре росла бы.
 - ML ответил `422` (сумма ниже минимума, срок вне 3–36 мес у кредита) → фронту `400 {"detail": <msg из ML>, "field": …}`.

@@ -5,9 +5,14 @@
 """
 from __future__ import annotations
 
+import json
 import logging
+import os
+import time
+import uuid
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import llm
@@ -21,14 +26,46 @@ from .route import Route, SpecialistDecision, build_route
 from .finance import quote, weather
 from .schemas import (Applicant, Decision, LimitResult, LoanRequest, Offer, Precheck, ProductCode, Quote, ScoreResult,
                       Weather)
+from .observability import ENGINE_VERSION, METRICS, audit_of
 from .scoring import score
 
-logging.basicConfig(level=logging.INFO, format='{"level":"%(levelname)s","logger":"%(name)s","msg":"%(message)s"}')
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+log = logging.getLogger("ml")
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
-app = FastAPI(title="Smart Credit ML — движок одобрения", version="2.0.0",
+SERVICE_TOKEN = os.getenv("ML_SERVICE_TOKEN", "")   # пусто — без проверки (внутренняя сеть compose)
+OPEN_PATHS = ("/health", "/metrics", "/docs", "/openapi.json", "/redoc")
+
+app = FastAPI(title="Smart Credit ML — движок одобрения", version=ENGINE_VERSION,
               description="Скоринг (Б3), решение по правилам (Б4), предоценка, маршрут к одобрению, "
                           "разбор задачи клиента и пересказ причин локальной LLM.")
+
+
+@app.middleware("http")
+async def request_context(request: Request, call_next):
+    """Сквозной request_id, служебный токен, журнал запроса в JSON, метрики."""
+    request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
+    started = time.perf_counter()
+    path = request.url.path
+    if SERVICE_TOKEN and not path.startswith(OPEN_PATHS) and request.headers.get("X-Service-Token") != SERVICE_TOKEN:
+        response = JSONResponse({"detail": "Нужен служебный токен X-Service-Token"}, status_code=401)
+    else:
+        response = await call_next(request)
+    elapsed = time.perf_counter() - started
+    response.headers["X-Request-ID"] = request_id
+    route = request.scope.get("route")
+    template = getattr(route, "path", path)
+    METRICS.inc("ml_http_requests_total", path=template, status=str(response.status_code))
+    METRICS.inc("ml_http_request_duration_seconds_sum", elapsed, path=template)
+    METRICS.inc("ml_http_request_duration_seconds_count", path=template)
+    log.info(json.dumps({"request_id": request_id, "method": request.method, "path": path,
+                         "status": response.status_code, "duration_ms": round(elapsed * 1000, 1)}, ensure_ascii=False))
+    return response
+
+
+@app.get("/metrics", response_class=PlainTextResponse, summary="Метрики Prometheus")
+def metrics() -> str:
+    return METRICS.render()
 
 
 class IntentRequest(BaseModel):
@@ -98,7 +135,8 @@ def intent(req: IntentRequest) -> Intent:
 
 @app.post("/v1/precheck", response_model=Precheck, summary="Шаг 3: предоценка без заявки и без БКИ")
 def precheck_endpoint(a: Applicant) -> Precheck:
-    return precheck(get_policy(), _validated(a))
+    policy = get_policy()
+    return precheck(policy, _validated(a)).model_copy(update={"audit": audit_of(policy, a)})
 
 
 @app.post("/v1/score", response_model=ScoreResult, summary="Б3: баллы по 9 факторам и стоп-факторы")
@@ -115,13 +153,18 @@ def limit_endpoint(a: Applicant) -> LimitResult:
 def decision_endpoint(a: Applicant) -> DecisionWithOffers:
     policy = get_policy()
     d = decide(policy, _validated(a))
-    return DecisionWithOffers(**d.model_dump(), offers=offers(policy, a, d))
+    METRICS.inc("ml_decisions_total", outcome=d.outcome)
+    if d.specialist.required:
+        METRICS.inc("ml_specialist_total")
+    return DecisionWithOffers(**{**d.model_dump(), "audit": audit_of(policy, a)}, offers=offers(policy, a, d))
 
 
 @app.post("/v1/route", response_model=Route, summary="Маршрут к одобрению и «Пересчитать»")
 def route_endpoint(req: RouteRequest) -> Route:
+    policy = get_policy()
     try:
-        return build_route(get_policy(), _validated(req.applicant, "applicant"), req.assume_done, req.specialist_decision)
+        r = build_route(policy, _validated(req.applicant, "applicant"), req.assume_done, req.specialist_decision)
+        return r.model_copy(update={"audit": audit_of(policy, req)})
     except ValueError as exc:
         raise HTTPException(422, str(exc))
 
@@ -149,12 +192,17 @@ def weather_endpoint(req: WeatherRequest) -> Weather:
 def explain_endpoint(req: ExplainRequest) -> Explanation:
     policy = get_policy()
     if req.decision:
-        return explain_decision(policy, req.decision, req.use_llm)
-    if req.precheck:
-        return explain_precheck(policy, req.precheck, req.use_llm)
-    if req.route:
-        return explain_route(policy, req.route, req.use_llm)
-    raise HTTPException(422, "Нужно одно из полей: decision, precheck, route")
+        e = explain_decision(policy, req.decision, req.use_llm)
+    elif req.precheck:
+        e = explain_precheck(policy, req.precheck, req.use_llm)
+    elif req.route:
+        e = explain_route(policy, req.route, req.use_llm)
+    else:
+        raise HTTPException(422, "Нужно одно из полей: decision, precheck, route")
+    METRICS.inc("ml_texts_total", source=e.source)
+    if e.fallback_reason and req.use_llm:
+        METRICS.inc("ml_llm_rejected_total")
+    return e
 
 
 @app.get("/v1/reasons", summary="Справочник причин — для специалиста и фронта")
@@ -167,7 +215,11 @@ def reasons() -> dict:
 def assistant_endpoint(req: AssistantRequest) -> AssistantAnswer:
     if not req.context.decision and not req.context.route:
         raise HTTPException(422, "Нужно решение или маршрут в context")
-    return answer(get_policy(), req.question, req.context.decision, req.context.route, req.use_llm)
+    a = answer(get_policy(), req.question, req.context.decision, req.context.route, req.use_llm)
+    METRICS.inc("ml_texts_total", source=a.source)
+    if a.fallback_reason and req.use_llm:
+        METRICS.inc("ml_llm_rejected_total")
+    return a
 
 
 @app.get("/v1/glossary", summary="Словарь простых слов")

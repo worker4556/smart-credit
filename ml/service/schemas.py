@@ -188,6 +188,7 @@ class Decision(BaseModel):
     specialist: Specialist
     score: ScoreResult
     weather: Weather | None = Field(default=None, description="Только когда в решении есть сумма")
+    audit: "Audit | None" = Field(default=None, description="Версия политики, хэш входа, время — заполняет эндпоинт")
 
 
 class AmountRange(BaseModel):
@@ -209,3 +210,10 @@ class Precheck(BaseModel):
     valid_days: int
     disclaimer: str
     weather: Weather | None = None
+    audit: "Audit | None" = None
+
+
+from .observability import Audit  # noqa: E402  (циклический импорт: Audit не зависит от схем)
+
+Decision.model_rebuild()
+Precheck.model_rebuild()

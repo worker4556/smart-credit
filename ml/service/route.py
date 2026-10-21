@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from .config import Policy
 from .decision import available_amount, decide, limit
 from .finance import cost, rate_for
+from .observability import Audit
 from .schemas import Applicant, Cost
 from .scoring import avg_turnover, effective_turnover, score
 
@@ -67,6 +68,7 @@ class Route(BaseModel):
     advice: list[str]
     message: str
     disclaimer: str
+    audit: Audit | None = None
 
 
 # ---------- эффекты шагов: как меняются данные ----------

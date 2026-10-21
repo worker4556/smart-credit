@@ -153,6 +153,29 @@ components:
       - context
       title: AssistantRequest
       type: object
+    Audit:
+      description: 'Чем и на каких данных посчитан результат: решение можно воспроизвести
+        и объяснить.'
+      properties:
+        decided_at:
+          title: Decided At
+          type: string
+        engine_version:
+          title: Engine Version
+          type: string
+        input_hash:
+          title: Input Hash
+          type: string
+        policy_version:
+          title: Policy Version
+          type: string
+      required:
+      - policy_version
+      - engine_version
+      - input_hash
+      - decided_at
+      title: Audit
+      type: object
     Checks:
       properties:
         declared_monthly_revenue:
@@ -298,6 +321,11 @@ components:
           - type: integer
           - type: 'null'
           title: Amount
+        audit:
+          anyOf:
+          - $ref: '#/components/schemas/Audit'
+          - type: 'null'
+          description: Версия политики, хэш входа, время — заполняет эндпоинт
         cost:
           anyOf:
           - $ref: '#/components/schemas/Cost'
@@ -360,6 +388,11 @@ components:
           - type: integer
           - type: 'null'
           title: Amount
+        audit:
+          anyOf:
+          - $ref: '#/components/schemas/Audit'
+          - type: 'null'
+          description: Версия политики, хэш входа, время — заполняет эндпоинт
         cost:
           anyOf:
           - $ref: '#/components/schemas/Cost'
@@ -778,6 +811,10 @@ components:
         amount_range:
           $ref: '#/components/schemas/AmountRange'
           description: «Высота» — вилка доступной суммы
+        audit:
+          anyOf:
+          - $ref: '#/components/schemas/Audit'
+          - type: 'null'
         chance:
           enum:
           - HIGH
@@ -997,6 +1034,10 @@ components:
             type: string
           title: Advice
           type: array
+        audit:
+          anyOf:
+          - $ref: '#/components/schemas/Audit'
+          - type: 'null'
         based_on:
           default: SYSTEM
           enum:
@@ -1368,7 +1409,7 @@ info:
   description: Скоринг (Б3), решение по правилам (Б4), предоценка, маршрут к одобрению,
     разбор задачи клиента и пересказ причин локальной LLM.
   title: Smart Credit ML — движок одобрения
-  version: 2.0.0
+  version: 2.1.0
 openapi: 3.1.0
 paths:
   /health:
@@ -1384,6 +1425,17 @@ paths:
                 type: object
           description: Successful Response
       summary: Health
+  /metrics:
+    get:
+      operationId: metrics_metrics_get
+      responses:
+        '200':
+          content:
+            text/plain:
+              schema:
+                type: string
+          description: Successful Response
+      summary: Метрики Prometheus
   /v1/assistant:
     post:
       operationId: assistant_endpoint_v1_assistant_post
