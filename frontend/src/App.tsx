@@ -14,12 +14,14 @@ import DocumentsPage from "./pages/DocumentsPage";
 import ReviewPage from "./pages/ReviewPage";
 import StatusPage from "./pages/StatusPage";
 import ProfilePage from "./pages/ProfilePage";
+import LoginPage from "./pages/LoginPage";
 import { api, ApiError, type ApplicationResponse, type UserProfile } from "./api";
 import type { ApplicationData, Company } from "./types";
 import "./styles.css";
 
 const PROFILE_SESSION_KEY = "credit-user-profile";
 const COMPANY_SESSION_KEY = "credit-company-profile";
+const AUTH_SESSION_KEY = "credit-authenticated";
 
 function loadProfileSession(): UserProfile | null {
   try { return JSON.parse(sessionStorage.getItem(PROFILE_SESSION_KEY) ?? "null") as UserProfile | null; }
@@ -65,6 +67,7 @@ export default function App() {
     return { ...initial, ...storedCompany, inn: storedCompany.inn, company: storedCompany.company ?? initial.company };
   });
   const [screen, setScreen] = useState(0);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => sessionStorage.getItem(AUTH_SESSION_KEY) === "true");
   const [page, setPage] = useState<"application" | "profile" | "bank" | "admin">(() => {
     const path = window.location.pathname;
     return path === "/profile" ? "profile" : path === "/bank" ? "bank" : path === "/admin" ? "admin" : "application";
@@ -104,6 +107,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     let active = true;
     void api.createApplication(applicationForAccount(activeDemoAccount))
       .then((response) => { if (active) applyApplication(response); })
@@ -115,7 +119,7 @@ export default function App() {
     return () => { active = false; };
   // A new backend draft follows the selected demo persona.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeDemoAccount.id]);
+  }, [activeDemoAccount.id, isAuthenticated]);
 
   useEffect(() => {
     const savedCompany = JSON.stringify({ inn: data.inn, company: data.company });
@@ -133,6 +137,30 @@ export default function App() {
     setPage("application");
     setApiError("");
     setAmountError("");
+    window.history.pushState({}, "", "/");
+  };
+
+  const loginWithPassword = async (password: string) => {
+    const account = demoAccounts.find((candidate) => candidate.password === password)
+      ?? (password === "06080608" ? DEFAULT_DEMO_ACCOUNT : undefined);
+    if (!account) throw new Error("Неверный пароль");
+    sessionStorage.setItem(PROFILE_SESSION_KEY, JSON.stringify(account.profile));
+    sessionStorage.setItem(COMPANY_SESSION_KEY, JSON.stringify({ inn: account.company.inn, company: account.company }));
+    sessionStorage.setItem(AUTH_SESSION_KEY, "true");
+    setProfileRefresh((value) => value + 1);
+    setData(applicationForAccount(account));
+    setScreen(0);
+    setPage("application");
+    setApiError("");
+    setIsAuthenticated(true);
+    window.history.pushState({}, "", "/");
+  };
+
+  const logout = () => {
+    sessionStorage.removeItem(AUTH_SESSION_KEY);
+    sessionStorage.removeItem("credit-access-token");
+    setIsAuthenticated(false);
+    setPage("application");
     window.history.pushState({}, "", "/");
   };
 
@@ -244,6 +272,7 @@ export default function App() {
   const openProfile = () => { window.history.pushState({}, "", "/profile"); setPage("profile"); };
   const backFromProfile = () => { window.history.pushState({}, "", "/"); setPage("application"); };
 
+  if (!isAuthenticated) return <ThemeProvider theme={theme}><CssBaseline /><LoginPage onLogin={loginWithPassword} /></ThemeProvider>;
   if (page === "profile") return <ThemeProvider theme={theme}><CssBaseline /><ProfilePage profile={profile} onBack={backFromProfile} /></ThemeProvider>;
 
   const monthly = data.quote?.monthly ?? 0;
@@ -264,7 +293,7 @@ export default function App() {
   return <ThemeProvider theme={theme}><CssBaseline />
     <Header screen={screen} setScreen={setScreen} userName={profile.name} openProfile={openProfile}
       demoAccounts={demoAccounts.map(({ id, label }) => ({ id, label }))}
-      selectedDemoId={activeDemoAccount.id} onDemoAccountChange={selectDemoAccount} />
+      selectedDemoId={activeDemoAccount.id} onDemoAccountChange={selectDemoAccount} onLogout={logout} />
     <Box className="app-shell"><StepRail screen={screen} setScreen={setScreen} /><Box component="main" className="main-content">
       {apiError && <Alert severity="error" onClose={() => setApiError("")} sx={{ mb: 2 }}>{apiError}</Alert>}
       {activeDemoAccount.notice && <Alert severity="info" sx={{ mb: 2 }}>{activeDemoAccount.notice}</Alert>}

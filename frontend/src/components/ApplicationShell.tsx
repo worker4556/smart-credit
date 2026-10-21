@@ -42,6 +42,7 @@ interface HeaderProps {
   demoAccounts?: Array<{ id: string; label: string }>;
   selectedDemoId?: string;
   onDemoAccountChange?: (id: string) => void;
+  onLogout?: () => void;
 }
 interface StepTitleProps {
   eyebrow: string;
@@ -68,7 +69,7 @@ interface SelectCardProps {
 export function IconBubble({ children, lime = false }: IconBubbleProps) {
   return <Box className={`icon-bubble ${lime ? "lime" : ""}`}>{children}</Box>;
 }
-export function Header({ screen, setScreen, userName = "Клиент", openProfile, demoAccounts = [], selectedDemoId = "P1", onDemoAccountChange }: HeaderProps) {
+export function Header({ screen, setScreen, userName = "Клиент", openProfile, demoAccounts = [], selectedDemoId = "P1", onDemoAccountChange, onLogout }: HeaderProps) {
   return (
     <AppBar position="sticky" color="inherit" elevation={0} className="appbar">
       <Toolbar className="toolbar">
@@ -108,6 +109,7 @@ export function Header({ screen, setScreen, userName = "Клиент", openProfi
             <Avatar className="user-avatar">{userName.slice(0, 1).toLocaleUpperCase()}</Avatar>
             <Box className="user-name">{userName}<br /><span>Личный кабинет</span></Box>
           </Button>
+          <Button onClick={onLogout} className="logout-button">Выйти</Button>
           <IconButton className="menu-mobile">
             <MenuIcon />
           </IconButton>
