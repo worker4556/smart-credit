@@ -33,9 +33,11 @@ interface IconBubbleProps {
 }
 interface HeaderProps {
   screen: number;
-  setScreen: (screen: number) => void;
+  setScreen: (screen: number) => void | Promise<void>;
   userName?: string;
   openProfile?: () => void;
+  openHelp?: () => void;
+  openApplication?: (screen: number) => void;
   onLogout?: () => void;
 }
 interface StepTitleProps {
@@ -58,16 +60,17 @@ interface SelectCardProps {
   title: string;
   subtitle: string;
   badge?: string;
+  className?: string;
 }
 
 export function IconBubble({ children, lime = false }: IconBubbleProps) {
   return <Box className={`icon-bubble ${lime ? "lime" : ""}`}>{children}</Box>;
 }
-export function Header({ screen, setScreen, userName = "Клиент", openProfile, onLogout }: HeaderProps) {
+export function Header({ screen, setScreen, userName = "Клиент", openProfile, openHelp, openApplication, onLogout }: HeaderProps) {
   return (
     <AppBar position="sticky" color="inherit" elevation={0} className="appbar">
       <Toolbar className="toolbar">
-        <Box className="brand" onClick={() => setScreen(0)}>
+        <Box className="brand" onClick={() => openApplication ? openApplication(0) : setScreen(0)}>
           <Box className="brand-mark">а</Box>
           <Box>
             <Typography className="brand-name">альфа-бизнес</Typography>
@@ -77,12 +80,12 @@ export function Header({ screen, setScreen, userName = "Клиент", openProfi
         <Box className="navlinks">
           <Button
             className={screen < 7 ? "nav-active" : ""}
-            onClick={() => setScreen(0)}
+            onClick={() => openApplication ? openApplication(0) : setScreen(0)}
           >
             Кредит
           </Button>
-          <Button onClick={() => setScreen(7)}>Мои заявки</Button>
-          <Button>Помощь</Button>
+          <Button onClick={() => openApplication ? openApplication(7) : setScreen(7)}>Мои заявки</Button>
+          <Button onClick={openHelp}>Помощь</Button>
         </Box>
         <Box className="head-actions">
           <Button
@@ -134,6 +137,11 @@ export function StepRail({ screen, setScreen }: HeaderProps) {
         {labels.map((l, i) => (
           <Box
             key={l}
+            component="button"
+            type="button"
+            disabled={i >= screen}
+            onClick={() => void setScreen(i)}
+            aria-current={screen === i ? "step" : undefined}
             className={`rail-item ${screen === i ? "current" : ""} ${screen > i || screen === 7 ? "done" : ""}`}
           >
             <Box className="rail-dot">
@@ -221,11 +229,12 @@ export function SelectCard({
   title,
   subtitle,
   badge,
+  className,
 }: SelectCardProps) {
   return (
     <Card
       onClick={onClick}
-      className={`select-card ${selected ? "selected" : ""}`}
+      className={`select-card ${selected ? "selected" : ""} ${className ?? ""}`}
     >
       <CardContent>
         <Box className="select-card-top">

@@ -39,12 +39,16 @@ export interface UserProfile { id: string; login: string; name: string; role: "C
 export interface LoginResponse { accessToken: string; user: UserProfile; }
 export interface ApplicationResponse extends Partial<ApplicationData> { id?: string; applicationId?: string; outcome: ApplicationData["outcome"]; decisionText?: string; decisionAmount?: number; decisionRate?: number; decisionMonthly?: number; reasons?: string[]; activity?: ApplicationData["activity"]; }
 export interface PrecheckResponse extends Precheck { goalOffers: LoanOffer[]; amountLow: number; amountHigh: number; text: string; }
+export interface IntentResponse { goal: string | null; amount: number | null; term: number | null; missing: string[]; productReason?: string; needsConfirmation: boolean; source: string; }
+export interface AssistantAnswer { answer: string; source: "TEMPLATE" | "LLM"; topic: string; terms: string[]; }
 
 export const api = {
   login: (login: string, password: string) => request<LoginResponse>("/auth/login", { method: "POST", body: JSON.stringify({ login, password }) }, false),
   me: () => request<UserProfile>("/me"),
   company: (inn: string) => request<Company>(`/companies/${encodeURIComponent(inn)}`),
   quote: (goal: string, amount: number, term: number) => request<Quote>("/quote", { method: "POST", body: JSON.stringify({ goal, amount, term }) }),
+  intent: (text: string) => request<IntentResponse>("/intent", { method: "POST", body: JSON.stringify({ text }) }),
+  assistant: (id: string, question: string, useLlm: boolean) => request<AssistantAnswer>(`/applications/${encodeURIComponent(id)}/assistant`, { method: "POST", body: JSON.stringify({ question, useLlm }) }),
   createApplication: (data: ApplicationData) => request<ApplicationResponse>("/applications", { method: "POST", body: JSON.stringify(data) }),
   updateApplication: (id: string, data: ApplicationData) => request<ApplicationResponse>(`/applications/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   precheck: (id: string) => request<PrecheckResponse>(`/applications/${id}/precheck`, { method: "POST" }),

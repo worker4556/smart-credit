@@ -14,6 +14,7 @@ import ReviewPage from "./pages/ReviewPage";
 import StatusPage from "./pages/StatusPage";
 import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
+import HelpPage from "./pages/HelpPage";
 import { api, ApiError, clearToken, getToken, saveToken, type ApplicationResponse, type UserProfile } from "./api";
 import type { ApplicationData, Company } from "./types";
 import "./styles.css";
@@ -26,9 +27,9 @@ export default function App() {
   const [screen, setScreen] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getToken()));
   const [checkingSession, setCheckingSession] = useState(() => Boolean(getToken()));
-  const [page, setPage] = useState<"application" | "profile" | "bank" | "admin">(() => {
+  const [page, setPage] = useState<"application" | "profile" | "help" | "bank" | "admin">(() => {
     const path = window.location.pathname;
-    return path === "/profile" ? "profile" : path === "/bank" ? "bank" : path === "/admin" ? "admin" : "application";
+    return path === "/profile" ? "profile" : path === "/help" ? "help" : path === "/bank" ? "bank" : path === "/admin" ? "admin" : "application";
   });
   const [selectedOffer, setSelectedOffer] = useState(0);
   const [toast, setToast] = useState("");
@@ -158,6 +159,17 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const navigateToStep = async (index: number) => {
+    if (index === screen) return;
+    if (index > 0 && data.applicationId) {
+      try { await api.updateApplication(data.applicationId, data); }
+      catch (error) { setApiError(toMessage(error, "Не удалось сохранить заявку")); return; }
+    }
+    setApiError("");
+    setScreen(index);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const showOffers = async () => {
     if (!data.applicationId) return;
     setLoading(true); setApiError("");
@@ -209,18 +221,34 @@ export default function App() {
   };
 
   useEffect(() => {
-    const onPopState = () => setPage(window.location.pathname === "/profile" ? "profile" : "application");
+    const onPopState = () => {
+      const path = window.location.pathname;
+      setPage(path === "/profile" ? "profile" : path === "/help" ? "help" : path === "/bank" ? "bank" : path === "/admin" ? "admin" : "application");
+    };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
   const openProfile = () => { window.history.pushState({}, "", "/profile"); setPage("profile"); };
   const backFromProfile = () => { window.history.pushState({}, "", "/"); setPage("application"); };
+  const openHelp = () => { window.history.pushState({}, "", "/help"); setPage("help"); };
+  const backFromHelp = () => { window.history.pushState({}, "", "/"); setPage("application"); };
+  const openApplication = (targetScreen: number) => {
+    if (window.location.pathname !== "/") window.history.pushState({}, "", "/");
+    setPage("application");
+    if (targetScreen === screen) return;
+    void navigateToStep(targetScreen);
+  };
 
   if (checkingSession) return <ThemeProvider theme={theme}><CssBaseline /><Box className="login-page"><Typography>Проверяем учётную запись…</Typography></Box></ThemeProvider>;
   if (!isAuthenticated || !profile) return <ThemeProvider theme={theme}><CssBaseline /><LoginPage onLogin={loginWithPassword} /></ThemeProvider>;
   if (profile.role !== "CLIENT") return <ThemeProvider theme={theme}><CssBaseline /><Box className="role-placeholder"><Alert severity="info">Раздел {profile.role === "SPECIALIST" ? "специалиста" : "администратора"} пока в разработке.</Alert><Button onClick={logout}>Выйти</Button></Box></ThemeProvider>;
   if (page === "profile") return <ThemeProvider theme={theme}><CssBaseline /><ProfilePage profile={profile} onBack={backFromProfile} /></ThemeProvider>;
+  if (page === "help") return <ThemeProvider theme={theme}><CssBaseline />
+    <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHelp={openHelp} openApplication={openApplication} onLogout={logout} />
+    <HelpPage data={data} onBack={backFromHelp} />
+    <Box className="bottom-help"><ShieldOutlined /> Безопасно. Просто. На ваших условиях. <span>© Альфа-Бизнес · Кредитный кабинет</span></Box>
+  </ThemeProvider>;
 
   const monthly = data.quote?.monthly ?? 0;
   const total = data.quote?.total ?? 0;
@@ -238,8 +266,8 @@ export default function App() {
   ];
 
   return <ThemeProvider theme={theme}><CssBaseline />
-    <Header screen={screen} setScreen={setScreen} userName={profile.name} openProfile={openProfile} onLogout={logout} />
-    <Box className="app-shell"><StepRail screen={screen} setScreen={setScreen} /><Box component="main" className="main-content">
+    <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHelp={openHelp} openApplication={openApplication} onLogout={logout} />
+    <Box className="app-shell"><StepRail screen={screen} setScreen={navigateToStep} /><Box component="main" className="main-content">
       {apiError && <Alert severity="error" onClose={() => setApiError("")} sx={{ mb: 2 }}>{apiError}</Alert>}
       {pages[screen]}
     </Box></Box>
