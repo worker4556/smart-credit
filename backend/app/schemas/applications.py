@@ -210,6 +210,7 @@ class RouteStep(CamelModel):
     points_gain: int = 0
     done: bool = False
     bki_delay_business_days: int | None = None
+    target_turnover: int | None = Field(default=None, ge=0)
 
 
 class ApplicationRoute(CamelModel):

@@ -69,6 +69,8 @@ export const api = {
   uploadDocument: (id: string, file: File) => { const form = new FormData(); form.append("file", file); return request<ApplicationResponse>(`/applications/${id}/documents`, { method: "POST", body: form }); },
   accept: (id: string) => request<void>(`/applications/${id}/accept`, { method: "POST" }),
   sign: (id: string) => request<void>(`/applications/${id}/sign`, { method: "POST" }),
+  decline: (id: string) => request<void>(`/applications/${id}/decline`, { method: "POST" }),
+  withdraw: (id: string) => request<void>(`/applications/${id}/withdraw`, { method: "POST" }),
   // Кабинет специалиста
   bankQueue: () => request<BankQueueItem[]>("/bank/queue"),
   bankApplication: (id: string) => request<BankApplication>(`/bank/applications/${id}`),

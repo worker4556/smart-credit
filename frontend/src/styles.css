@@ -2112,3 +2112,4 @@ body {
 .staff-factor .MuiLinearProgress-root { background: #ececec; }
 .staff-factor .MuiLinearProgress-bar { background: var(--tone-green); }
 .owner-note, .route-advice { margin-top: 12px; }
+.zsk-steps ol { margin: 12px 0 16px; padding-left: 20px; display: grid; gap: 8px; }

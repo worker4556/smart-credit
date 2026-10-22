@@ -125,7 +125,7 @@ export default function App() {
           if (!active) return;
           applyApplication(latest);
           setScreen(7);
-          if (["rejected", "partial"].includes(latest.outcome) && latest.applicationId) {
+          if (["REJECTED", "COUNTER_OFFER", "DECLINED_BY_CLIENT"].includes(latest.status ?? "") && latest.applicationId) {
             const route = await api.route(latest.applicationId);
             if (active) setData((current) => ({ ...current, route }));
           }
@@ -306,6 +306,23 @@ export default function App() {
       applyApplication(await api.application(data.applicationId));
     } catch (error) { setApiError(toMessage(error, "Не удалось подписать договор")); }
   };
+  // Клиент отклонил иные условия — маршрут строится от решения (что держит сумму)
+  const decline = async () => {
+    if (!data.applicationId) return;
+    try {
+      await api.decline(data.applicationId);
+      applyApplication(await api.application(data.applicationId));
+      const route = await api.route(data.applicationId);
+      setData((current) => ({ ...current, route }));
+    } catch (error) { setApiError(toMessage(error, "Не удалось отклонить предложение")); }
+  };
+  const withdraw = async () => {
+    if (!data.applicationId) return;
+    try {
+      await api.withdraw(data.applicationId);
+      applyApplication(await api.application(data.applicationId));
+    } catch (error) { setApiError(toMessage(error, "Не удалось отозвать заявку")); }
+  };
   const recalcRoute = async (done: string[]) => {
     if (!data.applicationId) return;
     const route = await api.recalculateRoute(data.applicationId, done);
@@ -361,7 +378,7 @@ export default function App() {
     <OffersPage key="offers" data={data} update={update} next={next} goalOffers={offers} selectedOffer={selectedOffer} setSelectedOffer={setSelectedOffer} monthly={monthly} chosen={chosen} setToast={setToast} onChoose={chooseOffer} />,
     <DocumentsPage key="documents" data={data} update={update} next={next} uploadFile={addDocument} />,
     <ReviewPage key="review" data={data} update={update} next={next} monthly={monthly} submit={submit} loading={loading} />,
-    <StatusPage key="status" data={data} update={update} setData={setData} setScreen={setScreen} next={next} monthly={monthly} total={total} uploadDocument={addDocument} acceptOffer={accept} signOffer={sign} onNewApplication={startNewApplication} recalculateRoute={recalcRoute} />,
+    <StatusPage key="status" data={data} update={update} setData={setData} setScreen={setScreen} next={next} monthly={monthly} total={total} uploadDocument={addDocument} acceptOffer={accept} signOffer={sign} declineOffer={decline} withdrawApplication={withdraw} onNewApplication={startNewApplication} recalculateRoute={recalcRoute} />,
   ];
 
   return <ThemeProvider theme={theme}><CssBaseline />

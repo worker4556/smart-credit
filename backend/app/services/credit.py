@@ -159,6 +159,7 @@ def route_from_ml(
             points_gain=int(item.get("points_gain") or 0),
             done=str(item["code"]) in done,
             bki_delay_business_days=item.get("bki_delay_business_days"),
+            target_turnover=item.get("target_turnover"),
         )
         for item in payload.get("steps") or []
         if isinstance(item, dict)
