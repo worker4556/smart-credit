@@ -120,7 +120,12 @@ export default function App() {
     // Есть отправленная заявка — открываем её статус; иначе начинаем новый черновик
     void api.applications()
       .then(async (list) => {
-        const latest = list.find((item) => item.status && item.status !== "DRAFT");
+        // Самая свежая заявка: черновик продолжаем, отправленную — открываем на экране статуса
+        const latest = list[0];
+        if (latest?.status === "DRAFT") {
+          if (active) applyApplication(latest);
+          return;
+        }
         if (latest) {
           if (!active) return;
           applyApplication(latest);

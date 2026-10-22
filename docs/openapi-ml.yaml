@@ -127,10 +127,21 @@ components:
           anyOf:
           - $ref: '#/components/schemas/Decision'
           - type: 'null'
+        precheck:
+          anyOf:
+          - $ref: '#/components/schemas/Precheck'
+          - type: 'null'
+          description: Предоценка — для вопросов до подачи
         route:
           anyOf:
           - $ref: '#/components/schemas/Route'
           - type: 'null'
+        stage:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: 'Статус заявки: DRAFT, IN_REVIEW, APPROVED, SIGNED, DISBURSED…'
+          title: Stage
       title: AssistantContext
       type: object
     AssistantRequest:
@@ -1458,7 +1469,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-      summary: 'Помощник при отказе и нехватке: ответ только по фактам решения и маршрута'
+      summary: 'Помощник по заявке: ответ только по фактам решения, маршрута, предоценки
+        и стадии'
   /v1/decision:
     post:
       operationId: decision_endpoint_v1_decision_post

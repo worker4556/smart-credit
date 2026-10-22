@@ -143,22 +143,18 @@ def ask_assistant(
 ) -> AssistantAnswer:
     company = _company(session, user)
     application = service.get_application(session, company.id, application_id)
-    if application.status not in {"REJECTED", "COUNTER_OFFER", "INFO_REQUESTED"}:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Помощник доступен после решения по заявке",
-        )
-    if not application.decision and not application.route:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Пока нечего объяснять: решения и маршрута ещё нет",
-        )
 
+    # Помощник отвечает на любой стадии: до подачи — по предоценке, на проверке и после одобрения — по стадии,
+    # при отказе и нехватке — по решению и маршруту. Маршрут передаём только там, где он есть по смыслу.
+    with_route = application.status in {"REJECTED", "COUNTER_OFFER", "DECLINED_BY_CLIENT", "INFO_REQUESTED"}
+    precheck = (application.precheck or {}).get("ml") if application.status == "DRAFT" else None
     payload = {
         "question": data.question,
         "context": {
             "decision": application.decision,
-            "route": application.route,
+            "route": application.route if with_route else None,
+            "stage": application.status,
+            "precheck": precheck,
         },
     }
     try:

@@ -73,7 +73,7 @@
 | `POST /applications/{id}/withdraw` | Отозвать до решения | `SUBMITTED`/`SPECIALIST_REVIEW` → `WITHDRAWN` |
 | `POST /applications/{id}/route` | Маршрут к одобрению (**Route**, ниже) | — |
 | `POST /applications/{id}/route/recalculate` | Пересчёт: `{ "doneSteps": ["S_TAX", "O_DEBT"] }` → **Route** | — |
-| `POST /applications/{id}/assistant` | Помощник: `{ question, useLlm }` → `{ answer, source, topic, terms[] }` | — |
+| `POST /applications/{id}/assistant` | Помощник на любой стадии: `{ question, useLlm }` → `{ answer, source, topic, terms[] }`. До подачи отвечает по предоценке, на проверке и после одобрения — по стадии, при отказе — по решению и маршруту | — |
 | `GET /glossary`, `GET /glossary/{term}` | Словарь простых слов | — |
 
 ### Объект **Application**

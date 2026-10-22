@@ -93,6 +93,8 @@ class WeatherRequest(QuoteRequest):
 class AssistantContext(BaseModel):
     decision: Decision | None = None
     route: Route | None = None
+    stage: str | None = Field(default=None, description="Статус заявки: DRAFT, IN_REVIEW, APPROVED, SIGNED, DISBURSED…")
+    precheck: Precheck | None = Field(default=None, description="Предоценка — для вопросов до подачи")
 
 
 class AssistantRequest(BaseModel):
@@ -211,11 +213,12 @@ def reasons() -> dict:
 
 
 @app.post("/v1/assistant", response_model=AssistantAnswer,
-          summary="Помощник при отказе и нехватке: ответ только по фактам решения и маршрута")
+          summary="Помощник по заявке: ответ только по фактам решения, маршрута, предоценки и стадии")
 def assistant_endpoint(req: AssistantRequest) -> AssistantAnswer:
-    if not req.context.decision and not req.context.route:
-        raise HTTPException(422, "Нужно решение или маршрут в context")
-    a = answer(get_policy(), req.question, req.context.decision, req.context.route, req.use_llm)
+    c = req.context
+    if not (c.decision or c.route or c.stage or c.precheck):
+        raise HTTPException(422, "Нужно решение, маршрут, предоценка или стадия заявки в context")
+    a = answer(get_policy(), req.question, c.decision, c.route, req.use_llm, stage=c.stage, precheck=c.precheck)
     METRICS.inc("ml_texts_total", source=a.source)
     if a.fallback_reason and req.use_llm:
         METRICS.inc("ml_llm_rejected_total")

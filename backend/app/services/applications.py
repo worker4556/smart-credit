@@ -446,8 +446,7 @@ def response_for(
         info_request=info_request,
         route_available=bool(application.route)
         or application.status in {"REJECTED", "DECLINED_BY_CLIENT"},
-        assistant_available=application.status
-        in {"REJECTED", "COUNTER_OFFER", "INFO_REQUESTED"},
+        assistant_available=True,
         activity=activity or [],
     )
 
