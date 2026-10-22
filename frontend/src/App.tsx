@@ -112,40 +112,50 @@ export default function App() {
     }));
   }, []);
 
-  useEffect(() => {
-    if (!isAuthenticated || !profile || profile.role !== "CLIENT") return;
-    let active = true;
+  // Открывает актуальную заявку клиента: свежий черновик продолжаем, отправленную показываем на экране статуса,
+  // нет ни одной — создаём черновик. Вызывается при входе и когда текущая заявка пропала (например, сброс демо).
+  const syncApplication = useCallback(async (): Promise<string | undefined> => {
+    if (!profile || profile.role !== "CLIENT") return undefined;
     const draft = applicationForAccount(demoAccountForLogin(profile.login), profile);
     setData(draft);
-    // Есть отправленная заявка — открываем её статус; иначе начинаем новый черновик
-    void api.applications()
-      .then(async (list) => {
-        // Самая свежая заявка: черновик продолжаем, отправленную — открываем на экране статуса
-        const latest = list[0];
-        if (latest?.status === "DRAFT") {
-          if (active) applyApplication(latest);
-          return;
-        }
-        if (latest) {
-          if (!active) return;
-          applyApplication(latest);
-          setScreen(7);
-          if (["REJECTED", "COUNTER_OFFER", "DECLINED_BY_CLIENT"].includes(latest.status ?? "") && latest.applicationId) {
-            const route = await api.route(latest.applicationId);
-            if (active) setData((current) => ({ ...current, route }));
-          }
-          return;
-        }
-        const response = await api.createApplication(draft);
-        if (active) applyApplication(response);
-      })
-      .catch((error) => {
-        if (!active) return;
-        if (error instanceof ApiError && (error.status === 401 || error.status === 404)) return;
-        setApiError(toMessage(error, "Не удалось создать черновик"));
-      });
-    return () => { active = false; };
-  }, [profile, isAuthenticated, applyApplication]);
+    setSelectedOffer(0);
+    const list = await api.applications();
+    const latest = list[0];
+    if (latest?.status === "DRAFT") {
+      applyApplication(latest);
+      setScreen(0);
+      return latest.applicationId;
+    }
+    if (latest) {
+      applyApplication(latest);
+      setScreen(7);
+      if (["REJECTED", "COUNTER_OFFER", "DECLINED_BY_CLIENT"].includes(latest.status ?? "") && latest.applicationId) {
+        const route = await api.route(latest.applicationId);
+        setData((current) => ({ ...current, route }));
+      }
+      return latest.applicationId;
+    }
+    const response = await api.createApplication(draft);
+    applyApplication(response);
+    setScreen(0);
+    return response.applicationId ?? response.id;
+  }, [profile, applyApplication]);
+
+  // 404 по текущей заявке — её больше нет: молча переключаемся на актуальную
+  const recoverIfStale = useCallback(async (error: unknown): Promise<boolean> => {
+    if (!(error instanceof ApiError && error.status === 404)) return false;
+    try { await syncApplication(); setApiError(""); setToast("Данные заявки обновились — открыли актуальную"); window.setTimeout(() => setToast(""), 3000); }
+    catch (syncError) { setApiError(toMessage(syncError, "Не удалось загрузить заявку")); }
+    return true;
+  }, [syncApplication]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !profile || profile.role !== "CLIENT") return;
+    void syncApplication().catch((error) => {
+      if (error instanceof ApiError && error.status === 401) return;
+      setApiError(toMessage(error, "Не удалось загрузить заявку"));
+    });
+  }, [profile, isAuthenticated, syncApplication]);
 
   const loginWithPassword = async (login: string, password: string) => {
     const response = await api.login(login, password);
@@ -203,14 +213,14 @@ export default function App() {
           setData((current) => ({ ...current, route }));
         }
       })
-      .catch((error) => setApiError(toMessage(error, "Не удалось обновить статус заявки"))), 3000);
+      .catch(async (error) => { if (!(await recoverIfStale(error))) setApiError(toMessage(error, "Не удалось обновить статус заявки")); }), 3000);
     return () => window.clearInterval(timer);
   }, [screen, data.applicationId, data.submitted, data.outcome, data.status, applyApplication]);
 
   const next = async (index = screen + 1) => {
     if (data.applicationId && index !== 7) {
       try { await api.updateApplication(data.applicationId, data); }
-      catch (error) { setApiError(toMessage(error, "Не удалось сохранить заявку")); return; }
+      catch (error) { if (!(await recoverIfStale(error))) setApiError(toMessage(error, "Не удалось сохранить заявку")); return; }
     }
     setScreen(index);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -220,7 +230,7 @@ export default function App() {
     if (index === screen) return;
     if (index > 0 && data.applicationId) {
       try { await api.updateApplication(data.applicationId, data); }
-      catch (error) { setApiError(toMessage(error, "Не удалось сохранить заявку")); return; }
+      catch (error) { if (!(await recoverIfStale(error))) setApiError(toMessage(error, "Не удалось сохранить заявку")); return; }
     }
     setApiError("");
     setScreen(index);
@@ -367,7 +377,7 @@ export default function App() {
   if (page === "profile") return <ThemeProvider theme={theme}><CssBaseline /><ProfilePage profile={profile} onBack={backFromProfile} /></ThemeProvider>;
   if (page === "help") return <ThemeProvider theme={theme}><CssBaseline />
     <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHelp={openHelp} openApplication={openApplication} onLogout={logout} />
-    <HelpPage data={data} onBack={backFromHelp} />
+    <HelpPage data={data} onBack={backFromHelp} onStaleApplication={syncApplication} />
     <Box className="bottom-help"><ShieldOutlined /> Безопасно. Просто. На ваших условиях. <span>© Альфа-Бизнес · Кредитный кабинет</span></Box>
   </ThemeProvider>;
 

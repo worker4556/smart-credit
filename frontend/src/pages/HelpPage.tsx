@@ -3,11 +3,11 @@ import { Alert, Avatar, Box, Button, CircularProgress, IconButton, Paper, TextFi
 import ArrowBack from "@mui/icons-material/ArrowBack";
 import AutoAwesome from "@mui/icons-material/AutoAwesome";
 import Send from "@mui/icons-material/Send";
-import { api, type AssistantAnswer } from "../api";
+import { api, ApiError, type AssistantAnswer } from "../api";
 import type { ApplicationData } from "../types";
 
 interface ChatMessage { id: string; question: string; answer: string; source?: AssistantAnswer["source"]; topic?: string; enhancing?: boolean; error?: boolean; }
-interface HelpPageProps { data: ApplicationData; onBack: () => void; }
+interface HelpPageProps { data: ApplicationData; onBack: () => void; onStaleApplication: () => Promise<string | undefined>; }
 
 // Подсказки под стадию заявки: помощник отвечает и когда всё хорошо, не только при отказе
 function promptsFor(data: ApplicationData): string[] {
@@ -18,7 +18,7 @@ function promptsFor(data: ApplicationData): string[] {
   return ["Почему одобрили?", "Что дальше?", "Сколько это стоит?", "Что такое полная стоимость кредита?"];
 }
 
-export default function HelpPage({ data, onBack }: HelpPageProps) {
+export default function HelpPage({ data, onBack, onStaleApplication }: HelpPageProps) {
   const storageKey = useMemo(() => `credit-help-chat:${data.applicationId ?? "no-application"}`, [data.applicationId]);
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try { return JSON.parse(sessionStorage.getItem(storageKey) ?? "[]") as ChatMessage[]; } catch { return []; }
@@ -43,11 +43,22 @@ export default function HelpPage({ data, onBack }: HelpPageProps) {
     setSending(true);
     setMessages((current) => [...current, { id, question: text, answer: "Готовим ответ…", enhancing: true }]);
     try {
-      const template = await api.assistant(data.applicationId, text, false);
+      let applicationId = data.applicationId;
+      let template: AssistantAnswer;
+      try {
+        template = await api.assistant(applicationId, text, false);
+      } catch (error) {
+        // Заявку удалили (например, сброс демо) — берём актуальную и задаём вопрос ещё раз
+        if (!(error instanceof ApiError && error.status === 404)) throw error;
+        const fresh = await onStaleApplication();
+        if (!fresh) throw error;
+        applicationId = fresh;
+        template = await api.assistant(applicationId, text, false);
+      }
       setMessages((current) => current.map((message) => message.id === id ? { ...message, answer: template.answer, source: template.source, topic: template.topic, enhancing: template.source !== "LLM" } : message));
       setSending(false);
       if (template.source !== "LLM") {
-        void api.assistant(data.applicationId, text, true).then((refined) => {
+        void api.assistant(applicationId, text, true).then((refined) => {
           if (refined.source === "LLM") setMessages((current) => current.map((message) => message.id === id ? { ...message, answer: refined.answer, source: refined.source, topic: refined.topic, enhancing: false } : message));
           else setMessages((current) => current.map((message) => message.id === id ? { ...message, enhancing: false } : message));
         }).catch(() => setMessages((current) => current.map((message) => message.id === id ? { ...message, enhancing: false } : message)));
@@ -80,7 +91,7 @@ export default function HelpPage({ data, onBack }: HelpPageProps) {
       {!data.applicationId && <Alert severity="warning" className="help-eligibility">Заявка ещё загружается. Попробуйте отправить вопрос чуть позже.</Alert>}
       <Box component="form" className="help-composer" onSubmit={(event) => { event.preventDefault(); void ask(); }}>
         {messages.length === 0 && <Box className="help-prompts">{prompts.map((prompt) => <Button key={prompt} onClick={() => void ask(prompt)}>{prompt}</Button>)}</Box>}
-        <TextField fullWidth multiline maxRows={4} value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Спросите, что непонятно" inputProps={{ maxLength: 500, "aria-label": "Ваш вопрос помощнику" }} />
+        <TextField fullWidth multiline maxRows={4} value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void ask(); } }} placeholder="Спросите, что непонятно (Enter — отправить, Shift+Enter — новая строка)" inputProps={{ maxLength: 500, "aria-label": "Ваш вопрос помощнику" }} />
         <Typography className="help-count">{question.length}/500</Typography>
         <IconButton type="submit" aria-label="Отправить вопрос" disabled={sending || !question.trim()} className="help-send"><Send /></IconButton>
       </Box>

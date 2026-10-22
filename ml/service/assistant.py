@@ -34,6 +34,22 @@ PATTERNS: list[tuple[Topic, str]] = [
 ]
 
 
+GREETING_RE = re.compile(r"^\s*(привет|здравств|здрасьт|здрасте|добр(ый|ое|ого)\s+(день|вечер|утр)|хай\b|hello\b|hi\b)")
+CAPABILITIES_RE = re.compile(r"что\s+(ещ[её]\s+)?(можно|могу|ты\s+умеешь|ты\s+можешь)|чем\s+(ты\s+)?(можешь\s+)?помо|"
+                             r"о\s+ч[её]м\s+(можно\s+)?спрос|какие\s+вопросы|помоги\b|^\s*помощь")
+
+
+def small_talk(policy: Policy, question: str) -> str | None:
+    """Приветствие и «что ещё можно узнать?» — подсказываем, о чём спросить, а не отвечаем «не по теме»."""
+    a = policy.raw["assistant"]
+    q = question.lower()
+    if GREETING_RE.search(q):
+        return f"{a['greeting']} {a['capabilities']}"
+    if CAPABILITIES_RE.search(q):
+        return a["capabilities"]
+    return None
+
+
 class AssistantAnswer(BaseModel):
     answer: str
     template_answer: str
@@ -256,6 +272,10 @@ def answer(policy: Policy, question: str, decision: Decision | None, route: Rout
 
     terms = find_terms(policy, question)
     topic = classify(question, terms)
+    if topic == "OFF_TOPIC":
+        chat = small_talk(policy, question)
+        if chat:
+            return AssistantAnswer(answer=chat, template_answer=chat, source="TEMPLATE", topic="OFF_TOPIC")
     # Всё в порядке (черновик, проверка, одобрение и оформление) — отвечаем по стадии, без маршрута
     good = (stage in GOOD_STAGES and not route) or (decision is not None and decision.outcome == "APPROVED" and not route) \
         or (decision is None and route is None)

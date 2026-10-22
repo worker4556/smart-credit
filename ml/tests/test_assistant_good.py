@@ -98,3 +98,19 @@ def test_what_to_do_phrasings(policy):
     d = decide(policy, applicant("P1"))
     for q in ["что мне теперь делать?", "что сейчас делать", "как быть дальше?", "куда нажать?"]:
         assert answer(policy, q, d, None, use_llm=False, stage="APPROVED").topic == "WHAT_TO_DO", q
+
+
+def test_greeting_and_capabilities_are_answered_not_rejected(policy):
+    d = decide(policy, applicant("P1"))
+    for q in ["привет", "Здравствуйте!", "добрый день"]:
+        a = answer(policy, q, d, None, use_llm=False, stage="APPROVED")
+        assert a.answer.startswith("Здравствуйте") and "Спросите" in a.answer, q
+    for q in ["а что еще можно узгнать?", "что ты умеешь?", "чем можешь помочь?", "о чём можно спросить?"]:
+        a = answer(policy, q, d, None, use_llm=False, stage="APPROVED")
+        assert "Спросите, например" in a.answer, q
+
+
+def test_small_talk_does_not_hijack_real_questions(policy):
+    d = decide(policy, applicant("P1"))
+    assert answer(policy, "что можно сделать дальше?", d, None, use_llm=False, stage="APPROVED").topic == "WHAT_TO_DO"
+    assert answer(policy, "привет, почему одобрили?", d, None, use_llm=False, stage="APPROVED").topic == "WHY"
