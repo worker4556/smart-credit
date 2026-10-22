@@ -11,7 +11,7 @@ export interface ApplicationRoute { status?: string; holds?: string; basedOn?: s
 export interface Company { inn: string; name: string; legalForm?: string; okved?: string; activity?: string; region?: string; registrationYear?: number; averageMonthlyTurnover?: number; }
 export interface ActivityEvent { at: string; text: string; }
 export interface ApplicationData {
-  applicationId?: string; goal: string; amount: number; term: number; inn: string; companyOk: boolean; monthlyRevenue: number;
+  applicationId?: string; intentText?: string; goal: string; amount: number; term: number; inn: string; companyOk: boolean; monthlyRevenue: number;
   hasLoans: "Да" | "Нет"; loanPayment: number; hadOverdue2y: boolean; collateral: string; offer: number; docs: Record<string, string>;
   consent1: boolean; consent2: boolean; submitted: boolean; outcome: Outcome; quote?: Quote; precheck?: Precheck; goalOffers?: LoanOffer[]; decision?: Decision;
   decisionText?: string; decisionAmount?: number; decisionRate?: number; decisionMonthly?: number; reasons?: string[];
