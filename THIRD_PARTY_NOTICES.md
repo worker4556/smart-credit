@@ -49,8 +49,41 @@
 
 ## Backend (`backend/`)
 
-Заполняет бэкенд.
+Версии — из `backend/uv.lock`.
+
+| Компонент | Версия | Лицензия | Назначение |
+|---|---|---|---|
+| Python (`python:3.12.5-slim`) | 3.12.5 | PSF License | среда выполнения |
+| FastAPI | 0.156.8 | MIT | HTTP API |
+| Starlette | 1.9.0 | BSD-3-Clause | основа FastAPI |
+| Pydantic / pydantic-settings | 2.14.1 / 2.16.1 | MIT | схемы, валидация, конфигурация |
+| uvicorn | 0.54.0 | BSD-3-Clause | сервер приложений |
+| SQLModel / SQLAlchemy | 0.0.48 / 2.1.5 | MIT | ORM |
+| psycopg | 3.3.6 | LGPL-3.0 | драйвер PostgreSQL |
+| bcrypt | 5.0.0 | Apache-2.0 | хэширование паролей |
+| python-jose | 3.5.0 | MIT | JWT |
+| httpx | 0.28.1 | BSD-3-Clause | клиент сервиса `ml` |
+| python-multipart | 0.0.32 | Apache-2.0 | загрузка документов |
+| pytest (только разработка) | 9.1.1 | MIT | тесты |
+| PostgreSQL (`postgres:16.4-alpine`) | 16.4 | PostgreSQL License | база данных |
 
 ## Frontend (`frontend/`)
 
-Заполняет фронтенд (версии — из `package-lock.json`).
+Версии — из `frontend/package-lock.json`; базовые образы закреплены по digest в `frontend/Dockerfile`.
+
+| Компонент | Версия | Лицензия | Назначение |
+|---|---|---|---|
+| React / React DOM | 19.3.1 | MIT | интерфейс |
+| MUI Material / Icons | 7.3.11 | MIT | компоненты и иконки |
+| Emotion (react / styled) | 11.14.0 / 11.14.1 | MIT | стили MUI |
+| Vite | 7.3.7 | MIT | сборка |
+| @vitejs/plugin-react | 5.2.0 | MIT | сборка React |
+| TypeScript | 7.0.2 | Apache-2.0 | типизация |
+| Node.js (`node:22-alpine`, только сборка) | 22 | MIT | сборка статики |
+| nginx (`nginx:alpine`) | 1.31.8 | BSD-2-Clause | раздача статики и прокси `/api` |
+
+## Инструменты проверки (не входят в поставку)
+
+| Компонент | Лицензия | Назначение |
+|---|---|---|
+| Postman / newman | Apache-2.0 | запуск коллекции `docs/postman/` |

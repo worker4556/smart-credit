@@ -184,6 +184,10 @@ class ApplicationResponse(CamelModel):
     status: Status
     outcome: Outcome
     submitted: bool = False
+    # Что просил клиент: нужно, чтобы вернуться к отправленной заявке после повторного входа
+    goal: str | None = None
+    amount: int | None = Field(default=None, gt=0)
+    term: int | None = Field(default=None, gt=0)
     next_action: str | None = None
     decision_text: str | None = None
     decision_amount: int | None = Field(default=None, ge=0)

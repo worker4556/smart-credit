@@ -43,6 +43,7 @@ export default function StatusPage({
   uploadDocument,
   acceptOffer,
   signOffer,
+  onNewApplication,
   recalculateRoute,
 }: StatusPageProps) {
   const [baseTitle, summary] = statusCopy[data.outcome];
@@ -229,7 +230,7 @@ export default function StatusPage({
         </Typography>
       </Stack>
       <Box className="status-actions">
-        <Button onClick={() => next(0)}>К началу</Button>
+        <Button onClick={() => void onNewApplication()}>Новая заявка</Button>
       </Box>
     </>
   );

@@ -16,12 +16,13 @@ import StatusPage from "./pages/StatusPage";
 import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import HelpPage from "./pages/HelpPage";
+import BankPage from "./pages/BankPage";
+import AdminPage from "./pages/AdminPage";
 import { api, ApiError, clearToken, getToken, saveToken, type ApplicationResponse, type UserProfile } from "./api";
 import type { ApplicationData, Company, Role } from "./types";
 import "./styles.css";
 
 const PROFILE_SESSION_KEY = "credit-user-profile";
-const roleLabels: Record<Role, string> = { CLIENT: "Клиент", SPECIALIST: "Специалист", ADMIN: "Администратор" };
 
 function demoAccountForLogin(login?: string): DemoAccount {
   return demoAccounts.find((account) => account.id.toLowerCase() === login?.toLowerCase()) ?? DEFAULT_DEMO_ACCOUNT;
@@ -116,8 +117,23 @@ export default function App() {
     let active = true;
     const draft = applicationForAccount(demoAccountForLogin(profile.login), profile);
     setData(draft);
-    void api.createApplication(draft)
-      .then((response) => { if (active) applyApplication(response); })
+    // Есть отправленная заявка — открываем её статус; иначе начинаем новый черновик
+    void api.applications()
+      .then(async (list) => {
+        const latest = list.find((item) => item.status && item.status !== "DRAFT");
+        if (latest) {
+          if (!active) return;
+          applyApplication(latest);
+          setScreen(7);
+          if (["rejected", "partial"].includes(latest.outcome) && latest.applicationId) {
+            const route = await api.route(latest.applicationId);
+            if (active) setData((current) => ({ ...current, route }));
+          }
+          return;
+        }
+        const response = await api.createApplication(draft);
+        if (active) applyApplication(response);
+      })
       .catch((error) => {
         if (!active) return;
         if (error instanceof ApiError && (error.status === 401 || error.status === 404)) return;
@@ -242,6 +258,15 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const startNewApplication = async () => {
+    const draft = applicationForAccount(demoAccountForLogin(profile?.login), profile ?? undefined);
+    setData(draft);
+    setSelectedOffer(0);
+    setScreen(0);
+    try { applyApplication(await api.createApplication(draft)); }
+    catch (error) { setApiError(toMessage(error, "Не удалось создать черновик")); }
+  };
+
   const submit = async () => {
     if (!data.applicationId) return;
     setLoading(true); setApiError("");
@@ -315,7 +340,8 @@ export default function App() {
 
   if (checkingSession) return <ThemeProvider theme={theme}><CssBaseline /><Box className="login-page"><Typography>Проверяем учётную запись…</Typography></Box></ThemeProvider>;
   if (!isAuthenticated || !profile) return <ThemeProvider theme={theme}><CssBaseline /><LoginPage onLogin={loginWithPassword} notice={authNotice} /></ThemeProvider>;
-  if (profile.role !== "CLIENT") return <ThemeProvider theme={theme}><CssBaseline /><RolePlaceholder profile={profile} onLogout={logout} /></ThemeProvider>;
+  if (profile.role === "SPECIALIST") return <ThemeProvider theme={theme}><CssBaseline /><BankPage userName={profile.name} onLogout={logout} /></ThemeProvider>;
+  if (profile.role === "ADMIN") return <ThemeProvider theme={theme}><CssBaseline /><AdminPage userName={profile.name} onLogout={logout} /></ThemeProvider>;
   if (page === "profile") return <ThemeProvider theme={theme}><CssBaseline /><ProfilePage profile={profile} onBack={backFromProfile} /></ThemeProvider>;
   if (page === "help") return <ThemeProvider theme={theme}><CssBaseline />
     <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHelp={openHelp} openApplication={openApplication} onLogout={logout} />
@@ -335,7 +361,7 @@ export default function App() {
     <OffersPage key="offers" data={data} update={update} next={next} goalOffers={offers} selectedOffer={selectedOffer} setSelectedOffer={setSelectedOffer} monthly={monthly} chosen={chosen} setToast={setToast} onChoose={chooseOffer} />,
     <DocumentsPage key="documents" data={data} update={update} next={next} uploadFile={addDocument} />,
     <ReviewPage key="review" data={data} update={update} next={next} monthly={monthly} submit={submit} loading={loading} />,
-    <StatusPage key="status" data={data} update={update} setData={setData} setScreen={setScreen} next={next} monthly={monthly} total={total} uploadDocument={addDocument} acceptOffer={accept} signOffer={sign} recalculateRoute={recalcRoute} />,
+    <StatusPage key="status" data={data} update={update} setData={setData} setScreen={setScreen} next={next} monthly={monthly} total={total} uploadDocument={addDocument} acceptOffer={accept} signOffer={sign} onNewApplication={startNewApplication} recalculateRoute={recalcRoute} />,
   ];
 
   return <ThemeProvider theme={theme}><CssBaseline />
@@ -349,8 +375,5 @@ export default function App() {
   </ThemeProvider>;
 }
 
-function RolePlaceholder({ profile, onLogout }: { profile: UserProfile; onLogout: () => void }) {
-  return <Box className="role-placeholder"><Paper><Box className="brand-mark" sx={{ alignSelf: "center" }}>а</Box><Typography className="eyebrow">АЛЬФА-БИЗНЕС</Typography><Typography variant="h3">{profile.name}</Typography><Typography className="role-name">Роль: {roleLabels[profile.role].toLowerCase()}</Typography><Typography color="text.secondary">Раздел для этой роли появится после подключения API специалиста и админки.</Typography><Button variant="contained" onClick={onLogout}>Выйти</Button></Paper></Box>;
-}
 
 function toMessage(error: unknown, fallback: string) { return error instanceof Error ? error.message : fallback; }

@@ -2084,3 +2084,30 @@ body {
 .route-step label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
 .route-step label > span { display: grid; gap: 2px; }
 .route-step input:checked + span b { text-decoration: line-through; opacity: 0.6; }
+
+/* Кабинеты специалиста и администратора */
+.staff-page { max-width: 1280px; margin: 0 auto; padding: 24px 16px 48px; display: grid; gap: 16px; }
+.staff-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.staff-user { display: flex; align-items: center; gap: 8px; }
+.staff-layout { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 16px; align-items: start; }
+.staff-queue, .staff-dossier { padding: 20px; border-radius: 16px !important; display: grid; gap: 10px; }
+.staff-queue-item { border: 1px solid #e6e6e6; border-radius: 12px; padding: 12px; cursor: pointer; display: grid; gap: 4px; }
+.staff-queue-item:hover { border-color: #ef3124; }
+.staff-queue-item.active { border-color: #ef3124; background: #fff5f4; }
+.staff-queue-top { display: flex; justify-content: space-between; font-size: 13px; color: #666; }
+.staff-factors { display: grid; gap: 6px; }
+.staff-factor { display: grid; grid-template-columns: 220px 1fr 50px; gap: 10px; align-items: center; font-size: 14px; }
+.staff-factor .MuiLinearProgress-root { height: 8px; border-radius: 4px; }
+.staff-factor .MuiLinearProgress-root.low .MuiLinearProgress-bar { background: var(--tone-amber); }
+.staff-limits { display: flex; gap: 12px; flex-wrap: wrap; }
+.staff-limits > div { border: 1px solid #e6e6e6; border-radius: 12px; padding: 10px 14px; display: grid; }
+.staff-limits span { font-size: 12px; color: #666; }
+.staff-form { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.staff-form .wide { grid-column: 1 / -1; }
+@media (max-width: 860px) {
+  .staff-layout { grid-template-columns: 1fr; }
+  .staff-form { grid-template-columns: 1fr; }
+  .staff-factor { grid-template-columns: 1fr 1fr 44px; }
+}
+.staff-factor .MuiLinearProgress-root { background: #ececec; }
+.staff-factor .MuiLinearProgress-bar { background: var(--tone-green); }

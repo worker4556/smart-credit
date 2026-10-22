@@ -130,6 +130,7 @@ def test_precheck_from_ml_maps_contract_fields() -> None:
         ],
         "offers": [
             {
+                "kind": "WITHIN_ESTIMATE",
                 "product": "WORKING_CAPITAL",
                 "amount": 2_850_000,
                 "term_months": 18,
@@ -169,7 +170,9 @@ def test_precheck_from_ml_maps_contract_fields() -> None:
     assert result.reasons[0].code == "L_TURNOVER"
     assert result.goal_offers[0].monthly == 184_575
     assert result.goal_offers[0].full_cost == 500_852
-    assert result.goal_offers[0].why == "Сумму ограничивает оборот"
+    # «Почему подходит» объясняет вариант, а не повторяет причину отказа
+    assert result.goal_offers[0].kind == "WITHIN_ESTIMATE"
+    assert result.goal_offers[0].why == "Сумма в пределах предварительной оценки — шансы на одобрение выше"
     assert result.valid_until == date(2026, 11, 20)
 
 

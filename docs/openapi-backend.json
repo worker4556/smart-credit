@@ -1,0 +1,2979 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Smart Credit Backend",
+    "version": "0.2.0"
+  },
+  "paths": {
+    "/api/v1/admin/applications": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Applications",
+        "operationId": "applications_api_v1_admin_applications_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminApplication"
+                  },
+                  "type": "array",
+                  "title": "Response Applications Api V1 Admin Applications Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/demo/reset": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Reset Demo",
+        "operationId": "reset_demo_api_v1_admin_demo_reset_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/system": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "System",
+        "operationId": "system_api_v1_admin_system_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSystem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Me",
+        "operationId": "me_api_v1_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{inn}": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Get Company",
+        "operationId": "get_company_api_v1_companies__inn__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "inn",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Inn"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/applications": {
+      "get": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "List Applications",
+        "operationId": "list_applications_api_v1_applications_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Applications Api V1 Applications Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Create Application",
+        "operationId": "create_application_api_v1_applications_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationData"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/applications/{application_id}/precheck": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Precheck Application",
+        "operationId": "precheck_application_api_v1_applications__application_id__precheck_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrecheckResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/applications/{application_id}/assistant": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Ask Assistant",
+        "operationId": "ask_assistant_api_v1_applications__application_id__assistant_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssistantRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantAnswer"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/applications/{application_id}/accept": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Accept Offer",
+        "operationId": "accept_offer_api_v1_applications__application_id__accept_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AcceptOfferRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Data"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/applications/{application_id}/decline": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Decline Offer",
+        "operationId": "decline_offer_api_v1_applications__application_id__decline_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/applications/{application_id}/sign": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Sign Offer",
+        "operationId": "sign_offer_api_v1_applications__application_id__sign_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/applications/{application_id}/withdraw": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Withdraw Application",
+        "operationId": "withdraw_application_api_v1_applications__application_id__withdraw_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/applications/{application_id}/submit": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Submit Application",
+        "operationId": "submit_application_api_v1_applications__application_id__submit_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationData"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/applications/{application_id}/documents": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Upload Document",
+        "operationId": "upload_document_api_v1_applications__application_id__documents_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_document_api_v1_applications__application_id__documents_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/applications/{application_id}/route": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Get Route",
+        "operationId": "get_route_api_v1_applications__application_id__route_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationRoute"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/applications/{application_id}/route/recalculate": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Recalculate Route",
+        "operationId": "recalculate_route_api_v1_applications__application_id__route_recalculate_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteRecalculateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationRoute"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/applications/{application_id}": {
+      "get": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Get Application",
+        "operationId": "get_application_api_v1_applications__application_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Update Application",
+        "operationId": "update_application_api_v1_applications__application_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationData"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bank/queue": {
+      "get": {
+        "tags": [
+          "bank"
+        ],
+        "summary": "Queue",
+        "operationId": "queue_api_v1_bank_queue_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BankQueueItem"
+                  },
+                  "type": "array",
+                  "title": "Response Queue Api V1 Bank Queue Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/bank/reasons": {
+      "get": {
+        "tags": [
+          "bank"
+        ],
+        "summary": "Reasons",
+        "operationId": "reasons_api_v1_bank_reasons_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Reasons Api V1 Bank Reasons Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/bank/applications/{application_id}": {
+      "get": {
+        "tags": [
+          "bank"
+        ],
+        "summary": "Bank Application",
+        "operationId": "bank_application_api_v1_bank_applications__application_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankApplication"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bank/applications/{application_id}/decision": {
+      "post": {
+        "tags": [
+          "bank"
+        ],
+        "summary": "Decide",
+        "operationId": "decide_api_v1_bank_applications__application_id__decision_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankDecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quote": {
+      "post": {
+        "tags": [
+          "credit"
+        ],
+        "summary": "Calculate Quote",
+        "operationId": "calculate_quote_api_v1_quote_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Quote"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/intent": {
+      "post": {
+        "tags": [
+          "credit"
+        ],
+        "summary": "Parse Intent",
+        "operationId": "parse_intent_api_v1_intent_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/glossary": {
+      "get": {
+        "tags": [
+          "glossary"
+        ],
+        "summary": "Glossary",
+        "operationId": "glossary_api_v1_glossary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Glossary Api V1 Glossary Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/glossary/{term}": {
+      "get": {
+        "tags": [
+          "glossary"
+        ],
+        "summary": "Glossary Term",
+        "operationId": "glossary_term_api_v1_glossary__term__get",
+        "parameters": [
+          {
+            "name": "term",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Term"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Glossary Term Api V1 Glossary  Term  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AcceptOfferRequest": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "term": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term"
+          }
+        },
+        "type": "object",
+        "title": "AcceptOfferRequest"
+      },
+      "ActivityEvent": {
+        "properties": {
+          "at": {
+            "type": "string",
+            "title": "At"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "at",
+          "text"
+        ],
+        "title": "ActivityEvent"
+      },
+      "AdminApplication": {
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "title": "Applicationid"
+          },
+          "number": {
+            "type": "string",
+            "title": "Number"
+          },
+          "companyName": {
+            "type": "string",
+            "title": "Companyname"
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Amount"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "outcome": {
+            "type": "string",
+            "title": "Outcome"
+          },
+          "decidedBy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decidedby"
+          }
+        },
+        "type": "object",
+        "required": [
+          "applicationId",
+          "number",
+          "companyName",
+          "amount",
+          "status",
+          "outcome"
+        ],
+        "title": "AdminApplication"
+      },
+      "AdminLLM": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready",
+            "default": false
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          }
+        },
+        "type": "object",
+        "title": "AdminLLM"
+      },
+      "AdminSystem": {
+        "properties": {
+          "backend": {
+            "type": "string",
+            "title": "Backend",
+            "default": "ok"
+          },
+          "ml": {
+            "type": "string",
+            "title": "Ml"
+          },
+          "llm": {
+            "$ref": "#/components/schemas/AdminLLM"
+          },
+          "policyVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policyversion"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ml"
+        ],
+        "title": "AdminSystem"
+      },
+      "ApplicationData": {
+        "properties": {
+          "goal": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Goal"
+          },
+          "amount": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          },
+          "term": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Term"
+          },
+          "monthlyRevenue": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Monthlyrevenue"
+          },
+          "hasLoans": {
+            "type": "string",
+            "enum": [
+              "Да",
+              "Нет"
+            ],
+            "title": "Hasloans"
+          },
+          "loanPayment": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Loanpayment"
+          },
+          "hadOverdue2y": {
+            "type": "boolean",
+            "title": "Hadoverdue2Y"
+          },
+          "collateral": {
+            "type": "string",
+            "title": "Collateral",
+            "default": ""
+          },
+          "consent1": {
+            "type": "boolean",
+            "title": "Consent1",
+            "default": false
+          },
+          "consent2": {
+            "type": "boolean",
+            "title": "Consent2",
+            "default": false
+          },
+          "docs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Docs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "goal",
+          "amount",
+          "term",
+          "monthlyRevenue",
+          "hasLoans",
+          "loanPayment",
+          "hadOverdue2y"
+        ],
+        "title": "ApplicationData"
+      },
+      "ApplicationResponse": {
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Applicationid"
+          },
+          "number": {
+            "type": "string",
+            "title": "Number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "SUBMITTED",
+              "IN_REVIEW",
+              "INFO_REQUESTED",
+              "SPECIALIST_REVIEW",
+              "APPROVED",
+              "COUNTER_OFFER",
+              "OFFER_ACCEPTED",
+              "SIGNED",
+              "DISBURSED",
+              "REJECTED",
+              "DECLINED_BY_CLIENT",
+              "WITHDRAWN",
+              "EXPIRED",
+              "SUSPENDED_115FZ"
+            ],
+            "title": "Status"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "review",
+              "specialist",
+              "approved",
+              "partial",
+              "info",
+              "rejected",
+              "suspended"
+            ],
+            "title": "Outcome"
+          },
+          "submitted": {
+            "type": "boolean",
+            "title": "Submitted",
+            "default": false
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "term": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term"
+          },
+          "nextAction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextaction"
+          },
+          "decisionText": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisiontext"
+          },
+          "decisionAmount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionamount"
+          },
+          "decisionTerm": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionterm"
+          },
+          "decisionRate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionrate"
+          },
+          "decisionMonthly": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionmonthly"
+          },
+          "decisionFullCost": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionfullcost"
+          },
+          "decisionWeather": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Weather"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "infoRequest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InfoRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "routeAvailable": {
+            "type": "boolean",
+            "title": "Routeavailable",
+            "default": false
+          },
+          "assistantAvailable": {
+            "type": "boolean",
+            "title": "Assistantavailable",
+            "default": false
+          },
+          "activity": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityEvent"
+            },
+            "type": "array",
+            "title": "Activity"
+          }
+        },
+        "type": "object",
+        "required": [
+          "applicationId",
+          "number",
+          "status",
+          "outcome"
+        ],
+        "title": "ApplicationResponse"
+      },
+      "ApplicationRoute": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "READY",
+              "NO_ROUTE"
+            ],
+            "title": "Status"
+          },
+          "holds": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "SCORE",
+              "STOP",
+              "TIME_WINDOW",
+              "TURNOVER",
+              "STOP_PERMANENT",
+              "NONCREDIT"
+            ],
+            "title": "Holds"
+          },
+          "basedOn": {
+            "type": "string",
+            "enum": [
+              "SYSTEM",
+              "SPECIALIST"
+            ],
+            "title": "Basedon",
+            "default": "SYSTEM"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/RouteStep"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "horizonText": {
+            "type": "string",
+            "title": "Horizontext"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "advice": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Advice"
+          },
+          "projectedAmount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projectedamount"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "holds",
+          "horizonText",
+          "message",
+          "disclaimer",
+          "text"
+        ],
+        "title": "ApplicationRoute"
+      },
+      "AssistantAnswer": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "TEMPLATE",
+              "LLM"
+            ],
+            "title": "Source"
+          },
+          "topic": {
+            "type": "string",
+            "enum": [
+              "WHY",
+              "WHAT_TO_DO",
+              "WHEN",
+              "TERM",
+              "AMOUNT",
+              "OFF_TOPIC",
+              "NONCREDIT",
+              "NOT_NEEDED"
+            ],
+            "title": "Topic"
+          },
+          "terms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Terms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer",
+          "source",
+          "topic"
+        ],
+        "title": "AssistantAnswer"
+      },
+      "AssistantRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Question"
+          },
+          "useLlm": {
+            "type": "boolean",
+            "title": "Usellm",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "AssistantRequest"
+      },
+      "BankApplication": {
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Applicationid"
+          },
+          "number": {
+            "type": "string",
+            "title": "Number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "SUBMITTED",
+              "IN_REVIEW",
+              "INFO_REQUESTED",
+              "SPECIALIST_REVIEW",
+              "APPROVED",
+              "COUNTER_OFFER",
+              "OFFER_ACCEPTED",
+              "SIGNED",
+              "DISBURSED",
+              "REJECTED",
+              "DECLINED_BY_CLIENT",
+              "WITHDRAWN",
+              "EXPIRED",
+              "SUSPENDED_115FZ"
+            ],
+            "title": "Status"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "review",
+              "specialist",
+              "approved",
+              "partial",
+              "info",
+              "rejected",
+              "suspended"
+            ],
+            "title": "Outcome"
+          },
+          "submitted": {
+            "type": "boolean",
+            "title": "Submitted",
+            "default": false
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "term": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term"
+          },
+          "nextAction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextaction"
+          },
+          "decisionText": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisiontext"
+          },
+          "decisionAmount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionamount"
+          },
+          "decisionTerm": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionterm"
+          },
+          "decisionRate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionrate"
+          },
+          "decisionMonthly": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionmonthly"
+          },
+          "decisionFullCost": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionfullcost"
+          },
+          "decisionWeather": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Weather"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "infoRequest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InfoRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "routeAvailable": {
+            "type": "boolean",
+            "title": "Routeavailable",
+            "default": false
+          },
+          "assistantAvailable": {
+            "type": "boolean",
+            "title": "Assistantavailable",
+            "default": false
+          },
+          "activity": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityEvent"
+            },
+            "type": "array",
+            "title": "Activity"
+          },
+          "factors": {
+            "items": {
+              "$ref": "#/components/schemas/BankFactor"
+            },
+            "type": "array",
+            "title": "Factors"
+          },
+          "stops": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Stops"
+          },
+          "limits": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Limits"
+          },
+          "recommendation": {
+            "$ref": "#/components/schemas/BankRecommendation"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityEvent"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "applicationId",
+          "number",
+          "status",
+          "outcome",
+          "recommendation"
+        ],
+        "title": "BankApplication"
+      },
+      "BankDecisionRequest": {
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "COUNTER_OFFER",
+              "INFO_REQUESTED",
+              "REJECTED"
+            ],
+            "title": "Outcome"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "term": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term"
+          },
+          "reasonCode": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Reasoncode"
+          },
+          "comment": {
+            "type": "string",
+            "title": "Comment",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "outcome",
+          "reasonCode"
+        ],
+        "title": "BankDecisionRequest"
+      },
+      "BankFactor": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points"
+          },
+          "maxPoints": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Maxpoints"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "points",
+          "maxPoints"
+        ],
+        "title": "BankFactor"
+      },
+      "BankQueueItem": {
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "title": "Applicationid"
+          },
+          "number": {
+            "type": "string",
+            "title": "Number"
+          },
+          "companyName": {
+            "type": "string",
+            "title": "Companyname"
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Amount"
+          },
+          "triggers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Triggers"
+          },
+          "waitingMinutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Waitingminutes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "applicationId",
+          "number",
+          "companyName",
+          "amount",
+          "waitingMinutes"
+        ],
+        "title": "BankQueueItem"
+      },
+      "BankRecommendation": {
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "title": "Outcome"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "outcome"
+        ],
+        "title": "BankRecommendation"
+      },
+      "Body_upload_document_api_v1_applications__application_id__documents_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          },
+          "doc_id": {
+            "type": "string",
+            "title": "Doc Id",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_document_api_v1_applications__application_id__documents_post"
+      },
+      "CompanyOut": {
+        "properties": {
+          "inn": {
+            "type": "string",
+            "title": "Inn"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "legalForm": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legalform"
+          },
+          "okved": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Okved"
+          },
+          "activity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activity"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          },
+          "registrationYear": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registrationyear"
+          },
+          "averageMonthlyTurnover": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Averagemonthlyturnover"
+          }
+        },
+        "type": "object",
+        "required": [
+          "inn",
+          "name"
+        ],
+        "title": "CompanyOut"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "InfoRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date",
+            "title": "Duedate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "dueDate"
+        ],
+        "title": "InfoRequest"
+      },
+      "IntentRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "IntentRequest"
+      },
+      "IntentResponse": {
+        "properties": {
+          "goal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "term": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term"
+          },
+          "missing": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "goal",
+                "amount",
+                "term"
+              ]
+            },
+            "type": "array",
+            "title": "Missing"
+          },
+          "productReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Productreason"
+          },
+          "needsConfirmation": {
+            "type": "boolean",
+            "title": "Needsconfirmation",
+            "default": true
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "LLM",
+              "RULES"
+            ],
+            "title": "Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source"
+        ],
+        "title": "IntentResponse"
+      },
+      "LoanOffer": {
+        "properties": {
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "product": {
+            "type": "string",
+            "enum": [
+              "WORKING_CAPITAL",
+              "OVERDRAFT"
+            ],
+            "title": "Product"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "amount": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          },
+          "termMonths": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Termmonths"
+          },
+          "rate": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Rate"
+          },
+          "monthly": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Monthly"
+          },
+          "fullCost": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Fullcost"
+          },
+          "why": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Why"
+          },
+          "chance": {
+            "type": "string",
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "title": "Chance"
+          },
+          "weather": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Weather"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "product",
+          "name",
+          "amount",
+          "termMonths",
+          "rate",
+          "monthly",
+          "fullCost",
+          "chance"
+        ],
+        "title": "LoanOffer"
+      },
+      "LoginRequest": {
+        "properties": {
+          "login": {
+            "type": "string",
+            "title": "Login"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "login",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "LoginResponse": {
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "title": "Accesstoken"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "accessToken",
+          "user"
+        ],
+        "title": "LoginResponse"
+      },
+      "PrecheckResponse": {
+        "properties": {
+          "chance": {
+            "type": "string",
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "title": "Chance"
+          },
+          "amountLow": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Amountlow"
+          },
+          "amountHigh": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Amounthigh"
+          },
+          "requestedAmount": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Requestedamount"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/Reason"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "ownerNote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ownernote"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer"
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date",
+            "title": "Validuntil"
+          },
+          "weather": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Weather"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "goalOffers": {
+            "items": {
+              "$ref": "#/components/schemas/LoanOffer"
+            },
+            "type": "array",
+            "title": "Goaloffers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chance",
+          "amountLow",
+          "amountHigh",
+          "requestedAmount",
+          "text",
+          "disclaimer",
+          "validUntil"
+        ],
+        "title": "PrecheckResponse"
+      },
+      "Quote": {
+        "properties": {
+          "monthly": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Monthly"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total"
+          },
+          "fullCost": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Fullcost"
+          },
+          "rate": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Rate"
+          },
+          "termMonths": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Termmonths"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "monthly",
+          "total",
+          "fullCost",
+          "rate",
+          "termMonths",
+          "disclaimer"
+        ],
+        "title": "Quote"
+      },
+      "QuoteRequest": {
+        "properties": {
+          "goal": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Goal"
+          },
+          "amount": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          },
+          "term": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term"
+          }
+        },
+        "type": "object",
+        "required": [
+          "goal",
+          "amount"
+        ],
+        "title": "QuoteRequest"
+      },
+      "Reason": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "text"
+        ],
+        "title": "Reason"
+      },
+      "RouteRecalculateRequest": {
+        "properties": {
+          "doneSteps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Donesteps"
+          }
+        },
+        "type": "object",
+        "title": "RouteRecalculateRequest"
+      },
+      "RouteStep": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "term": {
+            "type": "string",
+            "title": "Term"
+          },
+          "pointsGain": {
+            "type": "integer",
+            "title": "Pointsgain",
+            "default": 0
+          },
+          "done": {
+            "type": "boolean",
+            "title": "Done",
+            "default": false
+          },
+          "bkiDelayBusinessDays": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bkidelaybusinessdays"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "action",
+          "term"
+        ],
+        "title": "RouteStep"
+      },
+      "UserOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "login": {
+            "type": "string",
+            "title": "Login"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "company": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CompanyOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "login",
+          "role",
+          "name"
+        ],
+        "title": "UserOut"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "Weather": {
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/WeatherRow"
+            },
+            "type": "array",
+            "title": "Rows"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "disclaimer"
+        ],
+        "title": "Weather"
+      },
+      "WeatherRow": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "BASE",
+              "RATE_UP",
+              "OVERDUE_30"
+            ],
+            "title": "Code"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "rate": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Rate"
+          },
+          "monthlyPayment": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Monthlypayment"
+          },
+          "fullCost": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Fullcost"
+          },
+          "deltaFullCost": {
+            "type": "integer",
+            "title": "Deltafullcost",
+            "default": 0
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "title",
+          "rate",
+          "monthlyPayment",
+          "fullCost"
+        ],
+        "title": "WeatherRow"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}
