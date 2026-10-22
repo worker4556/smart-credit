@@ -131,9 +131,16 @@ export default function OffersPage({
           <Typography className="precheck-explanation">
             {data.precheck.text}
           </Typography>
-          <Typography className="precheck-disclaimer">
-            {data.precheck.disclaimer ?? "Это оценка по текущим данным, а не решение банка. Действует 30 дней"}
-          </Typography>
+          {data.precheck.ownerNote && (
+            <Alert severity="info" className="owner-note">
+              {data.precheck.ownerNote}
+            </Alert>
+          )}
+          {!data.precheck.text?.includes(data.precheck.disclaimer ?? "Это оценка") && (
+            <Typography className="precheck-disclaimer">
+              {data.precheck.disclaimer ?? "Это оценка по текущим данным, а не решение банка. Действует 30 дней"}
+            </Typography>
+          )}
         </Paper>
       )}
       {goalOffers.length === 0 && (

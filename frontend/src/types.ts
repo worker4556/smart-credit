@@ -4,7 +4,7 @@ export type Outcome = "review" | "specialist" | "approved" | "partial" | "info" 
 export type Role = "CLIENT" | "SPECIALIST" | "ADMIN";
 export type PersonaId = string;
 export interface Quote { monthly: number; total: number; rate?: number; disclaimer?: string; }
-export interface Precheck { amountLow: number; amountHigh: number; chance: string; reasons: Array<{ code?: string; text: string }>; text: string; disclaimer?: string; goalOffers: LoanOffer[]; }
+export interface Precheck { amountLow: number; amountHigh: number; chance: string; ownerNote?: string | null; reasons: Array<{ code?: string; text: string }>; text: string; disclaimer?: string; goalOffers: LoanOffer[]; }
 export interface Decision { decisionText?: string; decisionAmount?: number; decisionRate?: number; decisionMonthly?: number; reasons?: string[]; }
 export interface RouteStep { code: string; action: string; term: string; done: boolean; pointsGain?: number; bkiDelayBusinessDays?: number | null; }
 export interface ApplicationRoute { status?: string; holds?: string; basedOn?: string; steps: RouteStep[]; horizonText?: string; message?: string; advice?: string[]; projectedAmount?: number | null; disclaimer?: string; text?: string; }

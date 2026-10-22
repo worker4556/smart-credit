@@ -2111,3 +2111,4 @@ body {
 }
 .staff-factor .MuiLinearProgress-root { background: #ececec; }
 .staff-factor .MuiLinearProgress-bar { background: var(--tone-green); }
+.owner-note, .route-advice { margin-top: 12px; }

@@ -7,6 +7,7 @@ interface RouteMapProps {
   restricted?: boolean;
   currentAmount?: number;
   targetAmount?: number;
+  obstacleLabel?: string;
 }
 
 export default function RouteMap({
@@ -16,6 +17,7 @@ export default function RouteMap({
   restricted = false,
   currentAmount,
   targetAmount,
+  obstacleLabel = "Ограничение по лимиту",
 }: RouteMapProps) {
   return (
     <Box className={`route-map ${compact ? "compact" : ""}`}>
@@ -90,7 +92,7 @@ export default function RouteMap({
           </b>
         </Box>
         {restricted && (
-          <Box className="map-obstacle">Ограничение по лимиту</Box>
+          <Box className="map-obstacle">{obstacleLabel}</Box>
         )}
       </Box>
       {!compact && (

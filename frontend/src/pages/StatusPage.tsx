@@ -12,6 +12,15 @@ import CheckCircle from "@mui/icons-material/CheckCircle";
 import CloudUpload from "@mui/icons-material/CloudUpload";
 import RouteMap from "../components/RouteMap";
 import { reasonTone, toneLabel } from "../utils/route";
+
+// Что держит решение — по ответу движка (route.holds)
+const holdLabel: Record<string, string> = {
+  STOP: "Стоп-фактор",
+  STOP_PERMANENT: "Постоянный стоп-фактор",
+  TIME_WINDOW: "Ограничение по времени",
+  TURNOVER: "Сумму держит оборот",
+  SCORE: "Не хватает баллов",
+};
 import { formatMoney as money } from "../utils/format";
 import type { StatusPageProps } from "../types";
 
@@ -171,12 +180,16 @@ export default function StatusPage({
             summitLabel="Запрошенная вершина"
             currentAmount={availableAmount}
             targetAmount={data.amount}
+            obstacleLabel={holdLabel[data.route?.holds ?? ""] ?? "Ограничение по лимиту"}
           />
           <Box className="route-steps">
             <Typography className="eyebrow">СЛЕДУЮЩИЙ ПРИВАЛ</Typography>
             <Typography variant="h5" fontWeight={800}>
             {data.route?.horizonText ?? "Загружаем маршрут рекомендаций…"}
             </Typography>
+            {data.route?.message && (
+              <Typography color="text.secondary">{data.route.message}</Typography>
+            )}
             {data.route?.basedOn === "SPECIALIST" && (
               <Typography variant="body2" color="text.secondary">
                 Маршрут построен по решению специалиста банка.
@@ -208,6 +221,9 @@ export default function StatusPage({
                   </span>
                 </label>
               </Box>
+            ))}
+            {(data.route?.advice ?? []).map((tip) => (
+              <Alert key={tip} severity="warning" className="route-advice">{tip}</Alert>
             ))}
             <Typography className="precheck-disclaimer">
               {data.route?.disclaimer}

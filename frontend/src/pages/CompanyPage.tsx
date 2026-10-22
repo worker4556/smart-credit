@@ -55,7 +55,7 @@ export default function CompanyPage({
       <StepTitle
         eyebrow="ШАГ 1 ИЗ 7 · ДАННЫЕ КОМПАНИИ"
         title="Найдем вашу компанию"
-        subtitle="ИНН — единственное, что нужно напечатать. Остальное подставим сами."
+        subtitle="ИНН и данные компании подставлены из вашей учётной записи — проверьте их."
       />
       <Paper className="company-panel">
         {data.inn && !data.companyOk && <Alert severity="info" sx={{ mb: 2 }}>ИНН загружен из личного кабинета. Проверьте данные компании.</Alert>}
