@@ -57,7 +57,7 @@ def login(body: LoginRequest, session: SessionDep) -> LoginResponse:
             detail="Неверный логин или пароль",
         )
 
-    token = create_access_token(str(user.id), user.login, user.role)
+    token = create_access_token(str(user.id), user.login, user.role.upper())
     return LoginResponse(
         access_token=token,
         user=_user_out(session, user),
@@ -85,7 +85,8 @@ def _user_out(session, user: User) -> UserOut:
     return UserOut(
         id=str(user.id),
         login=user.login,
-        role=user.role,
+        role=user.role.upper(),
         name=user.name,
         company=company_out,
     )
+

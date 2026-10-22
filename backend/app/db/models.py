@@ -23,7 +23,7 @@ class User(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=new_uuid, primary_key=True)
     login: str = Field(unique=True, index=True)
     password_hash: str
-    role: str = Field(index=True)  # client | specialist | admin
+    role: str = Field(index=True)  # CLIENT | SPECIALIST | ADMIN
     name: str
     created_at: datetime = Field(default_factory=utcnow)
 

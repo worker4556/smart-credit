@@ -15,25 +15,33 @@ async function request<T>(path: string, init: RequestInit = {}, authenticated = 
   const headers = new Headers(init.headers);
   if (!(init.body instanceof FormData) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   const token = getToken();
+  if (authenticated && !token) {
+    window.dispatchEvent(new Event("api:unauthorized"));
+    throw new ApiError(401, "Требуется войти в учётную запись");
+  }
   if (authenticated && token) headers.set("Authorization", `Bearer ${token}`);
   const response = await fetch(`${API}${path}`, { ...init, headers });
   if (!response.ok) {
     const raw = await response.text();
     let message = raw;
     try { const parsed = JSON.parse(raw) as { detail?: string; message?: string; error?: string }; message = parsed.detail ?? parsed.message ?? parsed.error ?? raw; } catch { /* Plain text response */ }
+    if (response.status === 401 && authenticated) {
+      clearToken();
+      window.dispatchEvent(new Event("api:unauthorized"));
+    }
     throw new ApiError(response.status, message || `Ошибка запроса (${response.status})`);
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
 
-export interface UserProfile { name: string; role?: "CLIENT" | "SPECIALIST" | "ADMIN"; inn: string; company?: Company; email?: string; phone?: string; region?: string; demoId?: string; }
-export interface LoginResponse { accessToken?: string; access_token?: string; token?: string; role: "CLIENT" | "SPECIALIST" | "ADMIN"; user?: UserProfile; }
+export interface UserProfile { id: string; login: string; name: string; role: "CLIENT" | "SPECIALIST" | "ADMIN"; company: Company | null; phone?: string | null; }
+export interface LoginResponse { accessToken: string; user: UserProfile; }
 export interface ApplicationResponse extends Partial<ApplicationData> { id?: string; applicationId?: string; outcome: ApplicationData["outcome"]; decisionText?: string; decisionAmount?: number; decisionRate?: number; decisionMonthly?: number; reasons?: string[]; activity?: ApplicationData["activity"]; }
 export interface PrecheckResponse extends Precheck { goalOffers: LoanOffer[]; amountLow: number; amountHigh: number; text: string; }
 
 export const api = {
-  login: (login: string, password: string) => request<LoginResponse>("/auth/login", { method: "POST", body: JSON.stringify({ username: login, password }) }, false),
+  login: (login: string, password: string) => request<LoginResponse>("/auth/login", { method: "POST", body: JSON.stringify({ login, password }) }, false),
   me: () => request<UserProfile>("/me"),
   company: (inn: string) => request<Company>(`/companies/${encodeURIComponent(inn)}`),
   quote: (goal: string, amount: number, term: number) => request<Quote>("/quote", { method: "POST", body: JSON.stringify({ goal, amount, term }) }),

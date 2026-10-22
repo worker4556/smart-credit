@@ -10,7 +10,7 @@ export default function FinancePage({
   company,
   onShowOffers,
 }: FinancePageProps) {
-  const accountTurnover = company?.account?.average_monthly_turnover ?? 0;
+  const accountTurnover = company?.averageMonthlyTurnover ?? 0;
 
   return (
     <>

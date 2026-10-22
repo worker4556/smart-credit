@@ -13,9 +13,6 @@ import {
   Radio,
   Avatar,
   IconButton,
-  FormControl,
-  MenuItem,
-  Select,
 } from "@mui/material";
 import AccountBalanceWallet from "@mui/icons-material/AccountBalanceWallet";
 import ArrowBack from "@mui/icons-material/ArrowBack";
@@ -39,9 +36,6 @@ interface HeaderProps {
   setScreen: (screen: number) => void;
   userName?: string;
   openProfile?: () => void;
-  demoAccounts?: Array<{ id: string; label: string }>;
-  selectedDemoId?: string;
-  onDemoAccountChange?: (id: string) => void;
   onLogout?: () => void;
 }
 interface StepTitleProps {
@@ -69,7 +63,7 @@ interface SelectCardProps {
 export function IconBubble({ children, lime = false }: IconBubbleProps) {
   return <Box className={`icon-bubble ${lime ? "lime" : ""}`}>{children}</Box>;
 }
-export function Header({ screen, setScreen, userName = "Клиент", openProfile, demoAccounts = [], selectedDemoId = "P1", onDemoAccountChange, onLogout }: HeaderProps) {
+export function Header({ screen, setScreen, userName = "Клиент", openProfile, onLogout }: HeaderProps) {
   return (
     <AppBar position="sticky" color="inherit" elevation={0} className="appbar">
       <Toolbar className="toolbar">
@@ -91,11 +85,6 @@ export function Header({ screen, setScreen, userName = "Клиент", openProfi
           <Button>Помощь</Button>
         </Box>
         <Box className="head-actions">
-          <FormControl size="small" className="demo-account-picker">
-            <Select value={selectedDemoId} onChange={(event) => onDemoAccountChange?.(event.target.value)} aria-label="Демо-аккаунт">
-              {demoAccounts.map((account) => <MenuItem key={account.id} value={account.id}>{account.label}</MenuItem>)}
-            </Select>
-          </FormControl>
           <Button
             className="profile-link"
             component="a"

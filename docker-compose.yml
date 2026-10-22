@@ -1,8 +1,7 @@
 # Единый запуск всего проекта → http://localhost:3000
 #   docker compose pull && docker compose up    — готовые образы с GitHub (быстро, без сборки)
 #   docker compose up --build                   — собрать всё из исходников
-# Сервисы: frontend (nginx) → backend → ml → llm. Бэкенд и postgres добавляет бэкендер (docs/team/backend-instructions.md).
-# Модель qwen3:1.7b вшита в образ llm: после запуска готова сразу, интернет не нужен. Подробно — llm/README.md.
+# Сервисы: frontend (nginx) → backend → ml → llm.
 # Память: ~3 ГБ на всё (llm ≤ 3 ГБ). Отключить LLM: OLLAMA_URL= в .env.
 
 services:
@@ -10,6 +9,51 @@ services:
     image: ghcr.io/worker4556/smart-credit-frontend:${IMAGE_TAG:-latest}
     build: ./frontend
     ports: ["3000:3000"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/worker4556/smart-credit-backend:${IMAGE_TAG:-latest}
+    build: ./backend
+    ports: ["8000:8000"]
+    environment:
+      DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-smartcredit}"
+      ML_URL: "http://ml:8001"
+      ML_SERVICE_TOKEN: "${ML_SERVICE_TOKEN:-}"
+      CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173}"
+      SECRET_KEY: "${SECRET_KEY:-change-me-before-deployment}"
+      STORAGE_PATH: /app/storage/uploads
+    volumes:
+      - ./ml/fixtures:/app/ml/fixtures:ro
+      - backend_uploads:/app/storage/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ml:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      start_period: 20s
+      retries: 5
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-smartcredit}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-smartcredit}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     restart: unless-stopped
 
   ml:
@@ -21,9 +65,8 @@ services:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:1.7b}
       LLM_TEXT_TIMEOUT_SECONDS: ${LLM_TEXT_TIMEOUT_SECONDS:-30}
       LLM_INTENT_TIMEOUT_SECONDS: ${LLM_INTENT_TIMEOUT_SECONDS:-15}
-      ML_SERVICE_TOKEN: ${ML_SERVICE_TOKEN:-}   # тот же токен передаёт backend в X-Service-Token
+      ML_SERVICE_TOKEN: ${ML_SERVICE_TOKEN:-}
     restart: unless-stopped
-    # без depends_on на llm: ml стартует сразу и не ждёт модель
 
   # Локальная LLM с открытыми весами: Ollama + вшитая модель — llm/README.md
   llm:
@@ -37,3 +80,7 @@ services:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:1.7b}
     mem_limit: 3g
     restart: unless-stopped
+
+volumes:
+  pgdata:
+  backend_uploads:

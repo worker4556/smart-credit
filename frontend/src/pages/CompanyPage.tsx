@@ -49,7 +49,7 @@ export default function CompanyPage({
   lookupCompany,
   profileCompany,
 }: CompanyPageProps) {
-  const companyFromStorage = [data.company, profileCompany].find((company) => company?.inn === data.inn);
+  const accountCompany = [data.company, profileCompany].find((company) => company?.inn === data.inn);
   return (
     <>
       <StepTitle
@@ -107,7 +107,7 @@ export default function CompanyPage({
             Найти компанию
           </Button>
         </Box>
-        {data.companyOk || companyFromStorage ? (
+        {data.companyOk || accountCompany ? (
           <Box className="company-found">
             <Box className="company-title">
               <IconBubble lime>
@@ -118,7 +118,7 @@ export default function CompanyPage({
                   ПРОВЕРЬТЕ КОМПАНИЮ
                 </Typography>
                 <Typography variant="h5" fontWeight={800}>
-                  {data.company?.name ?? companyFromStorage?.name ?? "Компания найдена"}
+                  {data.company?.name ?? accountCompany?.name ?? "Компания найдена"}
                 </Typography>
               </Box>
               <Chip
@@ -131,15 +131,15 @@ export default function CompanyPage({
             <Box className="company-facts">
               <Box>
                 <span>Деятельность</span>
-                <b>{data.company?.activity ?? companyFromStorage?.activity ?? "Деятельность будет уточнена"}</b>
+                <b>{data.company?.activity ?? accountCompany?.activity ?? "Деятельность будет уточнена"}</b>
               </Box>
               <Box>
                 <span>Работает с</span>
-                <b>{data.company?.registration_year ?? companyFromStorage?.registration_year ?? "—"} года</b>
+                <b>{data.company?.registrationYear ?? accountCompany?.registrationYear ?? "—"} года</b>
               </Box>
               <Box>
                 <span>Руководитель</span>
-                <b>{data.company?.region ?? companyFromStorage?.region ?? "Регион будет уточнен"}</b>
+                <b>{data.company?.region ?? accountCompany?.region ?? "Регион будет уточнен"}</b>
               </Box>
             </Box>
             <Alert severity="info" className="source-alert">Проверьте, что это ваша компания, и подтвердите выбор.</Alert>
@@ -149,14 +149,14 @@ export default function CompanyPage({
       <FooterNav
         onBack={() => next(1)}
         onNext={() => {
-          if (companyFromStorage) {
-            update("company", companyFromStorage);
+          if (accountCompany) {
+            update("company", accountCompany);
             update("companyOk", true);
           }
           next(3);
         }}
         next="Да, это моя компания"
-        disabled={!data.companyOk && !companyFromStorage}
+        disabled={!data.companyOk && !accountCompany}
         note="Ваши данные сохраняются автоматически"
       />
     </>

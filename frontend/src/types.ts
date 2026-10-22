@@ -7,7 +7,7 @@ export interface Precheck { amountLow: number; amountHigh: number; chance: strin
 export interface Decision { decisionText?: string; decisionAmount?: number; decisionRate?: number; decisionMonthly?: number; reasons?: string[]; }
 export interface RouteStep { id: string; action: string; term: string; done: boolean; }
 export interface ApplicationRoute { steps: RouteStep[]; horizon_text?: string; disclaimer?: string; }
-export interface Company { inn: string; name: string; legal_form?: string; activity?: string; region?: string; registration_year?: number; account?: { average_monthly_turnover?: number }; }
+export interface Company { inn: string; name: string; legalForm: "IP" | "OOO" | string; okved?: string; activity?: string; region?: string; registrationYear?: number; averageMonthlyTurnover?: number; }
 export interface ActivityEvent { at: string; text: string; }
 export interface ApplicationData {
   applicationId?: string; goal: string; amount: number; term: number; inn: string; companyOk: boolean; monthlyRevenue: number;
