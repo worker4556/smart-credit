@@ -94,7 +94,9 @@ export default function StatusPage({
               <Typography fontWeight={700}>{event.text}</Typography>
               <Typography variant="caption">
                 {event.at
-                  ? new Date(event.at).toLocaleString("ru-RU")
+                  ? /^\d{1,2}:\d{2}$/.test(event.at)
+                    ? event.at
+                    : new Date(event.at).toLocaleString("ru-RU")
                   : "Сейчас"}
               </Typography>
             </Box>
@@ -160,10 +162,10 @@ export default function StatusPage({
           <Box className="route-steps">
             <Typography className="eyebrow">СЛЕДУЮЩИЙ ПРИВАЛ</Typography>
             <Typography variant="h5" fontWeight={800}>
-            {data.route?.horizon_text ?? "Загружаем маршрут рекомендаций…"}
+            {data.route?.horizonText ?? "Загружаем маршрут рекомендаций…"}
             </Typography>
             {(data.route?.steps ?? []).map((step) => (
-              <Box className="route-step" key={step.id}>
+              <Box className="route-step" key={step.code}>
                 <label>
                   <input
                     type="checkbox"
@@ -172,11 +174,11 @@ export default function StatusPage({
                       const done = new Set(
                         (data.route?.steps ?? [])
                           .filter((item) => item.done)
-                          .map((item) => item.id),
+                          .map((item) => item.code),
                       );
                       event.target.checked
-                        ? done.add(step.id)
-                        : done.delete(step.id);
+                        ? done.add(step.code)
+                        : done.delete(step.code);
                       void recalculateRoute([...done]);
                     }}
                   />

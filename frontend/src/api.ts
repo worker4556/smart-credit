@@ -51,7 +51,7 @@ export const api = {
   submit: (id: string, data: ApplicationData) => request<ApplicationResponse>(`/applications/${id}/submit`, { method: "POST", body: JSON.stringify(data) }),
   application: (id: string) => request<ApplicationResponse>(`/applications/${id}`),
   route: (id: string) => request<ApplicationRoute>(`/applications/${id}/route`, { method: "POST" }),
-  recalculateRoute: (id: string, doneSteps: string[]) => request<ApplicationRoute>(`/applications/${id}/route/recalculate`, { method: "POST", body: JSON.stringify({ done: doneSteps }) }),
+  recalculateRoute: (id: string, doneSteps: string[]) => request<ApplicationRoute>(`/applications/${id}/route/recalculate`, { method: "POST", body: JSON.stringify({ doneSteps }) }),
   uploadDocument: (id: string, file: File) => { const form = new FormData(); form.append("file", file); return request<ApplicationResponse>(`/applications/${id}/documents`, { method: "POST", body: form }); },
   accept: (id: string) => request<void>(`/applications/${id}/accept`, { method: "POST" }),
 };

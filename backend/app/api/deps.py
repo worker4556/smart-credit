@@ -53,8 +53,10 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 def require_roles(*roles: str):
+    allowed = {role.upper() for role in roles}
+
     def checker(user: CurrentUser) -> User:
-        if user.role.upper() not in {role.upper() for role in roles}:
+        if user.role.upper() not in allowed:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Недостаточно прав",
@@ -66,4 +68,3 @@ def require_roles(*roles: str):
 
 def get_user_company(session: Session, user: User) -> Company | None:
     return session.exec(select(Company).where(Company.user_id == user.id)).first()
-

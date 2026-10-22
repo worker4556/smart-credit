@@ -3,23 +3,17 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import BaseModel
 from sqlmodel import select
 
 from app.api.deps import CurrentUser, SessionDep, get_user_company
-from app.db.models import User
+from app.db.models import Company, User
+from app.db.seed import DemoAccount, get_demo_account
+from app.schemas.common import CamelModel
 from app.services.auth import create_access_token, verify_password
 from app.services.personas import get_persona_by_key
 
 router = APIRouter(tags=["auth"])
-
-
-class CamelModel(BaseModel):
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-    )
 
 
 class LoginRequest(BaseModel):
@@ -32,7 +26,10 @@ class CompanyOut(CamelModel):
     name: str
     legal_form: str | None = None
     okved: str | None = None
-    persona_key: str
+    activity: str | None = None
+    region: str | None = None
+    registration_year: int | None = None
+    average_monthly_turnover: int | None = None
 
 
 class UserOut(CamelModel):
@@ -69,19 +66,26 @@ def me(user: CurrentUser, session: SessionDep) -> UserOut:
     return _user_out(session, user)
 
 
+@router.get("/companies/{inn}", response_model=CompanyOut)
+def get_company(inn: str, user: CurrentUser, session: SessionDep) -> CompanyOut:
+    company = get_user_company(session, user)
+    if not company or company.inn != inn:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Компания не найдена среди ваших",
+        )
+    persona = get_persona_by_key(company.persona_key) or {}
+    seed_account = get_demo_account(company.persona_key)
+    return _company_out(company, persona, seed_account)
+
+
 def _user_out(session, user: User) -> UserOut:
     company_out = None
     company = get_user_company(session, user)
     if company:
         persona = get_persona_by_key(company.persona_key) or {}
-        c = (persona.get("decision") or {}).get("company") or {}
-        company_out = CompanyOut(
-            inn=company.inn,
-            name=company.name,
-            legal_form=c.get("legal_form"),
-            okved=c.get("okved"),
-            persona_key=company.persona_key,
-        )
+        seed_account = get_demo_account(company.persona_key)
+        company_out = _company_out(company, persona, seed_account)
     return UserOut(
         id=str(user.id),
         login=user.login,
@@ -90,3 +94,30 @@ def _user_out(session, user: User) -> UserOut:
         company=company_out,
     )
 
+
+def _company_out(
+    company: Company,
+    persona: dict,
+    seed_account: DemoAccount | None,
+) -> CompanyOut:
+    c = (persona.get("decision") or {}).get("company") or {}
+    account = (persona.get("decision") or {}).get("account") or {}
+    turnover = account.get("turnover_monthly") or []
+    recent_turnover = turnover[-6:]
+    average_turnover = (
+        round(sum(recent_turnover) / len(recent_turnover))
+        if recent_turnover
+        else None
+    )
+    return CompanyOut(
+        inn=company.inn,
+        name=company.name,
+        legal_form=c.get("legal_form"),
+        okved=c.get("okved"),
+        activity=seed_account.activity if seed_account else None,
+        region=seed_account.region if seed_account else None,
+        registration_year=(
+            seed_account.registration_year if seed_account else None
+        ),
+        average_monthly_turnover=average_turnover,
+    )

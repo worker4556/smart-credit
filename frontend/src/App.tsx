@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Alert, Box, Button, CssBaseline, ThemeProvider, Typography } from "@mui/material";
+import { Alert, Box, Button, CssBaseline, Paper, ThemeProvider, Typography } from "@mui/material";
 import ShieldOutlined from "@mui/icons-material/ShieldOutlined";
 import theme from "./theme";
 import { defaultData } from "./data/application";
+import { DEFAULT_DEMO_ACCOUNT, demoAccounts, type DemoAccount } from "./data/demoAccounts";
 import { Header, StepRail } from "./components/ApplicationShell";
 import GoalPage from "./pages/GoalPage";
 import AmountPage from "./pages/AmountPage";
@@ -15,14 +16,36 @@ import StatusPage from "./pages/StatusPage";
 import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import { api, ApiError, clearToken, getToken, saveToken, type ApplicationResponse, type UserProfile } from "./api";
-import type { ApplicationData, Company } from "./types";
+import type { ApplicationData, Company, Role } from "./types";
 import "./styles.css";
 
 const PROFILE_SESSION_KEY = "credit-user-profile";
+const roleLabels: Record<Role, string> = { CLIENT: "Клиент", SPECIALIST: "Специалист", ADMIN: "Администратор" };
+
+function demoAccountForLogin(login?: string): DemoAccount {
+  return demoAccounts.find((account) => account.id.toLowerCase() === login?.toLowerCase()) ?? DEFAULT_DEMO_ACCOUNT;
+}
+
+function applicationForAccount(account: DemoAccount, profile?: UserProfile): ApplicationData {
+  const company = profile?.company ?? account.company;
+  return {
+    ...defaultData,
+    goal: account.goal,
+    amount: account.amount,
+    term: account.term,
+    inn: company.inn,
+    company,
+    companyOk: false,
+    monthlyRevenue: account.monthlyRevenue,
+    hasLoans: account.hasLoans,
+    loanPayment: account.loanPayment,
+    hadOverdue2y: account.hadOverdue2y,
+  };
+}
 
 export default function App() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [data, setData] = useState<ApplicationData>(() => ({ ...defaultData }));
+  const [data, setData] = useState<ApplicationData>(() => applicationForAccount(DEFAULT_DEMO_ACCOUNT));
   const [screen, setScreen] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getToken()));
   const [checkingSession, setCheckingSession] = useState(() => Boolean(getToken()));
@@ -35,13 +58,15 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
   const [amountError, setAmountError] = useState("");
+  const [authNotice, setAuthNotice] = useState("");
 
   useEffect(() => {
     const onUnauthorized = () => {
       setIsAuthenticated(false);
       setProfile(null);
       setScreen(0);
-      setData({ ...defaultData });
+      setData(applicationForAccount(DEFAULT_DEMO_ACCOUNT));
+      setAuthNotice("Сессия истекла. Войдите снова.");
       sessionStorage.removeItem(PROFILE_SESSION_KEY);
     };
     window.addEventListener("api:unauthorized", onUnauthorized);
@@ -53,9 +78,17 @@ export default function App() {
     void api.me().then((user) => {
       setProfile(user);
       sessionStorage.setItem(PROFILE_SESSION_KEY, JSON.stringify(user));
-      setData((current) => ({ ...current, inn: user.company?.inn ?? "", company: user.company ?? undefined, monthlyRevenue: user.company?.averageMonthlyTurnover ?? current.monthlyRevenue }));
+      setData(applicationForAccount(demoAccountForLogin(user.login), user));
+      setScreen(0);
+      setApiError("");
+      setAuthNotice("");
+      setPage(user.role === "CLIENT" && window.location.pathname === "/profile" ? "profile" : "application");
     }).catch((error) => {
-      if (error instanceof ApiError && error.status !== 401) setApiError(toMessage(error, "Не удалось загрузить профиль"));
+      setAuthNotice(
+        error instanceof ApiError && error.status === 401
+          ? "Сессия истекла. Войдите снова."
+          : toMessage(error, "Не удалось проверить сессию."),
+      );
     }).finally(() => setCheckingSession(false));
   }, []);
 
@@ -80,14 +113,14 @@ export default function App() {
   useEffect(() => {
     if (!isAuthenticated || !profile || profile.role !== "CLIENT") return;
     let active = true;
-    const draft = { ...defaultData, inn: profile.company?.inn ?? "", company: profile.company ?? undefined, monthlyRevenue: profile.company?.averageMonthlyTurnover ?? 0 };
+    const draft = applicationForAccount(demoAccountForLogin(profile.login), profile);
     setData(draft);
     void api.createApplication(draft)
       .then((response) => { if (active) applyApplication(response); })
       .catch((error) => {
-        if (active && !(error instanceof ApiError && error.status === 401)) {
-          setApiError(toMessage(error, "Не удалось создать черновик"));
-        }
+        if (!active) return;
+        if (error instanceof ApiError && (error.status === 401 || error.status === 404)) return;
+        setApiError(toMessage(error, "Не удалось создать черновик"));
       });
     return () => { active = false; };
   }, [profile, isAuthenticated, applyApplication]);
@@ -98,11 +131,12 @@ export default function App() {
     const user = response.user;
     sessionStorage.setItem(PROFILE_SESSION_KEY, JSON.stringify(user));
     setProfile(user);
-    setData({ ...defaultData, inn: user.company?.inn ?? "", company: user.company ?? undefined, monthlyRevenue: user.company?.averageMonthlyTurnover ?? 0 });
+    setData(applicationForAccount(demoAccountForLogin(user.login), user));
     setScreen(0);
     const destination = user.role === "SPECIALIST" ? "/bank" : user.role === "ADMIN" ? "/admin" : "/";
     setPage(user.role === "SPECIALIST" ? "bank" : user.role === "ADMIN" ? "admin" : "application");
     setApiError("");
+    setAuthNotice("");
     setIsAuthenticated(true);
     window.history.pushState({}, "", destination);
   };
@@ -113,8 +147,9 @@ export default function App() {
     setProfile(null);
     setIsAuthenticated(false);
     setScreen(0);
-    setData({ ...defaultData });
+    setData(applicationForAccount(DEFAULT_DEMO_ACCOUNT));
     setPage("application");
+    setAuthNotice("");
     window.history.pushState({}, "", "/");
   };
 
@@ -218,8 +253,8 @@ export default function App() {
   const backFromProfile = () => { window.history.pushState({}, "", "/"); setPage("application"); };
 
   if (checkingSession) return <ThemeProvider theme={theme}><CssBaseline /><Box className="login-page"><Typography>Проверяем учётную запись…</Typography></Box></ThemeProvider>;
-  if (!isAuthenticated || !profile) return <ThemeProvider theme={theme}><CssBaseline /><LoginPage onLogin={loginWithPassword} /></ThemeProvider>;
-  if (profile.role !== "CLIENT") return <ThemeProvider theme={theme}><CssBaseline /><Box className="role-placeholder"><Alert severity="info">Раздел {profile.role === "SPECIALIST" ? "специалиста" : "администратора"} пока в разработке.</Alert><Button onClick={logout}>Выйти</Button></Box></ThemeProvider>;
+  if (!isAuthenticated || !profile) return <ThemeProvider theme={theme}><CssBaseline /><LoginPage onLogin={loginWithPassword} notice={authNotice} /></ThemeProvider>;
+  if (profile.role !== "CLIENT") return <ThemeProvider theme={theme}><CssBaseline /><RolePlaceholder profile={profile} onLogout={logout} /></ThemeProvider>;
   if (page === "profile") return <ThemeProvider theme={theme}><CssBaseline /><ProfilePage profile={profile} onBack={backFromProfile} /></ThemeProvider>;
 
   const monthly = data.quote?.monthly ?? 0;
@@ -246,6 +281,10 @@ export default function App() {
     {toast && <Box className="toast-msg" onClick={() => setToast("")}>{toast}</Box>}
     <Box className="bottom-help"><ShieldOutlined /> Безопасно. Просто. На ваших условиях. <span>© Альфа-Бизнес · Кредитный кабинет</span></Box>
   </ThemeProvider>;
+}
+
+function RolePlaceholder({ profile, onLogout }: { profile: UserProfile; onLogout: () => void }) {
+  return <Box className="role-placeholder"><Paper><Box className="brand-mark" sx={{ alignSelf: "center" }}>а</Box><Typography className="eyebrow">АЛЬФА-БИЗНЕС</Typography><Typography variant="h3">{profile.name}</Typography><Typography className="role-name">Роль: {roleLabels[profile.role].toLowerCase()}</Typography><Typography color="text.secondary">Раздел для этой роли появится после подключения API специалиста и админки.</Typography><Button variant="contained" onClick={onLogout}>Выйти</Button></Paper></Box>;
 }
 
 function toMessage(error: unknown, fallback: string) { return error instanceof Error ? error.message : fallback; }

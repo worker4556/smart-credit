@@ -8,6 +8,7 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/smartcredit"
     ML_URL: str = "http://localhost:8001"
+    ML_SERVICE_TOKEN: str = ""
     CORS_ORIGINS: str = "http://localhost:5173"
     STORAGE_PATH: str = "storage/uploads"
     SECRET_KEY: str = "change-me-in-production-smartcredit-demo-key"

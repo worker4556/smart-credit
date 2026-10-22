@@ -138,7 +138,7 @@ export default function CompanyPage({
                 <b>{data.company?.registrationYear ?? accountCompany?.registrationYear ?? "—"} года</b>
               </Box>
               <Box>
-                <span>Руководитель</span>
+                <span>Регион</span>
                 <b>{data.company?.region ?? accountCompany?.region ?? "Регион будет уточнен"}</b>
               </Box>
             </Box>
