@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Button, CssBaseline, Paper, ThemeProvider, Typography } from "@mui/material";
 import ShieldOutlined from "@mui/icons-material/ShieldOutlined";
 import theme from "./theme";
-import { defaultData } from "./data/application";
+import { defaultData, goals } from "./data/application";
 import { DEFAULT_DEMO_ACCOUNT, demoAccounts, type DemoAccount } from "./data/demoAccounts";
 import { Header, StepRail } from "./components/ApplicationShell";
 import GoalPage from "./pages/GoalPage";
@@ -160,7 +160,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (screen !== 1 || !data.applicationId) return;
+    if (screen !== 2 || !data.applicationId) return;
     const term = data.goal.includes("кассов") ? 12 : data.term;
     const timer = window.setTimeout(() => void api.quote(data.goal, data.amount, term)
       .then((quote) => { setData((current) => ({ ...current, quote })); setAmountError(""); })
@@ -172,7 +172,8 @@ export default function App() {
   }, [screen, data.applicationId, data.goal, data.amount, data.term]);
 
   useEffect(() => {
-    if (screen !== 7 || !data.applicationId || !data.submitted || data.outcome !== "review") return;
+    // Пока решение не принято (автоконвейер или специалист) — опрашиваем статус
+    if (screen !== 7 || !data.applicationId || !data.submitted || !(["review", "specialist"].includes(data.outcome) || data.status === "SIGNED")) return;
     const timer = window.setInterval(() => void api.application(data.applicationId!)
       .then(async (record) => {
         applyApplication(record);
@@ -183,7 +184,7 @@ export default function App() {
       })
       .catch((error) => setApiError(toMessage(error, "Не удалось обновить статус заявки"))), 3000);
     return () => window.clearInterval(timer);
-  }, [screen, data.applicationId, data.submitted, data.outcome, applyApplication]);
+  }, [screen, data.applicationId, data.submitted, data.outcome, data.status, applyApplication]);
 
   const next = async (index = screen + 1) => {
     if (data.applicationId && index !== 7) {
@@ -215,6 +216,30 @@ export default function App() {
       setSelectedOffer(0); setScreen(4);
     } catch (error) { setApiError(toMessage(error, "Не удалось получить предложения")); }
     finally { setLoading(false); }
+  };
+
+  // Выбранный вариант становится условиями заявки: сумма, срок и продукт
+  const chooseOffer = async () => {
+    const offer = (data.goalOffers ?? data.precheck?.goalOffers ?? [])[selectedOffer];
+    let updated = data;
+    if (offer && typeof offer.amount === "number") {
+      const cashGap = goals[2][0];
+      const goal = offer.product === "OVERDRAFT" ? cashGap : data.goal === cashGap ? goals[0][0] : data.goal;
+      updated = {
+        ...data,
+        goal,
+        amount: offer.amount,
+        term: offer.termMonths ?? data.term,
+        quote: offer.monthly != null ? { monthly: offer.monthly, total: offer.amount + (offer.fullCost ?? 0), rate: offer.rate } : data.quote,
+      };
+      setData(updated);
+    }
+    if (updated.applicationId) {
+      try { await api.updateApplication(updated.applicationId, updated); }
+      catch (error) { setApiError(toMessage(error, "Не удалось сохранить заявку")); return; }
+    }
+    setScreen(5);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const submit = async () => {
@@ -249,10 +274,23 @@ export default function App() {
     await api.accept(data.applicationId);
     applyApplication(await api.application(data.applicationId));
   };
+  const sign = async () => {
+    if (!data.applicationId) return;
+    try {
+      await api.sign(data.applicationId);
+      applyApplication(await api.application(data.applicationId));
+    } catch (error) { setApiError(toMessage(error, "Не удалось подписать договор")); }
+  };
   const recalcRoute = async (done: string[]) => {
     if (!data.applicationId) return;
     const route = await api.recalculateRoute(data.applicationId, done);
-    setData((current) => ({ ...current, route }));
+    // ML возвращает только оставшиеся шаги — выполненные оставляем в списке отмеченными
+    const doneSet = new Set(done);
+    const remaining = new Set(route.steps.map((step) => step.code));
+    const kept = (data.route?.steps ?? [])
+      .filter((step) => doneSet.has(step.code) && !remaining.has(step.code))
+      .map((step) => ({ ...step, done: true }));
+    setData((current) => ({ ...current, route: { ...route, steps: [...kept, ...route.steps] } }));
   };
 
   useEffect(() => {
@@ -290,14 +328,14 @@ export default function App() {
   const offers = data.goalOffers ?? data.precheck?.goalOffers ?? [];
   const chosen = offers[selectedOffer];
   const pages = [
+    <CompanyPage key="company" data={data} update={update} next={next} lookupCompany={lookupCompany} profileCompany={profile.company ?? undefined} setToast={setToast} />,
     <GoalPage key="goal" data={data} update={update} next={next} />,
     <AmountPage key="amount" data={data} update={update} next={next} monthly={monthly} total={total} />,
-    <CompanyPage key="company" data={data} update={update} next={next} lookupCompany={lookupCompany} profileCompany={profile.company ?? undefined} setToast={setToast} />,
     <FinancePage key="finance" data={data} update={update} next={next} company={data.company} setSelectedOffer={setSelectedOffer} onShowOffers={showOffers} />,
-    <OffersPage key="offers" data={data} update={update} next={next} goalOffers={offers} selectedOffer={selectedOffer} setSelectedOffer={setSelectedOffer} monthly={monthly} chosen={chosen} setToast={setToast} />,
+    <OffersPage key="offers" data={data} update={update} next={next} goalOffers={offers} selectedOffer={selectedOffer} setSelectedOffer={setSelectedOffer} monthly={monthly} chosen={chosen} setToast={setToast} onChoose={chooseOffer} />,
     <DocumentsPage key="documents" data={data} update={update} next={next} uploadFile={addDocument} />,
     <ReviewPage key="review" data={data} update={update} next={next} monthly={monthly} submit={submit} loading={loading} />,
-    <StatusPage key="status" data={data} update={update} setData={setData} setScreen={setScreen} next={next} monthly={monthly} total={total} uploadDocument={addDocument} acceptOffer={accept} recalculateRoute={recalcRoute} />,
+    <StatusPage key="status" data={data} update={update} setData={setData} setScreen={setScreen} next={next} monthly={monthly} total={total} uploadDocument={addDocument} acceptOffer={accept} signOffer={sign} recalculateRoute={recalcRoute} />,
   ];
 
   return <ThemeProvider theme={theme}><CssBaseline />

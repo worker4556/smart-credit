@@ -141,6 +141,7 @@ class Reason(CamelModel):
 
 
 class LoanOffer(CamelModel):
+    kind: str | None = None
     product: ProductCode
     name: str
     amount: int = Field(gt=0)

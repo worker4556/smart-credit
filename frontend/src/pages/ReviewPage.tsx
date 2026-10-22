@@ -71,7 +71,7 @@ export default function ReviewPage({
                 Платеж около {money(monthly)} в месяц
               </Typography>
             </Box>
-            <Button onClick={() => next(1)}>Изменить</Button>
+            <Button onClick={() => next(2)}>Изменить</Button>
           </Box>
           <Divider />
           <Box className="review-block">
@@ -88,7 +88,7 @@ export default function ReviewPage({
                 · кредиты: {data.hasLoans.toLowerCase()}
               </Typography>
             </Box>
-            <Button onClick={() => next(2)}>Изменить</Button>
+            <Button onClick={() => next(3)}>Изменить</Button>
           </Box>
           <Divider />
           <Box className="review-block">

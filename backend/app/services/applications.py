@@ -373,7 +373,7 @@ def _activity(session: Session, application_id: uuid.UUID) -> list[ActivityEvent
     events = session.exec(statement).all()
     return [
         ActivityEvent(
-            at=event.at.strftime("%H:%M"),
+            at=(event.at if event.at.tzinfo else event.at.replace(tzinfo=timezone.utc)).isoformat(),
             text=event.reason or STATUS_TEXT.get(event.to_status, event.to_status),
         )
         for event in events

@@ -34,7 +34,7 @@ from app.schemas.applications import (
 )
 from app.services import applications as service
 from app.services import ml
-from app.services.applicants import build_applicant
+from app.services.applicants import build_applicant, specialist_for_route
 from app.services.credit import precheck_from_ml, route_from_ml
 from app.services.personas import get_persona_by_key
 from app.services.pipeline import disburse_application, process_application
@@ -310,7 +310,7 @@ def _route_data(
             {
                 "applicant": applicant,
                 "assume_done": done_steps,
-                "specialist_decision": None,
+                "specialist_decision": specialist_for_route(application),
             },
             request_id=request_id(request),
         )

@@ -53,7 +53,7 @@ export default function CompanyPage({
   return (
     <>
       <StepTitle
-        eyebrow="ШАГ 3 ИЗ 7 · ДАННЫЕ КОМПАНИИ"
+        eyebrow="ШАГ 1 ИЗ 7 · ДАННЫЕ КОМПАНИИ"
         title="Найдем вашу компанию"
         subtitle="ИНН — единственное, что нужно напечатать. Остальное подставим сами."
       />
@@ -147,13 +147,13 @@ export default function CompanyPage({
         ) : null}
       </Paper>
       <FooterNav
-        onBack={() => next(1)}
+        back={false}
         onNext={() => {
           if (accountCompany) {
             update("company", accountCompany);
             update("companyOk", true);
           }
-          next(3);
+          next(1);
         }}
         next="Да, это моя компания"
         disabled={!data.companyOk && !accountCompany}

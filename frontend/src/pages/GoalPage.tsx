@@ -58,7 +58,7 @@ export default function GoalPage({ data, update, next }: GoalPageProps) {
   };
 
   return <>
-    <StepTitle eyebrow="ШАГ 1 · ЗАДАЧА" title="Зачем деньги, сколько и на какой срок?" subtitle="Напишите как удобно — помощник разложит на поля. Или заполните форму справа: она всегда под рукой." />
+    <StepTitle eyebrow="ШАГ 2 ИЗ 7 · ЗАДАЧА" title="Зачем деньги, сколько и на какой срок?" subtitle="Напишите как удобно — помощник разложит на поля. Или заполните форму справа: она всегда под рукой." />
     <Typography className="goal-prompt">Сначала расскажите, для чего бизнесу финансирование</Typography>
     <Box className="goal-intent-layout">
       <Box className="intent-panel">
@@ -111,7 +111,7 @@ export default function GoalPage({ data, update, next }: GoalPageProps) {
           <Box className="slider-ends"><span>3 мес.</span><span>36 мес.</span></Box>
         </Box> : <Typography className="overdraft-term-note">Для овердрафта срок составляет 12 месяцев.</Typography>}
         <Box className="goal-product-note"><AccountBalanceWallet /><span>Продукт: <b>{isOverdraft ? "Овердрафт" : "Оборотный кредит"}</b></span></Box>
-        <Box className="goal-actions"><Button variant="text" onClick={() => { setDescription(""); update("intentText", ""); setIntent(null); }}>Отмена</Button><Button variant="contained" onClick={() => next(1)}>Подтвердить и продолжить <span aria-hidden>→</span></Button></Box>
+        <Box className="goal-actions"><Button variant="text" onClick={() => next(0)}>Назад</Button><Button variant="text" onClick={() => { setDescription(""); update("intentText", ""); setIntent(null); }}>Отмена</Button><Button variant="contained" onClick={() => next(2)}>Подтвердить и продолжить <span aria-hidden>→</span></Button></Box>
       </Box>
     </Box>
   </>;

@@ -11,6 +11,7 @@ import {
 import CheckCircle from "@mui/icons-material/CheckCircle";
 import CloudUpload from "@mui/icons-material/CloudUpload";
 import RouteMap from "../components/RouteMap";
+import { reasonTone, toneLabel } from "../utils/route";
 import { formatMoney as money } from "../utils/format";
 import type { StatusPageProps } from "../types";
 
@@ -41,9 +42,12 @@ export default function StatusPage({
   next,
   uploadDocument,
   acceptOffer,
+  signOffer,
   recalculateRoute,
 }: StatusPageProps) {
-  const [title, summary] = statusCopy[data.outcome];
+  const [baseTitle, summary] = statusCopy[data.outcome];
+  const title = data.status === "DISBURSED" ? "Деньги перечислены" : data.status === "SIGNED" ? "Договор подписан" : baseTitle;
+  const waiting = ["review", "specialist"].includes(data.outcome) || data.status === "SIGNED";
   const availableAmount = data.decisionAmount ?? 0;
   const hasRoute = ["rejected", "partial"].includes(data.outcome);
 
@@ -51,7 +55,7 @@ export default function StatusPage({
     <>
       <Box className="status-hero">
         <Box>
-          <Chip label={`ЗАЯВКА ${data.applicationId ?? ""}`} className="status-number" />
+          <Chip label={`ЗАЯВКА ${data.number ?? ""}`} className="status-number" />
           <Typography variant="h2" className="status-title">
             {title}
           </Typography>
@@ -96,15 +100,17 @@ export default function StatusPage({
                 {event.at
                   ? /^\d{1,2}:\d{2}$/.test(event.at)
                     ? event.at
-                    : new Date(event.at).toLocaleString("ru-RU")
+                    : new Date(event.at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })
                   : "Сейчас"}
               </Typography>
             </Box>
           ))}
         </Box>
-        <Typography color="text.secondary">
-          Обновляем статус автоматически.
-        </Typography>
+        {waiting && (
+          <Typography color="text.secondary">
+            Обновляем статус автоматически.
+          </Typography>
+        )}
       </Paper>
 
       {data.outcome === "info" && (
@@ -135,7 +141,7 @@ export default function StatusPage({
         </Paper>
       )}
 
-      {data.outcome === "approved" && (
+      {(data.outcome === "approved" || data.outcome === "partial") && (
         <Paper className="route-decision">
           <Box>
             <Typography className="eyebrow">УСЛОВИЯ ФИНАНСИРОВАНИЯ</Typography>
@@ -143,9 +149,15 @@ export default function StatusPage({
             {data.decisionAmount != null && <Typography>Сумма: {money(data.decisionAmount)}</Typography>}
             {data.decisionRate != null && <Typography>Ставка: {data.decisionRate}%</Typography>}
             {data.decisionMonthly != null && <Typography>Платёж в месяц: {money(data.decisionMonthly)}</Typography>}
-            {data.reasons?.map((reason, index) => <Typography key={index}>{reason}</Typography>)}
           </Box>
-          <Button variant="contained" onClick={() => void acceptOffer()}>Продолжить</Button>
+          {(data.status === "APPROVED" || data.status === "COUNTER_OFFER") && (
+            <Button variant="contained" onClick={() => void acceptOffer()}>Принять условия</Button>
+          )}
+          {data.status === "OFFER_ACCEPTED" && (
+            <Button variant="contained" onClick={() => void signOffer()}>Подписать договор</Button>
+          )}
+          {data.status === "SIGNED" && <Chip label="Договор подписан · перечисляем деньги…" className="tone-chip tone-amber" />}
+          {data.status === "DISBURSED" && <Chip label="✓ Деньги перечислены на счёт" className="tone-chip tone-green" />}
         </Paper>
       )}
 
@@ -164,8 +176,13 @@ export default function StatusPage({
             <Typography variant="h5" fontWeight={800}>
             {data.route?.horizonText ?? "Загружаем маршрут рекомендаций…"}
             </Typography>
+            {data.route?.basedOn === "SPECIALIST" && (
+              <Typography variant="body2" color="text.secondary">
+                Маршрут построен по решению специалиста банка.
+              </Typography>
+            )}
             {(data.route?.steps ?? []).map((step) => (
-              <Box className="route-step" key={step.code}>
+              <Box className={`route-step tone-${reasonTone(step.code, `${step.term} ${step.action}`)}`} key={step.code}>
                 <label>
                   <input
                     type="checkbox"
@@ -185,7 +202,7 @@ export default function StatusPage({
                   <span>
                     <b>{step.action}</b>
                     <small>
-                      {step.term}
+                      {step.term} · {toneLabel[reasonTone(step.code, `${step.term} ${step.action}`)]}
                     </small>
                   </span>
                 </label>

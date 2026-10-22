@@ -2043,3 +2043,44 @@ body {
   .help-user-message, .help-answer, .help-welcome > .MuiPaper-root { max-width: 90%; }
 }
 
+
+/* Цвета маршрута: зелёный — можно сразу, жёлтый — нужно время, красный — стоп-фактор */
+:root {
+  --tone-green: #1f9d55;
+  --tone-green-bg: #e7f6ec;
+  --tone-amber: #c27c0e;
+  --tone-amber-bg: #fdf3e1;
+  --tone-red: #d0312d;
+  --tone-red-bg: #fdecea;
+}
+.tone-chip.tone-green { background: var(--tone-green-bg); color: var(--tone-green); font-weight: 700; }
+.tone-chip.tone-amber { background: var(--tone-amber-bg); color: var(--tone-amber); font-weight: 700; }
+.tone-chip.tone-red { background: var(--tone-red-bg); color: var(--tone-red); font-weight: 700; }
+.offer-badges { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.uncertainty-route { display: grid; gap: 8px; margin-top: 16px; }
+.route-item {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border-left: 4px solid currentColor;
+}
+.route-item > i { width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+.route-item > span { color: #1b1b1f; }
+.route-item.tone-green, .route-step.tone-green { color: var(--tone-green); background: var(--tone-green-bg); }
+.route-item.tone-amber, .route-step.tone-amber { color: var(--tone-amber); background: var(--tone-amber-bg); }
+.route-item.tone-red, .route-step.tone-red { color: var(--tone-red); background: var(--tone-red-bg); }
+.route-item .MuiChip-root { color: inherit; background: #fff; font-weight: 700; }
+.route-step[class*="tone-"] { border-left: 4px solid currentColor; border-radius: 10px; padding: 8px 12px; }
+.route-step[class*="tone-"] b { color: #1b1b1f; }
+.uncertainty-route + .precheck-explanation { margin-top: 14px; }
+
+/* Тёмная карточка платежа: тема MUI красила текст в тёмный — на чёрном фоне его не было видно */
+.payment-card .payment-value,
+.payment-card .pay-row b { color: #fff !important; }
+.payment-card .MuiTypography-root:not(.payment-kicker):not(.payment-value) { color: #bdbdbd !important; }
+.route-step label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.route-step label > span { display: grid; gap: 2px; }
+.route-step input:checked + span b { text-decoration: line-through; opacity: 0.6; }

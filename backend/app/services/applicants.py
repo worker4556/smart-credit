@@ -53,3 +53,15 @@ def build_applicant(
             "disputed": False,
         },
     }
+
+
+def specialist_for_route(application: Application) -> dict[str, Any] | None:
+    """Решение специалиста для ML /route (путь G): маршрут строится от него, а не от системы."""
+    specialist = (application.decision or {}).get("specialist_decision")
+    if not isinstance(specialist, dict) or not specialist.get("reasonCode"):
+        return None
+    return {
+        "outcome": specialist["outcome"],
+        "reason_code": specialist["reasonCode"],
+        "amount": specialist.get("amount"),
+    }

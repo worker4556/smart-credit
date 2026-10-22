@@ -13,3 +13,6 @@ dist/
 ml/data/
 *.log
 .DS_Store
+
+# Uploaded client files (runtime data)
+backend/storage/

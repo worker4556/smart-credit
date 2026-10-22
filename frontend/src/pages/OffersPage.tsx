@@ -40,7 +40,25 @@ import {
 } from "../components/ApplicationShell";
 import { formatMoney as money, formatNumber as format } from "../utils/format";
 import { goals } from "../data/application";
-import type { OffersPageProps } from "../types";
+import type { LoanOffer, OffersPageProps } from "../types";
+import { chanceLabel, chanceTone, needsRoute, reasonTone, toneLabel } from "../utils/route";
+
+const kindLabel: Record<string, string> = {
+  REQUESTED: "Запрошенная сумма",
+  WITHIN_ESTIMATE: "В пределах оценки",
+  OTHER_TERM: "Другой срок",
+  OTHER_PRODUCT: "Другой продукт",
+};
+
+function minIndex(offers: LoanOffer[], key: "monthly" | "fullCost"): number {
+  let best = -1;
+  offers.forEach((offer, index) => {
+    const value = offer[key];
+    if (value == null) return;
+    if (best < 0 || value < (offers[best][key] ?? Infinity)) best = index;
+  });
+  return best;
+}
 export default function OffersPage({
   data,
   update,
@@ -51,6 +69,7 @@ export default function OffersPage({
   monthly,
   chosen,
   setToast: _setToast,
+  onChoose,
 }: OffersPageProps) {
   return (
     <>
@@ -65,7 +84,9 @@ export default function OffersPage({
             <Box>
               <Typography className="eyebrow">ТЕКУЩАЯ ВЫСОТА</Typography>
               <Typography variant="h5" fontWeight={800}>
-                {money(data.precheck.amountLow)} — {money(data.precheck.amountHigh)}
+                {data.precheck.amountHigh > 0
+                  ? `${money(data.precheck.amountLow)} — ${money(data.precheck.amountHigh)}`
+                  : "Пока недоступно"}
               </Typography>
             </Box>
             <Box>
@@ -76,16 +97,37 @@ export default function OffersPage({
             </Box>
             <Box>
               <Typography className="eyebrow">ПРЕДВАРИТЕЛЬНЫЙ ШАНС</Typography>
-              <Typography variant="h5" fontWeight={800}>
-                {data.precheck.chance}
-              </Typography>
+              <Chip
+                label={chanceLabel[data.precheck.chance] ?? data.precheck.chance}
+                className={`tone-chip tone-${chanceTone[data.precheck.chance] ?? "amber"}`}
+              />
             </Box>
           </Box>
-          {(data.precheck.reasons ?? []).map((reason, index) => (
-            <Typography key={reason.code ?? index} className="precheck-reason">
-              • {reason.text}
-            </Typography>
-          ))}
+          {needsRoute(data.precheck, data.amount) && (
+            <Box className="uncertainty-route">
+              <Typography fontWeight={800}>Что влияет на решение и как это исправить</Typography>
+              {data.precheck.amountHigh > 0 && data.amount > data.precheck.amountHigh && (
+                <Box className="route-item tone-green">
+                  <i />
+                  <span>
+                    Сумма выше оценки. Ниже есть вариант в пределах{" "}
+                    {money(data.precheck.amountHigh)} — по нему шансы выше.
+                  </span>
+                  <Chip size="small" label="Альтернатива" />
+                </Box>
+              )}
+              {(data.precheck.reasons ?? []).map((reason, index) => {
+                const tone = reasonTone(reason.code);
+                return (
+                  <Box key={reason.code ?? index} className={`route-item tone-${tone}`}>
+                    <i />
+                    <span>{reason.text}</span>
+                    <Chip size="small" label={toneLabel[tone]} />
+                  </Box>
+                );
+              })}
+            </Box>
+          )}
           <Typography className="precheck-explanation">
             {data.precheck.text}
           </Typography>
@@ -107,31 +149,43 @@ export default function OffersPage({
       )}
       <Box className="offers-layout">
         <Box className="offers-list">
-          {goalOffers.map((o, i) => (
+          {goalOffers.map((o, i) => {
+            const lowestPayment = goalOffers.length > 1 && i === minIndex(goalOffers, "monthly") && i !== 0;
+            const lowestCost = goalOffers.length > 1 && i === minIndex(goalOffers, "fullCost") && i !== 0;
+            const amountText = typeof o.amount === "number" ? money(o.amount) : o.amount;
+            const detail = o.detail ?? [
+              o.termMonths ? `${o.termMonths} мес.` : null,
+              o.rate != null ? `ставка ${o.rate}%` : null,
+              o.monthly ? `платёж ${money(o.monthly)}/мес.` : null,
+              o.fullCost ? `переплата ${money(o.fullCost)}` : null,
+            ].filter(Boolean).join(" · ");
+            return (
             <Card
-              key={o.name}
+              key={`${o.name}-${o.amount}-${o.termMonths ?? i}`}
               onClick={() => {
                 setSelectedOffer(i);
                 update("offer", i);
               }}
-              className={`offer-card ${selectedOffer === i ? "offer-selected" : ""} ${i === 0 ? "offer-best" : ""}`}
+              className={`offer-card ${selectedOffer === i ? "offer-selected" : ""} ${i === 0 && o.kind ? "offer-best" : ""}`}
             >
               <CardContent>
                 <Box className="offer-topline">
-                  {i === 0 && (
-                    <Chip
-                      label="★  ЛУЧШИЙ ВАРИАНТ"
-                      size="small"
-                      className="best-chip"
-                    />
-                  )}
+                  <Box className="offer-badges">
+                    {i === 0 && o.kind && (
+                      <Chip label="★  ЛУЧШИЙ ВАРИАНТ" size="small" className="best-chip" />
+                    )}
+                    {!o.kind && <Chip label="Шансы низкие · можно отправить на проверку" size="small" className="tone-chip tone-red" />}
+                    {lowestPayment && <Chip label="Ниже платёж" size="small" className="tone-chip tone-green" />}
+                    {lowestCost && <Chip label="Меньше переплата" size="small" className="tone-chip tone-green" />}
+                    {o.kind && kindLabel[o.kind] && <Chip label={kindLabel[o.kind]} size="small" variant="outlined" />}
+                  </Box>
                   <Radio checked={selectedOffer === i} />
                 </Box>
                 <Typography variant="h5" fontWeight={800}>
                   {o.name}
                 </Typography>
-                <Typography className="offer-amount">{o.amount}</Typography>
-                <Typography color="text.secondary">{o.detail}</Typography>
+                <Typography className="offer-amount">{amountText}</Typography>
+                <Typography color="text.secondary">{detail}</Typography>
                 <Box className="offer-explain">
                   <CheckCircle fontSize="small" />
                   <span>
@@ -140,7 +194,8 @@ export default function OffersPage({
                 </Box>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </Box>
         <Paper className="recommend-card">
           <Typography className="eyebrow">ВАШ ВЫБОР</Typography>
@@ -150,12 +205,11 @@ export default function OffersPage({
                 {chosen.name}
               </Typography>
               <Typography variant="h4" className="rec-payment">
-                {chosen.amount || money(monthly)}
+                {money(chosen.monthly ?? monthly)}
               </Typography>
               <Typography color="text.secondary">
-                {selectedOffer === 0
-                  ? "в месяц · предварительно"
-                  : "подходящее предложение"}
+                в месяц · {typeof chosen.amount === "number" ? money(chosen.amount) : chosen.amount}
+                {chosen.termMonths ? ` на ${chosen.termMonths} мес.` : ""} · предварительно
               </Typography>
             </>
           ) : (
@@ -183,12 +237,12 @@ export default function OffersPage({
           <Button
             variant="contained"
             fullWidth
-            onClick={() => next(5)}
+            onClick={() => void onChoose()}
             endIcon={<ArrowForward />}
           >
             {chosen ? "Выбрать этот вариант" : "Продолжить без предложения"}
           </Button>
-          <Button variant="text" color="inherit" onClick={() => next(1)}>
+          <Button variant="text" color="inherit" onClick={() => next(2)}>
             Изменить сумму или срок
           </Button>
           <Typography className="mini-disclaimer">
@@ -208,7 +262,7 @@ export default function OffersPage({
       </Box>
       <FooterNav
         onBack={() => next(3)}
-        onNext={() => next(5)}
+        onNext={() => void onChoose()}
         next={
           goalOffers.length
             ? "Продолжить с выбранным вариантом"

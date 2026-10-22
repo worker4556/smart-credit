@@ -52,6 +52,7 @@ interface FooterNavProps {
   disabled?: boolean;
   back?: boolean;
   note?: string;
+  secondary?: { label: string; onClick: () => void };
 }
 interface SelectCardProps {
   selected: boolean;
@@ -112,9 +113,9 @@ export function Header({ screen, setScreen, userName = "Клиент", openProfi
 }
 export function StepRail({ screen, setScreen }: HeaderProps) {
   const labels = [
+    "Компания",
     "Цель",
     "Сумма",
-    "Компания",
     "Финансы",
     "Предложение",
     "Документы",
@@ -188,6 +189,7 @@ export function FooterNav({
   disabled = false,
   back = true,
   note,
+  secondary,
 }: FooterNavProps) {
   return (
     <Box className="footer-nav">
@@ -209,6 +211,11 @@ export function FooterNav({
           <Typography variant="caption" className="footnote">
             {note}
           </Typography>
+        )}
+        {secondary && (
+          <Button variant="outlined" color="inherit" onClick={secondary.onClick}>
+            {secondary.label}
+          </Button>
         )}
         <Button
           variant="contained"

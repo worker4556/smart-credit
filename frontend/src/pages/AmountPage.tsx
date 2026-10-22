@@ -42,6 +42,7 @@ import { formatMoney as money, formatNumber as format } from "../utils/format";
 import { goals } from "../data/application";
 import type { AmountPageProps } from "../types";
 import RouteMap from "../components/RouteMap";
+import { needsRoute } from "../utils/route";
 export default function AmountPage({
   data,
   update,
@@ -55,15 +56,17 @@ export default function AmountPage({
   return (
     <>
       <StepTitle
-        eyebrow="ШАГ 2 ИЗ 7 · СУММА И СРОК"
+        eyebrow="ШАГ 3 ИЗ 7 · СУММА И СРОК"
         title="Сколько вам нужно?"
         subtitle="Сумму и срок можно будет изменить позже."
       />
-      <RouteMap
-        compact
-        targetAmount={data.amount}
-        currentAmount={data.precheck?.amountHigh}
-      />
+      {needsRoute(data.precheck, data.amount) && (
+        <RouteMap
+          compact
+          targetAmount={data.amount}
+          currentAmount={data.precheck?.amountHigh}
+        />
+      )}
       <Box className="calc-layout">
         <Paper className="calc-main">
           <Box className="range-head">
@@ -129,8 +132,8 @@ export default function AmountPage({
         </Paper>
       </Box>
       <FooterNav
-        onBack={() => next(0)}
-        onNext={() => next(2)}
+        onBack={() => next(1)}
+        onNext={() => next(3)}
         note="Расчёт обновляется автоматически"
       />
     </>

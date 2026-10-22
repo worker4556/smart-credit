@@ -58,4 +58,5 @@ export const api = {
   recalculateRoute: (id: string, doneSteps: string[]) => request<ApplicationRoute>(`/applications/${id}/route/recalculate`, { method: "POST", body: JSON.stringify({ doneSteps }) }),
   uploadDocument: (id: string, file: File) => { const form = new FormData(); form.append("file", file); return request<ApplicationResponse>(`/applications/${id}/documents`, { method: "POST", body: form }); },
   accept: (id: string) => request<void>(`/applications/${id}/accept`, { method: "POST" }),
+  sign: (id: string) => request<void>(`/applications/${id}/sign`, { method: "POST" }),
 };

@@ -52,14 +52,25 @@ def quote_from_ml(payload: dict[str, Any]) -> Quote:
     )
 
 
+OFFER_WHY = {
+    "REQUESTED": "Ровно та сумма и срок, что вы просили",
+    "WITHIN_ESTIMATE": "Сумма в пределах предварительной оценки — шансы на одобрение выше",
+    "OTHER_TERM": "Та же сумма, срок подобран под ваш оборот",
+    "OTHER_PRODUCT": "Другой продукт, который подходит под вашу задачу",
+}
+
+
 def _loan_offer(
     payload: dict[str, Any],
     chance: str,
     why: str | None,
 ) -> LoanOffer:
+    # Причины отказа не объясняют, почему вариант подходит: берём пояснение по типу варианта
+    why = OFFER_WHY.get(str(payload.get("kind")), None)
     cost = payload["cost"]
     product = payload["product"]
     return LoanOffer(
+        kind=payload.get("kind"),
         product=product,
         name=PRODUCT_NAME[product],
         amount=int(payload["amount"]),
@@ -90,7 +101,7 @@ def _fallback_offer(
         rate=float(cost.get("rate") or 0),
         monthly=int(cost.get("monthly_payment") or 0),
         full_cost=int(cost.get("full_cost") or 0),
-        why=reasons[0].text if reasons else None,
+        why=None,
         chance="LOW",
         weather=payload.get("weather"),
     )
