@@ -151,9 +151,13 @@ def _pick_amount(text: str, cands: list[tuple[int, int]]) -> int | None:
     return own[0][1]
 
 
-def purpose_by_rules(text: str) -> Purpose | None:
+def purpose_hits(text: str) -> dict[str, int]:
     t = text.lower()
-    hits = {p: sum(k in t for k in kw) for p, kw in KEYWORDS.items()}
+    return {p: sum(k in t for k in kw) for p, kw in KEYWORDS.items()}
+
+
+def purpose_by_rules(text: str) -> Purpose | None:
+    hits = purpose_hits(text)
     best = max(hits.values())
     if best == 0:
         return None
@@ -201,8 +205,14 @@ def parse(text: str, use_llm: bool = True) -> Intent:
     out = llm.chat(LLM_SYSTEM, text, schema=LLM_SCHEMA, timeout=llm.INTENT_TIMEOUT, max_tokens=80) if use_llm else None
     if isinstance(out, dict):
         source = "LLM"
-        if out.get("purpose") in PURPOSE_TEXT and (out["purpose"] != "OTHER" or purpose is None):
-            purpose = out["purpose"]
+        # Цель от модели — только там, где правила её не нашли или колеблются между равными вариантами.
+        # Замер на отложенных фразах: если модель перебивает уверенные правила, точность падает (73% → 60%).
+        hits = purpose_hits(text)
+        top = max(hits.values())
+        tied = {p for p, h in hits.items() if h == top and h > 0}
+        llm_purpose = out.get("purpose")
+        if llm_purpose in PURPOSE_TEXT and llm_purpose != "OTHER" and (purpose is None or (len(tied) > 1 and llm_purpose in tied)):
+            purpose = llm_purpose
         # Сумма и срок — только из чисел, реально найденных во фразе
         if out.get("amount_rub") in {v for _, v in cands}:
             amount = out["amount_rub"]

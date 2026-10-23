@@ -126,6 +126,100 @@
         "title": "AdminLLM",
         "type": "object"
       },
+      "AdminStats": {
+        "description": "Эффект продукта: только по событиям заявок в базе (docs/route-pages.md, раздел 8).",
+        "properties": {
+          "autoDecisionShare": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Autodecisionshare"
+          },
+          "decisionMinutesMedian": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionminutesmedian"
+          },
+          "fillMinutesMedian": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fillminutesmedian"
+          },
+          "funnel": {
+            "$ref": "#/components/schemas/FunnelStats"
+          },
+          "outcomes": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Outcomes",
+            "type": "object"
+          },
+          "precheckCompared": {
+            "default": 0,
+            "title": "Precheckcompared",
+            "type": "integer"
+          },
+          "precheckMatchShare": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Precheckmatchshare"
+          },
+          "refused": {
+            "default": 0,
+            "title": "Refused",
+            "type": "integer"
+          },
+          "returnedAfterRefusalShare": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Returnedafterrefusalshare"
+          },
+          "topReasons": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ReasonCount"
+            },
+            "title": "Topreasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "funnel",
+          "outcomes"
+        ],
+        "title": "AdminStats",
+        "type": "object"
+      },
       "AdminSystem": {
         "properties": {
           "backend": {
@@ -1134,6 +1228,32 @@
         "title": "CompanyOut",
         "type": "object"
       },
+      "FunnelStats": {
+        "properties": {
+          "decided": {
+            "default": 0,
+            "title": "Decided",
+            "type": "integer"
+          },
+          "drafts": {
+            "default": 0,
+            "title": "Drafts",
+            "type": "integer"
+          },
+          "issued": {
+            "default": 0,
+            "title": "Issued",
+            "type": "integer"
+          },
+          "submitted": {
+            "default": 0,
+            "title": "Submitted",
+            "type": "integer"
+          }
+        },
+        "title": "FunnelStats",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1575,6 +1695,24 @@
         "title": "Reason",
         "type": "object"
       },
+      "ReasonCount": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "count"
+        ],
+        "title": "ReasonCount",
+        "type": "object"
+      },
       "RouteRecalculateRequest": {
         "properties": {
           "doneSteps": {
@@ -1857,6 +1995,33 @@
           }
         ],
         "summary": "Reset Demo",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/stats": {
+      "get": {
+        "description": "Воронка, исходы, доля автоматических решений, время, причины отказов, возврат по маршруту.",
+        "operationId": "product_stats_api_v1_admin_stats_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStats"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Product Stats",
         "tags": [
           "admin"
         ]

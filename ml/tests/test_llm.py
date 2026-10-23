@@ -85,3 +85,16 @@ def test_115fz_never_goes_to_llm(policy, monkeypatch):
 def test_route_template_mentions_steps_and_disclaimer(policy):
     e = explain.explain_route(policy, build_route(policy, applicant("P3")), use_llm=False)
     assert "Погасить сальдо ЕНС" in e.text and "~3 мес." in e.text and "не обещание" in e.text
+
+
+def test_llm_does_not_override_confident_rules(fake_llm):
+    # Правила уверенно видят контракт — модель не перебивает (на отложенных фразах это снижало точность)
+    fake_llm({"purpose": "PURCHASE", "amount_rub": 2_000_000, "term_months": 6})
+    r = intent.parse("исполнить контракт по госзаказу, нужно 2 млн на полгода")
+    assert r.purpose == "CONTRACT"
+
+
+def test_llm_fills_purpose_when_rules_found_nothing(fake_llm):
+    fake_llm({"purpose": "EQUIPMENT", "amount_rub": 1_300_000, "term_months": 48})
+    r = intent.parse("нужна машина для доставки цветов, 1,3 млн на 4 года")
+    assert r.purpose == "EQUIPMENT" and r.source == "LLM"

@@ -26,3 +26,29 @@ class AdminSystem(CamelModel):
     ml: str
     llm: AdminLLM = Field(default_factory=AdminLLM)
     policy_version: str | None = None
+
+
+class FunnelStats(CamelModel):
+    drafts: int = 0
+    submitted: int = 0
+    decided: int = 0
+    issued: int = 0
+
+
+class ReasonCount(CamelModel):
+    text: str
+    count: int
+
+
+class AdminStats(CamelModel):
+    """Эффект продукта: только по событиям заявок в базе (docs/route-pages.md, раздел 8)."""
+    funnel: FunnelStats
+    outcomes: dict[str, int]
+    auto_decision_share: int | None = None
+    fill_minutes_median: float | None = None
+    decision_minutes_median: float | None = None
+    top_reasons: list[ReasonCount] = []
+    refused: int = 0
+    returned_after_refusal_share: int | None = None
+    precheck_match_share: int | None = None
+    precheck_compared: int = 0

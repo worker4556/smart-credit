@@ -7,9 +7,9 @@ from sqlmodel import Session, delete, select
 
 from app.api.deps import SessionDep, require_roles
 from app.db.models import Application, ApplicationEvent, Company, User
-from app.schemas.admin import AdminApplication, AdminLLM, AdminSystem
+from app.schemas.admin import AdminApplication, AdminLLM, AdminStats, AdminSystem
 from app.schemas.applications import OUTCOME_BY_STATUS
-from app.services import ml
+from app.services import ml, stats
 from app.services.request_id import request_id
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -82,3 +82,11 @@ def system(request: Request, user: AdminUser) -> AdminSystem:
         ),
         policy_version=health.get("policy_version"),
     )
+
+
+@router.get("/stats", response_model=AdminStats)
+def product_stats(session: SessionDep, user: AdminUser) -> AdminStats:
+    """Воронка, исходы, доля автоматических решений, время, причины отказов, возврат по маршруту."""
+    applications = list(session.exec(select(Application)).all())
+    events = list(session.exec(select(ApplicationEvent)).all())
+    return AdminStats(**stats.compute(applications, events))

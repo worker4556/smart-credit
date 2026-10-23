@@ -51,6 +51,13 @@ export interface BankDecision { outcome: "APPROVED" | "COUNTER_OFFER" | "INFO_RE
 export interface AdminApplication { applicationId: string; number: string; companyName: string; amount: number; status: string; outcome: string; decidedBy?: string | null; }
 export interface AdminSystem { backend: string; ml: string; llm: { enabled: boolean; ready: boolean; model?: string | null }; policyVersion?: string | null; }
 
+export interface AdminStats {
+  funnel: { drafts: number; submitted: number; decided: number; issued: number };
+  outcomes: Record<string, number>;
+  autoDecisionShare: number | null; fillMinutesMedian: number | null; decisionMinutesMedian: number | null;
+  topReasons: Array<{ text: string; count: number }>;
+  refused: number; returnedAfterRefusalShare: number | null; precheckMatchShare: number | null; precheckCompared: number;
+}
 export const api = {
   login: (login: string, password: string) => request<LoginResponse>("/auth/login", { method: "POST", body: JSON.stringify({ login, password }) }, false),
   me: () => request<UserProfile>("/me"),
@@ -79,5 +86,6 @@ export const api = {
   // Админка
   adminApplications: () => request<AdminApplication[]>("/admin/applications"),
   adminSystem: () => request<AdminSystem>("/admin/system"),
+  adminStats: () => request<AdminStats>("/admin/stats"),
   adminReset: () => request<void>("/admin/demo/reset", { method: "POST" }),
 };

@@ -2566,3 +2566,17 @@ body {
 .open-route-btn { justify-self: start; margin-top: 4px !important; border-radius: 12px !important; font-weight: 800 !important; text-transform: none !important; }
 @media (max-width: 900px) { .route-grid { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .route-main-content { width: calc(100% - 24px); } .route-map-legend { flex-direction: column; align-items: flex-start; } }
+
+/* Админка: эффект продукта */
+.stat-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
+.stat-tile { display: grid; gap: 4px; padding: 14px 16px; border-radius: 14px; background: #f6f7f8; }
+.stat-tile .eyebrow { margin: 0 !important; color: #7d8790; font-size: 10px !important; letter-spacing: .1em; }
+.stat-value { color: #111c24; font-size: 24px !important; font-weight: 800 !important; letter-spacing: -.02em; }
+.stat-note { color: #6b7982; font-size: 12px !important; line-height: 1.4 !important; }
+.stat-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.stat-bar { display: grid; grid-template-columns: 110px minmax(0, 1fr) 32px; align-items: center; gap: 10px; margin-top: 8px; font-size: 13px; }
+.stat-bar i { height: 10px; overflow: hidden; border-radius: 6px; background: #eef1f4; }
+.stat-bar b { display: block; height: 100%; border-radius: 6px; background: #5a64c8; }
+.stat-bar em, .stat-reason em { color: #1d2b36; font-style: normal; font-weight: 800; text-align: right; }
+.stat-reason { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #eef1f4; font-size: 13px; }
+@media (max-width: 800px) { .stat-tiles { grid-template-columns: 1fr 1fr; } .stat-columns { grid-template-columns: 1fr; } }
