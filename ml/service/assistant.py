@@ -18,7 +18,7 @@ from .glossary import find_terms
 from .route import Route
 from .schemas import Decision, Precheck
 
-Topic = Literal["WHY", "WHAT_TO_DO", "WHEN", "TERM", "AMOUNT", "OFF_TOPIC", "NONCREDIT", "NOT_NEEDED"]
+Topic = Literal["WHY", "WHAT_TO_DO", "WHEN", "TERM", "AMOUNT", "GOAL", "OFF_TOPIC", "NONCREDIT", "NOT_NEEDED"]
 
 OUTCOME_TEXT = {"APPROVED": "одобрено", "COUNTER_OFFER": "иные условия", "INFO_REQUESTED": "нужны данные",
                 "REJECTED": "отказ", "SUSPENDED_115FZ": "приостановлена по 115-ФЗ"}
@@ -29,7 +29,8 @@ PATTERNS: list[tuple[Topic, str]] = [
     ("WHAT_TO_DO", r"что\s+(мне\s+|нам\s+)?(теперь\s+|сейчас\s+|дальше\s+)?(делать|сделать)|как\s+быть|куда\s+нажать|как\s+(повысить|улучшить|получить|исправить)|что\s+нужно|"
                    r"как(ую|ие|ой)\s+(выписк|документ)|загрузить|что\s+будет|после\s+загрузк|дальше|следующ|"
                    r"как\s+(подписать|принять|отправить)"),
-    ("AMOUNT", r"меньше|сумм|не\s+вс[юе]|млн|тыс|₽|лимит|стоит|стоимост|переплат|ставк|плат[её]ж"),
+    ("AMOUNT", r"меньше|сумм|не\s+вс[юе]|млн|тыс|₽|лимит|стоит|стоимост|переплат|ставк|плат[её]ж|"
+               r"сколько\s+(мне\s+|нам\s+)?(могут\s+|можно\s+|смогу\s+)?(дадут|дают|дать|одобр|получ|взять|выдад)"),
     ("WHY", r"почему|зачем|причин|из-за\s+чего|за\s+что|отказ"),
 ]
 
@@ -59,12 +60,21 @@ class AssistantAnswer(BaseModel):
     terms: list[str] = []
 
 
+# Вопрос о деньгах для бизнеса, но не под конкретный шаблон («хочу открыть вторую кофейню», «мне дадут кредит?»):
+# это не «не по теме» — отвечаем по данным заявки и подсказываем следующий шаг.
+GOAL_RE = re.compile(r"кредит|займ|деньг|денег|финансир|бизнес|компани|кофейн|магазин|точк[уи]|открыт|открыва|купит|"
+                     r"закуп|расшир|оборудован|ремонт|хочу|нужн|дадут|дают|получит|взять|одобр|заявк|шанс|банк|"
+                     r"предложени|условия|выручк|оборот")
+
+
 def classify(question: str, terms: list[dict]) -> Topic:
     q = question.lower()
     for topic, pattern in PATTERNS:
         if re.search(pattern, q):
             return "WHY" if topic == "TERM" and not terms else topic   # «что это значит?» — про само решение
-    return "TERM" if terms else "OFF_TOPIC"
+    if terms:
+        return "TERM"
+    return "GOAL" if GOAL_RE.search(q) else "OFF_TOPIC"
 
 
 def facts(policy: Policy, decision: Decision | None, route: Route | None, topic: Topic | None = None) -> list[str]:
@@ -179,7 +189,7 @@ def good_template(policy: Policy, topic: Topic, stage: str | None, decision: Dec
 
     if stage == "DRAFT" or (stage is None and precheck and not decision):
         if not precheck:
-            return st["DRAFT_NO_PRECHECK"]
+            return st["DRAFT_AMOUNT_NO_PRECHECK"] if topic in {"AMOUNT", "GOAL"} else st["DRAFT_NO_PRECHECK"]
         chance = CHANCE_TEXT[precheck.chance]
         high = precheck.amount_range.high
         rng = (f"сейчас доступно примерно {rub(precheck.amount_range.low)} — {rub(high)}" if high
@@ -195,7 +205,11 @@ def good_template(policy: Policy, topic: Topic, stage: str | None, decision: Dec
             return body
         if topic == "AMOUNT":
             body = f"Вы просите {rub(precheck.requested_amount)}, {rng}."
-            if high and precheck.requested_amount > high:
+            if not high:
+                first = precheck.reasons[0].text.lower() if precheck.reasons else ""
+                body += (f" Главное препятствие: {first}." if first else "") + \
+                    " Что сделать, чтобы сумма появилась, покажет маршрут на шаге «Предложение»."
+            elif precheck.requested_amount > high:
                 body += f" Сумма выше оценки — на шаге «Предложение» есть вариант в пределах {rub(high)}, по нему шансы выше."
             elif precheck.cost:
                 body += f" Условия на запрошенную сумму: {_cost_text(precheck.cost)}."

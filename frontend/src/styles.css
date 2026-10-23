@@ -2389,3 +2389,91 @@ body {
 .staff-factor .MuiLinearProgress-bar { background: var(--tone-green); }
 .owner-note, .route-advice { margin-top: 12px; }
 .zsk-steps ol { margin: 12px 0 16px; padding-left: 20px; display: grid; gap: 8px; }
+
+/* ---------- Главная: гора без перекрытий, выдвижные панели, времена года ---------- */
+.landing-hero { min-height: calc(100vh - 72px - 44px); overflow: clip; }
+.landing-hero-copy { width: min(46%, 560px); padding: 48px 0 0 52px; }
+.landing-hero-shade { background: linear-gradient(90deg, rgba(15,34,47,.42), rgba(19,40,53,.08) 38%, transparent 58%); }
+.landing-map-pin { padding: 7px 11px; border-radius: 10px; }
+.landing-map-pin b { font-size: 11px; }
+.landing-map-pin small { color: #263743; font-size: 12px; font-weight: 800; }
+.landing-pin-start { left: 18%; top: 72%; }
+.landing-pin-summit { left: 79%; top: 9%; }
+
+.landing-edge-tabs { position: absolute; z-index: 2; right: 0; top: 50%; display: grid; gap: 8px; transform: translateY(-50%); }
+.landing-edge-tab {
+  justify-content: flex-start !important; min-width: 0 !important; padding: 12px 16px 12px 14px !important;
+  border-radius: 14px 0 0 14px !important; background: #ffffffe8 !important; color: #233746 !important;
+  font-size: 12px !important; font-weight: 800 !important; box-shadow: 0 8px 24px #102d3c30;
+  transition: padding .2s ease, background .2s ease;
+}
+.landing-edge-tab .MuiButton-startIcon { margin-right: 8px; color: #ef3124; }
+.landing-edge-tab:hover, .landing-edge-tab:focus-visible { padding-right: 22px !important; background: #fff !important; }
+
+.landing-drawer { width: min(420px, 100vw); border-radius: 22px 0 0 22px !important; background: #f4f6f8 !important; }
+.landing-drawer-body { display: grid; gap: 12px; padding: 22px; }
+.landing-drawer-head { display: flex; align-items: center; justify-content: space-between; }
+.landing-drawer-head h2 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+.landing-metric { display: grid; gap: 6px; padding: 18px !important; border-radius: 16px !important; }
+.landing-metric .eyebrow { margin: 0 !important; color: #7d8790; font-size: 10px !important; letter-spacing: .12em; }
+.landing-metric-value { font-size: 30px !important; font-weight: 800 !important; letter-spacing: -.03em; line-height: 1.15 !important; }
+.landing-metric > .MuiTypography-colorTextSecondary { font-size: 13px; line-height: 1.5; }
+.landing-metric-note { color: #61717b; font-size: 12px !important; line-height: 1.5 !important; }
+.landing-metric-progress { height: 8px !important; margin-top: 6px; border-radius: 8px; background: #fde3e1 !important; }
+.landing-metric-progress .MuiLinearProgress-bar { border-radius: 8px; background: #ef3124 !important; }
+.landing-variant { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px; border-radius: 12px; }
+.landing-variant:first-of-type { background: #fff1f0; }
+.landing-variant-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: #fff; color: #ef3124; box-shadow: 0 2px 8px #102d3c14; }
+.landing-variant-icon svg { font-size: 18px; }
+.landing-variant > div:nth-child(2) { display: grid; gap: 2px; min-width: 0; }
+.landing-variant b { font-size: 13px; }
+.landing-variant small { color: #6b7982; font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+.landing-variant > span { color: #6b7982; font-size: 11px; white-space: nowrap; }
+.landing-drawer-body > .MuiButton-root { min-height: 46px; border-radius: 12px; font-weight: 800; }
+.landing-season-switch { display: flex; flex-wrap: wrap; gap: 6px; }
+.landing-season-switch .MuiButton-root { border-radius: 10px; font-weight: 700; }
+
+/* Времена года: оттенок картинки, свет и частицы (снег, листья, лепестки) */
+.landing-hero-art > img { transition: filter .6s ease; }
+.season-tint, .season-particles { position: absolute; inset: 0; pointer-events: none; }
+.season-winter .landing-hero-art > img { filter: saturate(.85) brightness(1.05) contrast(1.02); }
+.season-winter .season-tint { background: linear-gradient(180deg, #dfeefe55, transparent 60%); }
+.season-spring .landing-hero-art > img { filter: saturate(1.15) hue-rotate(8deg) brightness(1.04); }
+.season-spring .season-tint { background: radial-gradient(circle at 80% 15%, #fff7d066, transparent 45%), linear-gradient(0deg, #a8ef0026, transparent 45%); }
+.season-summer .landing-hero-art > img { filter: saturate(1.25) brightness(1.06) sepia(.08); }
+.season-summer .season-tint { background: radial-gradient(circle at 78% 12%, #fff1b880, transparent 42%), linear-gradient(0deg, #ffb34722, transparent 50%); }
+.season-autumn .landing-hero-art > img { filter: sepia(.32) saturate(1.35) hue-rotate(-12deg) brightness(.98); }
+.season-autumn .season-tint { background: linear-gradient(0deg, #c8541f2e, transparent 55%), radial-gradient(circle at 80% 14%, #ffd59a55, transparent 40%); }
+
+.season-particles { opacity: .9; background-repeat: repeat; animation: season-fall 18s linear infinite; }
+.season-winter .season-particles {
+  background-image: radial-gradient(#ffffffee 1.5px, transparent 2px), radial-gradient(#ffffffaa 1px, transparent 1.5px);
+  background-size: 120px 120px, 70px 70px; background-position: 0 0, 35px 40px;
+}
+.season-autumn .season-particles {
+  background-image: radial-gradient(ellipse 4px 2px, #e2742bcc 60%, transparent 70%), radial-gradient(ellipse 3px 2px, #c2410ccc 60%, transparent 70%);
+  background-size: 210px 180px, 150px 140px; background-position: 20px 0, 90px 60px; animation-duration: 26s;
+}
+.season-spring .season-particles {
+  background-image: radial-gradient(#ffd1dccc 1.6px, transparent 2.2px);
+  background-size: 190px 170px; animation-duration: 30s; opacity: .7;
+}
+.season-summer .season-particles { display: none; }
+@keyframes season-fall { from { background-position-y: 0, 0; } to { background-position-y: 720px, 480px; } }
+@media (prefers-reduced-motion: reduce) {
+  .season-particles { animation: none; }
+  .landing-edge-tab, .landing-hero-art > img { transition: none; }
+}
+
+@media (max-width: 900px) {
+  .landing-hero { min-height: 560px; }
+  .landing-hero-copy { width: 62%; padding: 40px 0 0 30px; }
+}
+@media (max-width: 600px) {
+  .landing-hero { min-height: 620px; }
+  .landing-hero-copy { width: 100%; padding: 28px 20px; }
+  .landing-edge-tabs { top: auto; bottom: 16px; transform: none; }
+  .landing-map-pin { display: grid; }
+  .landing-pin-start { left: 8%; top: 76%; }
+  .landing-pin-summit { left: 62%; top: 30%; }
+}

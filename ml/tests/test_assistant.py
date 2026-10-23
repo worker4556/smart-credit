@@ -159,3 +159,54 @@ def test_amount_answer_for_full_amount_counter_offer_talks_about_rate(policy):
                              "cost": d.cost.model_copy(update={"amount": d.requested_amount, "rate": 22.0})})
     a = answer(policy, "почему не вся сумма?", d, None, use_llm=False)
     assert "Почему не вся сумма" not in a.answer and "22%" in a.answer and "20%" in a.answer
+
+
+# ---------- свободные вопросы о задаче бизнеса не считаются «не по теме» ----------
+
+@pytest.mark.parametrize("question,topic", [
+    ("хочу открыть вторую кофейню, сколько мне дадут?", "AMOUNT"),
+    ("сколько можно получить?", "AMOUNT"),
+    ("хочу открыть вторую кофейню", "GOAL"),
+    ("мне дадут кредит?", "GOAL"),
+    ("какая погода в Москве?", "OFF_TOPIC"),
+])
+def test_free_questions_classified(question, topic):
+    from service.assistant import classify
+    from service.glossary import find_terms
+    from service.config import get_policy
+    assert classify(question, find_terms(get_policy(), question)) == topic
+
+
+def test_draft_without_precheck_explains_how_to_get_amount(policy):
+    for q in ("хочу открыть вторую кофейню, сколько мне дадут?", "мне дадут кредит?"):
+        a = answer(policy, q, None, None, use_llm=False, stage="DRAFT")
+        assert a.topic != "OFF_TOPIC" and "предварительная оценка" in a.answer and "«Предложение»" in a.answer
+
+
+def test_goal_question_with_precheck_answers_by_estimate(policy):
+    from conftest import precheck_applicant
+    from service.decision import precheck
+    p = precheck(policy, precheck_applicant("P1"))
+    a = answer(policy, "хочу открыть вторую кофейню", None, None, use_llm=False, stage="DRAFT", precheck=p)
+    assert a.topic == "GOAL" and "Предварительный шанс" in a.answer
+
+
+def test_goal_question_after_rejection_names_reason(policy):
+    a = answer(policy, "мне дадут кредит?", decide(policy, applicant("P3")), build_route(policy, applicant("P3")),
+               use_llm=False, stage="REJECTED")
+    assert a.topic == "GOAL" and "налоговая задолженность" in a.answer.lower()
+
+
+def test_goal_question_goes_to_llm(policy, fake_llm):
+    fake_llm("Сколько банк сможет дать, покажет предварительная оценка на шаге «Предложение». Это ещё не решение банка.")
+    a = answer(policy, "хочу открыть вторую кофейню", None, None, stage="DRAFT")
+    assert a.topic == "GOAL" and a.source == "LLM"
+
+
+def test_amount_question_without_available_sum_names_the_obstacle(policy):
+    from conftest import precheck_applicant
+    from service.decision import precheck
+    p = precheck(policy, precheck_applicant("P3"))
+    assert p.amount_range.high == 0
+    a = answer(policy, "сколько мне дадут?", None, None, use_llm=False, stage="DRAFT", precheck=p)
+    assert "Главное препятствие" in a.answer and "Условия на запрошенную сумму" not in a.answer

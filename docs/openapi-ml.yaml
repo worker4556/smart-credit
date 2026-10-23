@@ -109,6 +109,7 @@ components:
           - WHEN
           - TERM
           - AMOUNT
+          - GOAL
           - OFF_TOPIC
           - NONCREDIT
           - NOT_NEEDED

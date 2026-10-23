@@ -409,7 +409,7 @@ export default function App() {
   }
   if (profile.role === "SPECIALIST") return <ThemeProvider theme={theme}><CssBaseline /><BankPage userName={profile.name} onLogout={logout} /></ThemeProvider>;
   if (profile.role === "ADMIN") return <ThemeProvider theme={theme}><CssBaseline /><AdminPage userName={profile.name} onLogout={logout} /></ThemeProvider>;
-  if (page === "home") return <ThemeProvider theme={theme}><CssBaseline /><LandingPage userName={profile.name} onStart={() => openApplication(0)} onProfile={openProfile} onLogout={logout} onHome={openHome} /></ThemeProvider>;
+  if (page === "home") return <ThemeProvider theme={theme}><CssBaseline /><LandingPage userName={profile.name} application={data} onStart={() => openApplication(0)} onProfile={openProfile} onLogout={logout} onHome={openHome} /></ThemeProvider>;
   if (page === "profile") return <ThemeProvider theme={theme}><CssBaseline /><ProfilePage profile={profile} onBack={backFromProfile} /></ThemeProvider>;
   if (page === "help") return <ThemeProvider theme={theme}><CssBaseline />
     <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHome={openHome} openHelp={openHelp} openApplication={openApplication} onLogout={logout} />

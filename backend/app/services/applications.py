@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -16,8 +16,10 @@ from app.schemas.applications import (
     ApplicationData,
     ApplicationResponse,
     InfoRequest,
+    PrecheckResponse,
     Weather,
 )
+from app.services.credit import precheck_from_ml
 
 STATUS_TEXT = {
     "DRAFT": "Черновик создан",
@@ -424,6 +426,7 @@ def response_for(
         )
 
     return ApplicationResponse(
+        precheck=_stored_precheck(application),
         application_id=str(application.id),
         number=application.number,
         status=application.status,
@@ -449,6 +452,28 @@ def response_for(
         assistant_available=True,
         activity=activity or [],
     )
+
+
+def _stored_precheck(application: Application) -> PrecheckResponse | None:
+    """Предоценка, которую клиент уже получил на шаге «Предложение»; только для черновика."""
+    stored = application.precheck or {}
+    payload = stored.get("ml")
+    if application.status != "DRAFT" or not isinstance(payload, dict):
+        return None
+    data = application.data or {}
+    try:
+        return precheck_from_ml(
+            payload,
+            text=str(stored.get("text") or ""),
+            valid_until=date.fromisoformat(str(stored["valid_until"])),
+            request={
+                "product": (payload.get("cost") or {}).get("product") or "WORKING_CAPITAL",
+                "amount": data.get("amount") or payload.get("requested_amount"),
+                "term_months": data.get("term"),
+            },
+        )
+    except (KeyError, TypeError, ValueError):
+        return None
 
 
 def response(session: Session, application: Application) -> ApplicationResponse:

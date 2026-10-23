@@ -52,6 +52,7 @@ AssistantTopic = Literal[
     "WHEN",
     "TERM",
     "AMOUNT",
+    "GOAL",
     "OFF_TOPIC",
     "NONCREDIT",
     "NOT_NEEDED",
@@ -200,6 +201,8 @@ class ApplicationResponse(CamelModel):
     info_request: InfoRequest | None = None
     route_available: bool = False
     assistant_available: bool = False
+    # Сохранённая предоценка черновика: по ней главная показывает «текущую высоту» и варианты без пересчёта
+    precheck: PrecheckResponse | None = None
     activity: list[ActivityEvent] = Field(default_factory=list)
 
 
