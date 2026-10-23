@@ -1,0 +1,57 @@
+# Проверки на каждый пуш и pull request: тесты ML и backend, сборка и линт фронтенда.
+# Версии зависимостей — из lock-файлов (uv.lock, package-lock.json): сборка воспроизводима.
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: ${{ matrix.service }} — pytest
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [ml, backend]
+    defaults:
+      run:
+        working-directory: ${{ matrix.service }}
+    env:
+      OLLAMA_URL: ""          # тесты не зависят от LLM: тексты по шаблонам
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: uv
+        run: pip install uv==0.11.14
+      - name: Зависимости из uv.lock
+        run: uv sync --frozen
+      - name: Тесты
+        run: uv run pytest -q
+
+  frontend:
+    name: frontend — линт и сборка
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Зависимости из package-lock.json
+        run: npm ci
+      - name: Линт и тесты
+        run: npm run lint --if-present && npm test --if-present
+      - name: Проверка типов и сборка
+        run: npm run build
