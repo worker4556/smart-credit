@@ -25,8 +25,8 @@ GOAL_BY_PURPOSE = {
     "CASH_GAP": CASH_GAP_GOAL,
     "CONTRACT": "Закупить товар или материалы",
     "EQUIPMENT": "Купить оборудование или технику",
-    "EXPANSION": "Закрыть текущие расходы",
-    "OTHER": "Закрыть текущие расходы",
+    "EXPANSION": "Открыть точку или расширить бизнес",
+    "OTHER": "Другое",
 }
 
 MISSING_FIELD = {

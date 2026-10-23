@@ -56,7 +56,7 @@ export const api = {
   me: () => request<UserProfile>("/me"),
   company: (inn: string) => request<Company>(`/companies/${encodeURIComponent(inn)}`),
   quote: (goal: string, amount: number, term: number) => request<Quote>("/quote", { method: "POST", body: JSON.stringify({ goal, amount, term }) }),
-  intent: (text: string) => request<IntentResponse>("/intent", { method: "POST", body: JSON.stringify({ text }) }),
+  intent: (text: string, useLlm = true) => request<IntentResponse>("/intent", { method: "POST", body: JSON.stringify({ text, useLlm }) }),
   assistant: (id: string, question: string, useLlm: boolean) => request<AssistantAnswer>(`/applications/${encodeURIComponent(id)}/assistant`, { method: "POST", body: JSON.stringify({ question, useLlm }) }),
   applications: () => request<ApplicationResponse[]>("/applications"),
   createApplication: (data: ApplicationData) => request<ApplicationResponse>("/applications", { method: "POST", body: JSON.stringify(data) }),

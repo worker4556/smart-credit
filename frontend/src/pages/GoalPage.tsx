@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Box, Button, Card, CardContent, Chip, CircularProgress, Divider, Slider, TextField, Typography } from "@mui/material";
 import AccountBalanceWallet from "@mui/icons-material/AccountBalanceWallet";
 import CheckCircle from "@mui/icons-material/CheckCircle";
@@ -7,6 +7,7 @@ import ReceiptLong from "@mui/icons-material/ReceiptLong";
 import Storefront from "@mui/icons-material/Storefront";
 import Build from "@mui/icons-material/Build";
 import Bolt from "@mui/icons-material/Bolt";
+import AddBusiness from "@mui/icons-material/AddBusiness";
 import { SelectCard, StepTitle } from "../components/ApplicationShell";
 import { api, type IntentResponse } from "../api";
 import { goals } from "../data/application";
@@ -22,28 +23,63 @@ export default function GoalPage({ data, update, next }: GoalPageProps) {
   const [description, setDescription] = useState(data.intentText ?? "");
   const [intent, setIntent] = useState<IntentResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [refining, setRefining] = useState(false);
+  const resultRef = useRef<HTMLDivElement>(null);
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  const runId = useRef(0);
 
+  // Подставляет распознанные поля в форму и возвращает, какими они стали
+  const apply = (result: IntentResponse) => {
+    const current = dataRef.current;
+    const goal = result.goal && goals.some(([label]) => label === result.goal) ? result.goal : null;
+    const next = { goal: goal ?? current.goal, amount: result.amount ?? current.amount, term: current.term };
+    if (goal) update("goal", goal);
+    if (next.goal.includes("кассов")) next.term = 12;
+    else if (result.term != null) next.term = result.term;
+    if (result.amount != null) update("amount", result.amount);
+    if (next.term !== current.term) update("term", next.term);
+    return next;
+  };
+
+  // Сначала мгновенный ответ по правилам, затем уточнение языковой моделью в фоне:
+  // клиент не ждёт модель, а уточнение применяется, только если он ещё не менял поля сам.
   const analyze = async () => {
     const text = description.trim();
     if (!text || loading) return;
+    const id = ++runId.current;
     setLoading(true);
     setIntent(null);
+    let applied: ReturnType<typeof apply>;
     try {
-      const result = await api.intent(text);
-      setIntent(result);
-      const goal = result.goal && goals.some(([label]) => label === result.goal) ? result.goal : null;
-      if (goal) {
-        update("goal", goal);
-        if (goal.includes("кассов")) update("term", 12);
-      }
-      if (result.amount != null) update("amount", result.amount);
-      if (result.term != null && !goal?.includes("кассов")) update("term", result.term);
+      const quick = await api.intent(text, false);
+      if (id !== runId.current) return;
+      setIntent(quick);
+      applied = apply(quick);
     } catch {
-      // If intent parsing is unavailable, keep the editable form usable.
+      return; // разбор недоступен — форма справа остаётся рабочей
     } finally {
-      setLoading(false);
+      if (id === runId.current) setLoading(false);
+    }
+    setRefining(true);
+    try {
+      const smart = await api.intent(text, true);
+      const current = dataRef.current;
+      const untouched = current.goal === applied.goal && current.amount === applied.amount && current.term === applied.term;
+      if (id === runId.current && smart.source === "LLM" && untouched) {
+        setIntent(smart);
+        apply(smart);
+      }
+    } catch {
+      // уточнение не обязательно — ответ по правилам уже показан
+    } finally {
+      if (id === runId.current) setRefining(false);
     }
   };
+
+  useEffect(() => {
+    if (intent) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [intent]);
 
   const isOverdraft = data.goal.includes("кассов");
   const missing = intent?.missing ?? [];
@@ -54,6 +90,7 @@ export default function GoalPage({ data, update, next }: GoalPageProps) {
     if (icon === "help") return <HelpOutline />;
     if (icon === "bolt") return <Bolt />;
     if (icon === "tool") return <Build />;
+    if (icon === "expand") return <AddBusiness />;
     return <AccountBalanceWallet />;
   };
 
@@ -72,10 +109,7 @@ export default function GoalPage({ data, update, next }: GoalPageProps) {
         <Button className="intent-submit" variant="contained" disabled={!description.trim() || loading} onClick={analyze}>
           {loading ? <><CircularProgress size={17} color="inherit" />&nbsp; Разбираем задачу…</> : "Разобрать"}
         </Button>
-        <Typography className="intent-note">Решение принимает банк по своим правилам. Помощник только помогает заполнить заявку.</Typography>
-        <Typography className="intent-examples-label">Фразы для примера</Typography>
-        <Box className="intent-examples">{examples.map((example) => <Chip key={example} label={example} onClick={() => { setDescription(example); update("intentText", example); }} />)}</Box>
-        {intent && <Card className="intent-result">
+        {intent && <Card className="intent-result" ref={resultRef}>
           <CardContent>
             <Typography fontWeight={800}>Проверьте, правильно ли мы поняли</Typography>
             <Box className="intent-result-fields">
@@ -84,8 +118,12 @@ export default function GoalPage({ data, update, next }: GoalPageProps) {
               <span>{intent.term != null ? <CheckCircle /> : <HelpOutline />} Срок: {intent.term != null ? `${intent.term} мес.` : "не указан"}</span>
             </Box>
             {intent.productReason && <Typography className="intent-reason">{intent.productReason}</Typography>}
+            {refining && <Typography className="intent-refining"><CircularProgress size={12} />&nbsp; Помощник уточняет — поля можно править уже сейчас</Typography>}
           </CardContent>
         </Card>}
+        <Typography className="intent-note">Решение принимает банк по своим правилам. Помощник только помогает заполнить заявку.</Typography>
+        <Typography className="intent-examples-label">Фразы для примера</Typography>
+        <Box className="intent-examples">{examples.map((example) => <Chip key={example} label={example} onClick={() => { setDescription(example); update("intentText", example); }} />)}</Box>
       </Box>
 
       <Box className="goal-form-panel">

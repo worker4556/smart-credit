@@ -53,7 +53,7 @@ def parse_intent(
     try:
         payload = ml.intent(
             body.text,
-            use_llm=True,
+            use_llm=body.use_llm,
             request_id=request_id(request),
         )
     except ml.MLError as exc:

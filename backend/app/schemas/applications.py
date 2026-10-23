@@ -94,6 +94,8 @@ class ApplicationData(CamelModel):
 
 class IntentRequest(CamelModel):
     text: str = Field(min_length=1, max_length=500)
+    # Сначала фронт просит быстрый ответ по правилам, затем — уточнение LLM в фоне
+    use_llm: bool = True
 
 
 class IntentResponse(CamelModel):

@@ -2477,3 +2477,4 @@ body {
   .landing-pin-start { left: 8%; top: 76%; }
   .landing-pin-summit { left: 62%; top: 30%; }
 }
+.intent-refining { display: flex; align-items: center; margin-top: 8px !important; color: #6b7982; font-size: 12px !important; }
