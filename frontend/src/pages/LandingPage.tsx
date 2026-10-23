@@ -167,10 +167,62 @@ function MountainRoute({ metrics }: { metrics: Metrics }) {
   </svg>;
 }
 
+// ---------- Кредит, который клиенту дали: коротко, под горой, без больших графиков ----------
+
+const CREDIT_STATUS: Record<string, string> = {
+  APPROVED: "Одобрен — примите условия", COUNTER_OFFER: "Есть предложение банка", OFFER_ACCEPTED: "Условия приняты",
+  SIGNED: "Договор подписан", DISBURSED: "Деньги на счёте",
+};
+
+function useCredit(app?: ApplicationData) {
+  return useMemo(() => {
+    if (!app?.status || !(app.status in CREDIT_STATUS) || !app.decisionAmount) return null;
+    const amount = app.decisionAmount;
+    const fullCost = app.decisionFullCost ?? 0;
+    return {
+      status: CREDIT_STATUS[app.status],
+      issued: app.status === "DISBURSED",
+      amount,
+      requested: app.amount,
+      monthly: app.decisionMonthly ?? 0,
+      rate: app.decisionRate,
+      term: app.decisionTerm ?? app.term,
+      fullCost,
+      principalShare: fullCost > 0 ? Math.round((amount / (amount + fullCost)) * 100) : 100,
+    };
+  }, [app]);
+}
+
+function CreditStrip({ credit, onOpen }: { credit: NonNullable<ReturnType<typeof useCredit>>; onOpen: () => void }) {
+  return <Box className="credit-strip">
+    <Paper className="credit-card">
+      <Typography className="eyebrow">ВАШ КРЕДИТ</Typography>
+      <Typography className="credit-value">{formatMoney(credit.amount)}</Typography>
+      <Chip size="small" label={credit.status} className={credit.issued ? "credit-chip credit-chip-done" : "credit-chip"} />
+      {credit.requested && credit.requested !== credit.amount && <Typography className="credit-note">Вы просили {formatMoney(credit.requested)}</Typography>}
+    </Paper>
+    <Paper className="credit-card">
+      <Typography className="eyebrow">ПЛАТЁЖ В МЕСЯЦ</Typography>
+      <Typography className="credit-value">{formatMoney(credit.monthly)}</Typography>
+      <Typography className="credit-note">{credit.term} мес.{credit.rate ? ` · ${credit.rate}% годовых` : ""} · одинаковый каждый месяц</Typography>
+    </Paper>
+    <Paper className="credit-card">
+      <Typography className="eyebrow">ПОЛНАЯ СТОИМОСТЬ</Typography>
+      <Typography className="credit-value">{formatMoney(credit.fullCost)}</Typography>
+      <Box className="credit-bar" aria-label={`Сумма кредита — ${credit.principalShare}% от всего, что вернёте`}>
+        <span style={{ width: `${credit.principalShare}%` }} />
+      </Box>
+      <Typography className="credit-note">Проценты и комиссия за весь срок сверх суммы кредита</Typography>
+    </Paper>
+    <Button className="credit-open" endIcon={<ArrowForward />} onClick={onOpen}>Подробнее</Button>
+  </Box>;
+}
+
 export default function LandingPage({ userName, application, onStart, onProfile, onLogout, onHome }: LandingPageProps) {
   const [season, setSeason] = useState<Season>(initialSeason);
   const [panel, setPanel] = useState<"metrics" | "conditions" | null>(null);
   const metrics = useMetrics(application);
+  const credit = useCredit(application);
   const close = () => setPanel(null);
 
   return <Box className={`landing-page season-${season}`}>
@@ -207,13 +259,13 @@ export default function LandingPage({ userName, application, onStart, onProfile,
         </Box>
       </Box>
 
-      <Box className="landing-benefits">
+      {credit ? <CreditStrip credit={credit} onOpen={onStart} /> : <Box className="landing-benefits">
         {benefits.map((benefit) => <Paper key={benefit.title} className="landing-benefit">
           <Box className="landing-benefit-icon">{benefit.icon}</Box>
           <Typography fontWeight={800}>{benefit.title}</Typography>
           <Typography color="text.secondary">{benefit.text}</Typography>
         </Paper>)}
-      </Box>
+      </Box>}
     </Box>
 
     <Drawer anchor="right" open={panel === "metrics" && !!metrics} onClose={close} PaperProps={{ className: "landing-drawer" }}>

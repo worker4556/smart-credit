@@ -14,7 +14,7 @@ export interface ApplicationData {
   applicationId?: string; number?: string; status?: string; intentText?: string; goal: string; amount: number; term: number; inn: string; companyOk: boolean; monthlyRevenue: number;
   hasLoans: "Да" | "Нет"; loanPayment: number; hadOverdue2y: boolean; collateral: string; offer: number; docs: Record<string, string>;
   consent1: boolean; consent2: boolean; submitted: boolean; outcome: Outcome; quote?: Quote; precheck?: Precheck; goalOffers?: LoanOffer[]; decision?: Decision;
-  decisionText?: string; decisionAmount?: number; decisionRate?: number; decisionMonthly?: number; reasons?: string[];
+  decisionText?: string; decisionAmount?: number; decisionRate?: number; decisionMonthly?: number; decisionTerm?: number; decisionFullCost?: number; reasons?: string[];
   route?: ApplicationRoute; company?: Company; activity: ActivityEvent[]; infoRequest?: { text: string; dueDate: string } | null;
 }
 export interface LoanOffer { name: string; amount: string | number; detail?: string; why?: string; chance?: string; kind?: string; product?: string; termMonths?: number; rate?: number; monthly?: number; fullCost?: number; }

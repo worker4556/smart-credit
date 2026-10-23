@@ -2483,3 +2483,17 @@ body {
 .trail-label-title { fill: #6b7982; font-size: 20px; font-weight: 700; }
 .trail-label-value { fill: #172633; font-size: 22px; font-weight: 800; }
 @media (prefers-reduced-motion: reduce) { .trail-hiker, .trail-progress { transition: none; } }
+
+/* Кредит под горой: три коротких карточки */
+.credit-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 12px; align-items: stretch; margin-top: 14px; }
+.credit-card { display: grid; gap: 6px; align-content: start; padding: 18px 20px !important; border-radius: 16px !important; }
+.credit-card .eyebrow { margin: 0 !important; color: #7d8790; font-size: 10px !important; letter-spacing: .12em; }
+.credit-value { font-size: 26px !important; font-weight: 800 !important; letter-spacing: -.03em; line-height: 1.15 !important; }
+.credit-note { color: #6b7982; font-size: 12px !important; line-height: 1.45 !important; }
+.credit-chip { justify-self: start; background: #fff1f0 !important; color: #c9231b !important; font-weight: 700 !important; }
+.credit-chip-done { background: #e8f6ee !important; color: #2e7d4f !important; }
+.credit-bar { height: 8px; overflow: hidden; border-radius: 8px; background: #fde3e1; }
+.credit-bar > span { display: block; height: 100%; border-radius: 8px; background: #ef3124; }
+.credit-open { align-self: center; color: #c9231b !important; font-weight: 800 !important; white-space: nowrap; }
+@media (max-width: 900px) { .credit-strip { grid-template-columns: 1fr 1fr; } .credit-open { grid-column: span 2; justify-self: start; } }
+@media (max-width: 600px) { .credit-strip { grid-template-columns: 1fr; } .credit-open { grid-column: auto; } }
