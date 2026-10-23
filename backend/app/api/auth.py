@@ -30,6 +30,8 @@ class CompanyOut(CamelModel):
     region: str | None = None
     registration_year: int | None = None
     average_monthly_turnover: int | None = None
+    # Поступления по счёту за последние 6 месяцев, от старых к новым — для статистики на главной
+    turnover_monthly: list[int] = []
 
 
 class UserOut(CamelModel):
@@ -120,4 +122,5 @@ def _company_out(
             seed_account.registration_year if seed_account else None
         ),
         average_monthly_turnover=average_turnover,
+        turnover_monthly=[int(v) for v in recent_turnover],
     )

@@ -2485,8 +2485,8 @@ body {
 @media (prefers-reduced-motion: reduce) { .trail-hiker, .trail-progress { transition: none; } }
 
 /* Под горой: три карточки как в макете + полоса «Условия пути» */
-.dash { position: relative; z-index: 3; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: -78px 22px 0; }
-.dash-card { display: grid; grid-template-rows: auto auto 1fr; gap: 10px; min-height: 196px; padding: 20px 22px 0 !important; overflow: hidden; border-radius: 20px !important;
+.dash { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 14px 0 0; }
+.dash-card { display: grid; grid-template-rows: auto auto 1fr; gap: 10px; min-height: 196px; padding: 20px 22px 16px !important; overflow: hidden; border-radius: 20px !important;
   background: #ffffffee !important; backdrop-filter: blur(10px); box-shadow: 0 14px 34px #10273614 !important; border: 1px solid #ffffff !important; }
 .dash-title { color: #1d2b36; font-size: 15px !important; font-weight: 700 !important; }
 .dash-figures { display: flex; align-items: flex-start; gap: 18px; }
@@ -2508,7 +2508,7 @@ body {
 .dash-row-icon svg { font-size: 19px; }
 .dash-row b { overflow: hidden; color: #1d2b36; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .dash-row-value { color: #6b7982; font-size: 12px; white-space: nowrap; }
-.conditions-bar { display: flex; align-items: center; gap: 18px; margin: 14px 22px 0; padding: 14px 20px !important; border-radius: 18px !important; box-shadow: 0 8px 24px #10273610 !important; }
+.conditions-bar { display: flex; align-items: center; gap: 18px; margin: 14px 0 0; padding: 14px 20px !important; border-radius: 18px !important; box-shadow: 0 8px 24px #10273610 !important; }
 .conditions-icon { width: 56px; height: 56px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 16px; background: linear-gradient(180deg, #f2f5ff, #e7ecf8); color: #8b97c9; }
 .conditions-icon svg { font-size: 30px; }
 .conditions-copy { display: grid; gap: 3px; flex: 1; min-width: 0; }
@@ -2519,6 +2519,13 @@ body {
 .trail-label-value { fill: #111c24; font-size: 22px; font-weight: 800; }
 @media (max-width: 1000px) { .dash { grid-template-columns: 1fr 1fr; } .dash-list-card { grid-column: span 2; } }
 @media (max-width: 640px) {
-  .dash { grid-template-columns: 1fr; margin: -48px 10px 0; } .dash-list-card { grid-column: auto; }
-  .conditions-bar { flex-wrap: wrap; margin: 12px 10px 0; } .conditions-more { width: 100%; }
+  .dash { grid-template-columns: 1fr; } .dash-list-card { grid-column: auto; }
+  .conditions-bar { flex-wrap: wrap; } .conditions-more { width: 100%; }
 }
+.dash-trend-value.down { color: #b4232a; }
+.bars { align-self: end; width: 100%; height: 92px; overflow: visible; }
+.bars-base { stroke: #e3e7ea; stroke-width: 1; }
+.bars-mark path:first-child { transition: opacity .15s ease; }
+.bars-mark:hover path:first-child { opacity: .8; }
+.bars-value { fill: #1d2b36; font-size: 10px; font-weight: 800; }
+.bars-label { fill: #7d8790; font-size: 9px; }

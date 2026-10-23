@@ -8,7 +8,7 @@ export interface Precheck { amountLow: number; amountHigh: number; chance: strin
 export interface Decision { decisionText?: string; decisionAmount?: number; decisionRate?: number; decisionMonthly?: number; reasons?: string[]; }
 export interface RouteStep { code: string; action: string; term: string; done: boolean; pointsGain?: number; bkiDelayBusinessDays?: number | null; targetTurnover?: number | null; }
 export interface ApplicationRoute { status?: string; holds?: string; basedOn?: string; steps: RouteStep[]; horizonText?: string; message?: string; advice?: string[]; projectedAmount?: number | null; disclaimer?: string; text?: string; }
-export interface Company { inn: string; name: string; legalForm?: string; okved?: string; activity?: string; region?: string; registrationYear?: number; averageMonthlyTurnover?: number; }
+export interface Company { inn: string; name: string; legalForm?: string; okved?: string; activity?: string; region?: string; registrationYear?: number; averageMonthlyTurnover?: number; turnoverMonthly?: number[]; }
 export interface ActivityEvent { at: string; text: string; }
 export interface ApplicationData {
   applicationId?: string; number?: string; status?: string; intentText?: string; goal: string; amount: number; term: number; inn: string; companyOk: boolean; monthlyRevenue: number;

@@ -90,6 +90,7 @@ function useMetrics(app?: ApplicationData) {
       heightRange: !decided && precheck && precheck.amountLow !== precheck.amountHigh ? `${formatMoney(precheck.amountLow)} – ${formatMoney(precheck.amountHigh)}` : null,
       progress: summit > 0 ? Math.min(100, Math.round((height / summit) * 100)) : 0,
       turnover: app.company?.averageMonthlyTurnover,
+      turnoverSeries: app.company?.turnoverMonthly ?? [],
       goal: app.goal,
       variants: routeVariants(app.route?.steps ?? []),
       steps: app.route?.steps ?? [],
@@ -201,31 +202,36 @@ function useCredit(app?: ApplicationData) {
   }, [app]);
 }
 
-// Мини-график-горка: точки по X 0..240, по Y 0..80 (меньше — выше)
-const RIDGE_NOW = [[0, 72], [28, 60], [52, 66], [84, 48], [110, 56], [140, 36], [168, 44], [204, 20], [240, 58]];
-const RIDGE_GOAL = [[0, 76], [30, 70], [56, 72], [88, 58], [116, 62], [150, 40], [178, 46], [214, 10], [240, 40]];
+// Столбчатая мини-диаграмма: одна серия, без легенды; подпись значения — только у выделенного столбца,
+// остальные значения — во всплывающей подсказке. Скруглённый верх, плоское основание, зазор 2px между столбцами.
+interface Bar { label: string; value: number; color: string; flag?: boolean; tip: string; }
 
-function ridgeY(points: number[][], x: number) {
-  for (let i = 1; i < points.length; i++) {
-    const [x0, y0] = points[i - 1], [x1, y1] = points[i];
-    if (x <= x1) return y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
-  }
-  return points[points.length - 1][1];
-}
-
-function Ridge({ points, color, dotAt, flag }: { points: number[][]; color: string; dotAt?: number; flag?: boolean }) {
-  const id = `ridge-${color.slice(1)}`;
-  const line = points.map(([x, y]) => `${x},${y}`).join(" ");
-  const peak = points.reduce((a, b) => (b[1] < a[1] ? b : a));
-  const dx = dotAt != null ? 8 + clamp(dotAt) * 224 : 0;
-  return <svg className="ridge" viewBox="0 0 240 80" preserveAspectRatio="none" aria-hidden="true">
-    <defs><linearGradient id={id} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={color} stopOpacity=".42" /><stop offset="1" stopColor={color} stopOpacity=".04" /></linearGradient></defs>
-    <polygon points={`0,80 ${line} 240,80`} fill={`url(#${id})`} />
-    <polyline points={line} fill="none" stroke={color} strokeOpacity=".55" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
-    {dotAt != null && <circle cx={dx} cy={ridgeY(points, dx)} r="4.5" fill={color} stroke="#fff" strokeWidth="2" />}
-    {flag && <g transform={`translate(${peak[0]} ${peak[1]})`}><path d="M0 0 V-14" stroke={color} strokeWidth="1.6" /><path d="M0 -14 H9 L6.5 -11 L9 -8 H0 Z" fill={color} /></g>}
+function Bars({ bars, emphasize, ariaLabel }: { bars: Bar[]; emphasize?: number; ariaLabel: string }) {
+  const W = 240, H = 92, top = 18, base = H - 16, gap = 6;
+  const max = Math.max(1, ...bars.map((b) => b.value));
+  const bw = (W - gap * (bars.length - 1)) / bars.length;
+  return <svg className="bars" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={ariaLabel}>
+    <line x1="0" y1={base + 0.5} x2={W} y2={base + 0.5} className="bars-base" />
+    {bars.map((b, i) => {
+      const h = Math.max(2, ((base - top) * b.value) / max);
+      const x = i * (bw + gap), y = base - h, r = Math.min(4, bw / 2, h);
+      const d = `M${x} ${base} V${y + r} Q${x} ${y} ${x + r} ${y} H${x + bw - r} Q${x + bw} ${y} ${x + bw} ${y + r} V${base} Z`;
+      return <g key={i} className="bars-mark">
+        <path d={d} fill={b.color} />
+        {b.flag && <g transform={`translate(${x + bw / 2} ${y})`}><path d="M0 0 V-13" stroke={b.color} strokeWidth="1.6" /><path d="M0 -13 H9 L6.5 -10 L9 -7 H0 Z" fill={b.color} /></g>}
+        {i === emphasize && !b.flag && <text x={x + bw / 2} y={y - 5} textAnchor="middle" className="bars-value">{b.tip}</text>}
+        <text x={x + bw / 2} y={H - 3} textAnchor="middle" className="bars-label">{b.label}</text>
+        <rect x={x} y={0} width={bw} height={H} fill="transparent"><title>{`${b.label}: ${b.tip}`}</title></rect>
+      </g>;
+    })}
   </svg>;
 }
+
+const MONTHS = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+function lastMonths(n: number, now = new Date()) {
+  return Array.from({ length: n }, (_, i) => MONTHS[(now.getMonth() - (n - 1 - i) + 12 * 2) % 12]);
+}
+const short = (v: number) => v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1).replace(".0", "").replace(".", ",")} млн` : `${Math.round(v / 1000)} тыс.`;
 
 interface DashRow { icon: ReactNode; title: string; value: string; }
 
@@ -250,19 +256,35 @@ function RouteDashboard({ metrics, credit, onOpenRoute }: {
     rows = metrics.offers.slice(0, 3).map((o, i) => ({ icon: i === 0 ? <BoltOutlined /> : <LandscapeOutlined />, title: o.name, value: typeof o.amount === "number" ? formatMoney(o.amount) : String(o.amount) }));
   }
   const reached = metrics.progress >= 100;
+  const series = metrics.turnoverSeries;
+  const months = lastMonths(series.length);
+  const half = Math.floor(series.length / 2);
+  const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(xs.length, 1);
+  const trend = series.length >= 4 && avg(series.slice(0, half)) > 0
+    ? Math.round(((avg(series.slice(half)) - avg(series.slice(0, half))) / avg(series.slice(0, half))) * 100) : null;
   return <Box className="dash">
     <Paper className="dash-card">
       <Typography className="dash-title">Ваша текущая высота</Typography>
       <Box className="dash-figures">
         <Box><Typography className="dash-value">{formatMoney(credit?.amount ?? metrics.height)}</Typography><Typography className="dash-sub">{credit ? credit.status : "Доступно сейчас"}</Typography></Box>
-        <Box className="dash-trend"><Typography className={reached ? "dash-trend-value up" : "dash-trend-value"}>{reached ? "↑ " : ""}{metrics.progress}%</Typography><Typography className="dash-sub">пути до вершины</Typography></Box>
+        {trend != null
+          ? <Box className="dash-trend"><Typography className={trend >= 0 ? "dash-trend-value up" : "dash-trend-value down"}>{trend >= 0 ? "↑ +" : "↓ "}{trend}%</Typography><Typography className="dash-sub">оборот за 6 мес.</Typography></Box>
+          : <Box className="dash-trend"><Typography className={reached ? "dash-trend-value up" : "dash-trend-value"}>{metrics.progress}%</Typography><Typography className="dash-sub">пути до вершины</Typography></Box>}
       </Box>
-      <Ridge points={RIDGE_NOW} color="#6f7bdc" dotAt={metrics.progress / 100} />
+      {series.length > 0
+        ? <Bars ariaLabel="Оборот по счёту за последние 6 месяцев" emphasize={series.length - 1}
+            bars={series.map((v, i) => ({ label: months[i], value: v, color: i === series.length - 1 ? "#5a64c8" : "#b9bff0", tip: short(v) }))} />
+        : <Typography className="dash-sub">Оборот по счёту появится, когда банк получит данные компании.</Typography>}
     </Paper>
     <Paper className="dash-card">
       <Typography className="dash-title">Желаемая вершина</Typography>
       <Box className="dash-figures"><Box><Typography className="dash-value">{formatMoney(metrics.summit)}</Typography><Typography className="dash-sub">{metrics.goal}</Typography></Box></Box>
-      <Ridge points={RIDGE_GOAL} color="#ef3124" flag />
+      <Bars ariaLabel="Доступно сейчас, прогноз маршрута и цель"
+        bars={[
+          { label: "сейчас", value: credit?.amount ?? metrics.height, color: "#b9bff0", tip: formatMoney(credit?.amount ?? metrics.height) },
+          ...(metrics.projected != null && !credit ? [{ label: "прогноз", value: metrics.projected, color: "#7c86e0", tip: formatMoney(metrics.projected) }] : []),
+          { label: "цель", value: metrics.summit, color: "#ef3124", flag: true, tip: formatMoney(metrics.summit) },
+        ]} />
     </Paper>
     <Paper className="dash-card dash-list-card">
       <Box className="dash-list-head"><Typography className="dash-title">{title}</Typography>
