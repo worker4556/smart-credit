@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -22,6 +23,7 @@
     "@vitejs/plugin-react": "^5.0.2",
     "prettier": "^3.9.10",
     "typescript": "^7.0.2",
-    "vite": "^7.1.5"
+    "vite": "^7.1.5",
+    "vitest": "3.2.4"
   }
 }

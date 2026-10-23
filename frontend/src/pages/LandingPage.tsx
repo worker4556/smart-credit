@@ -114,7 +114,7 @@ export type Metrics = ReturnType<typeof useMetrics>;
 
 /** Положение на тропе (0 — подножие, 1 — вершина): старт — сумма, доступная сейчас, финиш — прогноз маршрута.
  *  Шаги маршрута стоят привалами между ними; каждый выполненный шаг поднимает альпиниста к следующему привалу. */
-function trailPlan(m: NonNullable<Metrics>) {
+export function trailPlan(m: NonNullable<Metrics>) {
   const start = m.summit > 0 ? clamp(m.height / m.summit, 0, 1) : 0;
   const steps = m.steps;
   const finish = steps.length ? clamp(Math.max((m.projected ?? m.summit) / m.summit, start + 0.25), 0, 1) : start;
