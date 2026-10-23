@@ -1,6 +1,6 @@
 from collections.abc import Generator
 
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, create_engine
 
 from app.config import settings
 
@@ -12,9 +12,11 @@ engine = create_engine(
 
 
 def init_db() -> None:
+    """Схема — миграциями Alembic (app/migrations), а не create_all: изменения версионируются и воспроизводимы."""
     from app.db import models  # noqa: F401
+    from app.db.migrate import upgrade_db
 
-    SQLModel.metadata.create_all(engine)
+    upgrade_db(engine)
 
 
 def get_session() -> Generator[Session, None, None]:

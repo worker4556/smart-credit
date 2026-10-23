@@ -46,3 +46,13 @@ Authorization: Bearer <token>
 
 Как соединить фронт и ML — [docs/team/backend-instructions.md](../docs/team/backend-instructions.md).
 Контракт ML — [docs/api-contract.md, раздел C](../docs/api-contract.md) и [docs/openapi-ml.yaml](../docs/openapi-ml.yaml).
+
+## Миграции базы
+
+Схема БД — миграциями Alembic (`app/migrations/`), они применяются сами при старте backend.
+Базы, созданные до появления миграций, помечаются текущей ревизией без пересоздания таблиц.
+
+```bash
+uv run alembic revision --autogenerate -m "что изменилось"   # новая миграция после правки app/db/models.py
+uv run alembic upgrade head                                  # применить вручную
+```
