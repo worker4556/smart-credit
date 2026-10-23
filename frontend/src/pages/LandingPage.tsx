@@ -12,6 +12,9 @@ import LandscapeOutlined from "@mui/icons-material/LandscapeOutlined";
 import RouteOutlined from "@mui/icons-material/RouteOutlined";
 import ShieldOutlined from "@mui/icons-material/ShieldOutlined";
 import TrendingUpOutlined from "@mui/icons-material/TrendingUpOutlined";
+import StarRounded from "@mui/icons-material/StarRounded";
+import ChevronRight from "@mui/icons-material/ChevronRight";
+import ExpandMore from "@mui/icons-material/ExpandMore";
 import type { ApplicationData, RouteStep } from "../types";
 import { formatMoney } from "../utils/format";
 
@@ -36,11 +39,11 @@ const benefits = [
 export type Season = "winter" | "spring" | "summer" | "autumn";
 const SEASONS: Season[] = ["winter", "spring", "summer", "autumn"];
 
-const SEASON_INFO: Record<Season, { name: string; tip: string }> = {
-  winter: { name: "Зима", tip: "После новогоднего пика у многих бизнесов спокойные месяцы. Выбирайте платёж, который комфортен и в слабый месяц." },
-  spring: { name: "Весна", tip: "Время закупок к сезону. Если деньги нужны на товар, оборотный кредит удобнее подать заранее, до пика спроса." },
-  summer: { name: "Лето", tip: "Для сезонного бизнеса — самые сильные месяцы. Хороший момент подтвердить обороты: банк видит их по счёту." },
-  autumn: { name: "Осень", tip: "После летнего сезона выручка у многих снижается. Планируйте платёж с запасом и не подавайте заявки в несколько банков сразу." },
+const SEASON_INFO: Record<Season, { name: string; short: string; tip: string }> = {
+  winter: { name: "Зима", short: "Зимой у многих бизнесов спокойные месяцы — платёж подбираем с запасом.", tip: "После новогоднего пика у многих бизнесов спокойные месяцы. Выбирайте платёж, который комфортен и в слабый месяц." },
+  spring: { name: "Весна", short: "Весной закупки к сезону — оборотный кредит удобнее подать заранее.", tip: "Время закупок к сезону. Если деньги нужны на товар, оборотный кредит удобнее подать заранее, до пика спроса." },
+  summer: { name: "Лето", short: "Летом у сезонного бизнеса пик — хороший момент подтвердить обороты.", tip: "Для сезонного бизнеса — самые сильные месяцы. Хороший момент подтвердить обороты: банк видит их по счёту." },
+  autumn: { name: "Осень", short: "На маршруте возможны изменения: например, сезонный спад спроса после лета.", tip: "После летнего сезона выручка у многих снижается. Планируйте платёж с запасом и не подавайте заявки в несколько банков сразу." },
 };
 
 export function seasonForDate(date = new Date()): Season {
@@ -102,7 +105,6 @@ function useMetrics(app?: ApplicationData) {
 // ---------- Альпинист на горе: идёт по тропе по мере выполнения шагов маршрута ----------
 
 const TRAIL = "M390 588 C540 620 660 624 800 590 S1020 505 1165 480 S1280 385 1388 188";
-const HIKER = "M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2m4 5.28c-1.23-.37-2.22-1.17-2.8-2.18l-1-1.6c-.41-.65-1.11-1-1.84-1-.78 0-1.59.5-1.78 1.44S7 23 7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3c1 1.15 2.41 2.01 4 2.34V23H19V9h-1.5zM7.43 13.13l-2.12-.41c-.54-.11-.9-.63-.79-1.17l.76-3.93c.21-1.08 1.26-1.79 2.34-1.58l1.16.23z";
 const clamp = (x: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x));
 
 type Metrics = ReturnType<typeof useMetrics>;
@@ -142,27 +144,33 @@ function MountainRoute({ metrics }: { metrics: Metrics }) {
     : "Вы здесь";
 
   return <svg className="landing-route-overlay" viewBox="0 0 1774 887" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-    <path ref={pathRef} d={TRAIL} fill="none" stroke="#fff" strokeWidth="5" strokeDasharray="12 13" strokeLinecap="round" opacity=".95" />
-    {plan && len > 0 && <path d={TRAIL} fill="none" stroke="#ef3124" strokeWidth="6" strokeLinecap="round"
+    <defs>
+      <filter id="trail-shadow" x="-50%" y="-50%" width="200%" height="200%">
+        <feDropShadow dx="0" dy="6" stdDeviation="8" floodColor="#0b1f2c" floodOpacity=".28" />
+      </filter>
+    </defs>
+    <path ref={pathRef} d={TRAIL} fill="none" stroke="#fff" strokeWidth="4" strokeDasharray="10 12" strokeLinecap="round" opacity=".9" />
+    {plan && len > 0 && <path d={TRAIL} fill="none" stroke="#ef3124" strokeWidth="5" strokeLinecap="round"
       strokeDasharray={`${clamp(plan.climber) * len} ${len}`} className="trail-progress" />}
-    {plan?.stops.map((s, i) => { const p = point(s.t); return <g key={i} transform={`translate(${p.x} ${p.y})`}>
-      <circle r="14" fill={s.done ? "#2e9e57" : "#fff"} stroke={s.done ? "#fff" : "#ef3124"} strokeWidth="6" />
-      {s.done && <path d="M-6 0 l4 4 l8 -9" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" />}
+    {plan?.stops.map((s, i) => { const p = point(s.t); return <g key={i} transform={`translate(${p.x} ${p.y})`} filter="url(#trail-shadow)">
+      <circle r="11" fill={s.done ? "#1f6f43" : "#fff"} stroke={s.done ? "#fff" : "#233746"} strokeWidth="4" />
+      {s.done && <path d="M-4.5 0 l3 3 l6 -6.5" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
       <title>{s.text}</title>
     </g>; })}
-    <g transform={`translate(${summit.x} ${summit.y})`}>
-      <circle r="18" fill="#ef3124" stroke="#fff" strokeWidth="8" />
-      <path d="M0 -18 V-70 M0 -70 L34 -58 L0 -46" fill="#ef3124" stroke="#fff" strokeWidth="5" strokeLinejoin="round" />
-      <g transform="translate(-118 -150)"><rect width="236" height="62" rx="14" fill="#fff" opacity=".96" />
-        <text x="118" y="26" textAnchor="middle" className="trail-label-title">Ваша цель</text>
-        {metrics && <text x="118" y="50" textAnchor="middle" className="trail-label-value">{formatMoney(metrics.summit)}</text>}</g>
+    <g transform={`translate(${summit.x} ${summit.y})`} filter="url(#trail-shadow)">
+      <circle r="7" fill="#233746" />
+      <path d="M0 -4 V-62" stroke="#233746" strokeWidth="4" strokeLinecap="round" />
+      <path d="M2 -62 H40 L30 -51 L40 -40 H2 Z" fill="#ef3124" />
+      <g transform="translate(-238 -150)"><rect width="220" height="68" rx="12" fill="#fff" />
+        <text x="18" y="28" className="trail-label-title">Ваша цель</text>
+        {metrics && <text x="18" y="54" className="trail-label-value">{formatMoney(metrics.summit)}</text>}</g>
     </g>
-    <g className="trail-hiker" style={{ transform: `translate(${hiker.x}px, ${hiker.y}px)` }}>
-      <circle r="30" fill="#ef3124" stroke="#fff" strokeWidth="6" />
-      <path d={HIKER} transform="translate(-21 -21) scale(1.75)" fill="#fff" />
-      <g transform="translate(-130 44)"><rect width="260" height="62" rx="14" fill="#fff" opacity=".96" />
-        <text x="130" y="26" textAnchor="middle" className="trail-label-title">Вы здесь</text>
-        <text x="130" y="50" textAnchor="middle" className="trail-label-value">{label}</text></g>
+    <g className="trail-hiker" style={{ transform: `translate(${hiker.x}px, ${hiker.y}px)` }} filter="url(#trail-shadow)">
+      <path d="M0 0 C-6 -14 -24 -26 -24 -44 A24 24 0 1 1 24 -44 C24 -26 6 -14 0 0 Z" fill="#ef3124" stroke="#fff" strokeWidth="4" />
+      <circle cy="-44" r="9" fill="#fff" />
+      <g transform={(plan?.climber ?? 0) > 0.78 ? "translate(-302 -40)" : "translate(32 -98)"}><rect width="270" height="68" rx="12" fill="#fff" />
+        <text x="18" y="28" className="trail-label-title">Вы здесь</text>
+        <text x="18" y="54" className="trail-label-value">{label}</text></g>
     </g>
   </svg>;
 }
@@ -193,29 +201,87 @@ function useCredit(app?: ApplicationData) {
   }, [app]);
 }
 
-function CreditStrip({ credit, onOpen }: { credit: NonNullable<ReturnType<typeof useCredit>>; onOpen: () => void }) {
-  return <Box className="credit-strip">
-    <Paper className="credit-card">
-      <Typography className="eyebrow">ВАШ КРЕДИТ</Typography>
-      <Typography className="credit-value">{formatMoney(credit.amount)}</Typography>
-      <Chip size="small" label={credit.status} className={credit.issued ? "credit-chip credit-chip-done" : "credit-chip"} />
-      {credit.requested && credit.requested !== credit.amount && <Typography className="credit-note">Вы просили {formatMoney(credit.requested)}</Typography>}
-    </Paper>
-    <Paper className="credit-card">
-      <Typography className="eyebrow">ПЛАТЁЖ В МЕСЯЦ</Typography>
-      <Typography className="credit-value">{formatMoney(credit.monthly)}</Typography>
-      <Typography className="credit-note">{credit.term} мес.{credit.rate ? ` · ${credit.rate}% годовых` : ""} · одинаковый каждый месяц</Typography>
-    </Paper>
-    <Paper className="credit-card">
-      <Typography className="eyebrow">ПОЛНАЯ СТОИМОСТЬ</Typography>
-      <Typography className="credit-value">{formatMoney(credit.fullCost)}</Typography>
-      <Box className="credit-bar" aria-label={`Сумма кредита — ${credit.principalShare}% от всего, что вернёте`}>
-        <span style={{ width: `${credit.principalShare}%` }} />
+// Мини-график-горка: точки по X 0..240, по Y 0..80 (меньше — выше)
+const RIDGE_NOW = [[0, 72], [28, 60], [52, 66], [84, 48], [110, 56], [140, 36], [168, 44], [204, 20], [240, 58]];
+const RIDGE_GOAL = [[0, 76], [30, 70], [56, 72], [88, 58], [116, 62], [150, 40], [178, 46], [214, 10], [240, 40]];
+
+function ridgeY(points: number[][], x: number) {
+  for (let i = 1; i < points.length; i++) {
+    const [x0, y0] = points[i - 1], [x1, y1] = points[i];
+    if (x <= x1) return y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
+  }
+  return points[points.length - 1][1];
+}
+
+function Ridge({ points, color, dotAt, flag }: { points: number[][]; color: string; dotAt?: number; flag?: boolean }) {
+  const id = `ridge-${color.slice(1)}`;
+  const line = points.map(([x, y]) => `${x},${y}`).join(" ");
+  const peak = points.reduce((a, b) => (b[1] < a[1] ? b : a));
+  const dx = dotAt != null ? 8 + clamp(dotAt) * 224 : 0;
+  return <svg className="ridge" viewBox="0 0 240 80" preserveAspectRatio="none" aria-hidden="true">
+    <defs><linearGradient id={id} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={color} stopOpacity=".42" /><stop offset="1" stopColor={color} stopOpacity=".04" /></linearGradient></defs>
+    <polygon points={`0,80 ${line} 240,80`} fill={`url(#${id})`} />
+    <polyline points={line} fill="none" stroke={color} strokeOpacity=".55" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+    {dotAt != null && <circle cx={dx} cy={ridgeY(points, dx)} r="4.5" fill={color} stroke="#fff" strokeWidth="2" />}
+    {flag && <g transform={`translate(${peak[0]} ${peak[1]})`}><path d="M0 0 V-14" stroke={color} strokeWidth="1.6" /><path d="M0 -14 H9 L6.5 -11 L9 -8 H0 Z" fill={color} /></g>}
+  </svg>;
+}
+
+interface DashRow { icon: ReactNode; title: string; value: string; }
+
+function RouteDashboard({ metrics, credit, onOpenRoute }: {
+  metrics: NonNullable<Metrics>; credit: ReturnType<typeof useCredit>; onOpenRoute: () => void;
+}) {
+  let title = "Варианты маршрута";
+  let rows: DashRow[];
+  if (credit) {
+    title = "Ваш кредит";
+    rows = [
+      { icon: <BoltOutlined />, title: "Платёж в месяц", value: formatMoney(credit.monthly) },
+      { icon: <LandscapeOutlined />, title: "Ставка и срок", value: `${credit.rate ?? "—"}% · ${credit.term} мес.` },
+      { icon: <StarRounded />, title: "Полная стоимость", value: formatMoney(credit.fullCost) },
+    ];
+  } else if (metrics.variants.length) {
+    rows = metrics.variants.map((v) => ({ icon: v.key === "quick" ? <BoltOutlined /> : v.key === "gradual" ? <LandscapeOutlined /> : <StarRounded />, title: v.title, value: v.term }));
+  } else if (metrics.blockers.length) {
+    title = "Что мешает дойти до вершины";
+    rows = metrics.blockers.map((text) => ({ icon: <LandscapeOutlined />, title: text, value: "" }));
+  } else {
+    rows = metrics.offers.slice(0, 3).map((o, i) => ({ icon: i === 0 ? <BoltOutlined /> : <LandscapeOutlined />, title: o.name, value: typeof o.amount === "number" ? formatMoney(o.amount) : String(o.amount) }));
+  }
+  const reached = metrics.progress >= 100;
+  return <Box className="dash">
+    <Paper className="dash-card">
+      <Typography className="dash-title">Ваша текущая высота</Typography>
+      <Box className="dash-figures">
+        <Box><Typography className="dash-value">{formatMoney(credit?.amount ?? metrics.height)}</Typography><Typography className="dash-sub">{credit ? credit.status : "Доступно сейчас"}</Typography></Box>
+        <Box className="dash-trend"><Typography className={reached ? "dash-trend-value up" : "dash-trend-value"}>{reached ? "↑ " : ""}{metrics.progress}%</Typography><Typography className="dash-sub">пути до вершины</Typography></Box>
       </Box>
-      <Typography className="credit-note">Проценты и комиссия за весь срок сверх суммы кредита</Typography>
+      <Ridge points={RIDGE_NOW} color="#6f7bdc" dotAt={metrics.progress / 100} />
     </Paper>
-    <Button className="credit-open" endIcon={<ArrowForward />} onClick={onOpen}>Подробнее</Button>
+    <Paper className="dash-card">
+      <Typography className="dash-title">Желаемая вершина</Typography>
+      <Box className="dash-figures"><Box><Typography className="dash-value">{formatMoney(metrics.summit)}</Typography><Typography className="dash-sub">{metrics.goal}</Typography></Box></Box>
+      <Ridge points={RIDGE_GOAL} color="#ef3124" flag />
+    </Paper>
+    <Paper className="dash-card dash-list-card">
+      <Box className="dash-list-head"><Typography className="dash-title">{title}</Typography>
+        <IconButton size="small" className="dash-more" onClick={onOpenRoute} aria-label="Открыть маршрут подробно"><ChevronRight /></IconButton></Box>
+      <Box className="dash-list">
+        {rows.map((r, i) => <Box key={i} className={i === 0 ? "dash-row dash-row-first" : "dash-row"}>
+          <span className="dash-row-icon">{r.icon}</span><b>{r.title}</b><span className="dash-row-value">{r.value}</span>
+        </Box>)}
+      </Box>
+    </Paper>
   </Box>;
+}
+
+function ConditionsBar({ season, onDetails }: { season: Season; onDetails: () => void }) {
+  return <Paper className="conditions-bar">
+    <Box className="conditions-icon"><FilterDramaOutlined /></Box>
+    <Box className="conditions-copy"><b>Учитываем условия пути</b><span>{SEASON_INFO[season].short}</span></Box>
+    <Button variant="outlined" className="conditions-more" endIcon={<ExpandMore />} onClick={onDetails}>Посмотреть детали</Button>
+  </Paper>;
 }
 
 export default function LandingPage({ userName, application, onStart, onProfile, onLogout, onHome }: LandingPageProps) {
@@ -252,20 +318,16 @@ export default function LandingPage({ userName, application, onStart, onProfile,
           <Button variant="contained" size="large" endIcon={<ArrowForward />} onClick={onStart}>{application?.submitted ? "Открыть мою заявку" : metrics ? "Продолжить заявку" : "Подобрать кредит"}</Button>
         </Box>
 
-        {/* Язычки выдвижных панелей у края картинки */}
-        <Box className="landing-edge-tabs">
-          {metrics && <Button className="landing-edge-tab" onClick={() => setPanel("metrics")} startIcon={<RouteOutlined />}>Мой маршрут</Button>}
-          <Button className="landing-edge-tab" onClick={() => setPanel("conditions")} startIcon={<FilterDramaOutlined />}>Условия пути</Button>
-        </Box>
       </Box>
 
-      {credit ? <CreditStrip credit={credit} onOpen={onStart} /> : <Box className="landing-benefits">
+      {metrics ? <RouteDashboard metrics={metrics} credit={credit} onOpenRoute={() => setPanel("metrics")} /> : <Box className="landing-benefits">
         {benefits.map((benefit) => <Paper key={benefit.title} className="landing-benefit">
           <Box className="landing-benefit-icon">{benefit.icon}</Box>
           <Typography fontWeight={800}>{benefit.title}</Typography>
           <Typography color="text.secondary">{benefit.text}</Typography>
         </Paper>)}
       </Box>}
+      <ConditionsBar season={season} onDetails={() => setPanel("conditions")} />
     </Box>
 
     <Drawer anchor="right" open={panel === "metrics" && !!metrics} onClose={close} PaperProps={{ className: "landing-drawer" }}>

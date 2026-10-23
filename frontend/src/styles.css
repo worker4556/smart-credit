@@ -2484,16 +2484,41 @@ body {
 .trail-label-value { fill: #172633; font-size: 22px; font-weight: 800; }
 @media (prefers-reduced-motion: reduce) { .trail-hiker, .trail-progress { transition: none; } }
 
-/* Кредит под горой: три коротких карточки */
-.credit-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 12px; align-items: stretch; margin-top: 14px; }
-.credit-card { display: grid; gap: 6px; align-content: start; padding: 18px 20px !important; border-radius: 16px !important; }
-.credit-card .eyebrow { margin: 0 !important; color: #7d8790; font-size: 10px !important; letter-spacing: .12em; }
-.credit-value { font-size: 26px !important; font-weight: 800 !important; letter-spacing: -.03em; line-height: 1.15 !important; }
-.credit-note { color: #6b7982; font-size: 12px !important; line-height: 1.45 !important; }
-.credit-chip { justify-self: start; background: #fff1f0 !important; color: #c9231b !important; font-weight: 700 !important; }
-.credit-chip-done { background: #e8f6ee !important; color: #2e7d4f !important; }
-.credit-bar { height: 8px; overflow: hidden; border-radius: 8px; background: #fde3e1; }
-.credit-bar > span { display: block; height: 100%; border-radius: 8px; background: #ef3124; }
-.credit-open { align-self: center; color: #c9231b !important; font-weight: 800 !important; white-space: nowrap; }
-@media (max-width: 900px) { .credit-strip { grid-template-columns: 1fr 1fr; } .credit-open { grid-column: span 2; justify-self: start; } }
-@media (max-width: 600px) { .credit-strip { grid-template-columns: 1fr; } .credit-open { grid-column: auto; } }
+/* Под горой: три карточки как в макете + полоса «Условия пути» */
+.dash { position: relative; z-index: 3; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: -78px 22px 0; }
+.dash-card { display: grid; grid-template-rows: auto auto 1fr; gap: 10px; min-height: 196px; padding: 20px 22px 0 !important; overflow: hidden; border-radius: 20px !important;
+  background: #ffffffee !important; backdrop-filter: blur(10px); box-shadow: 0 14px 34px #10273614 !important; border: 1px solid #ffffff !important; }
+.dash-title { color: #1d2b36; font-size: 15px !important; font-weight: 700 !important; }
+.dash-figures { display: flex; align-items: flex-start; gap: 18px; }
+.dash-figures > div:first-child { min-width: 0; }
+.dash-value { color: #111c24; font-size: clamp(24px, 2.4vw, 34px) !important; font-weight: 800 !important; letter-spacing: -.03em; line-height: 1.1 !important; white-space: nowrap; }
+.dash-sub { margin-top: 4px !important; color: #6b7982; font-size: 12px !important; line-height: 1.4 !important; }
+.dash-trend { padding-left: 18px; border-left: 1px solid #e6eaed; }
+.dash-trend-value { color: #233746; font-size: 17px !important; font-weight: 800 !important; }
+.dash-trend-value.up { color: #1f8a55; }
+.ridge { align-self: end; width: calc(100% + 44px); height: 74px; margin: 0 -22px; }
+.dash-list-card { grid-template-rows: auto 1fr; padding-bottom: 16px !important; }
+.dash-list-head { display: flex; align-items: center; justify-content: space-between; }
+.dash-more { background: #eef1f4 !important; }
+.dash-list { display: grid; gap: 4px; align-content: start; }
+.dash-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 9px 10px; border-radius: 12px; }
+.dash-row-first { background: #fdeceb; }
+.dash-row-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: #eef1f4; color: #233746; }
+.dash-row-first .dash-row-icon { background: #fff; color: #ef3124; }
+.dash-row-icon svg { font-size: 19px; }
+.dash-row b { overflow: hidden; color: #1d2b36; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.dash-row-value { color: #6b7982; font-size: 12px; white-space: nowrap; }
+.conditions-bar { display: flex; align-items: center; gap: 18px; margin: 14px 22px 0; padding: 14px 20px !important; border-radius: 18px !important; box-shadow: 0 8px 24px #10273610 !important; }
+.conditions-icon { width: 56px; height: 56px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 16px; background: linear-gradient(180deg, #f2f5ff, #e7ecf8); color: #8b97c9; }
+.conditions-icon svg { font-size: 30px; }
+.conditions-copy { display: grid; gap: 3px; flex: 1; min-width: 0; }
+.conditions-copy b { color: #1d2b36; font-size: 14px; }
+.conditions-copy span { color: #5f6d77; font-size: 13px; line-height: 1.45; }
+.conditions-more { flex: 0 0 auto; border-color: #d7dde2 !important; border-radius: 22px !important; color: #233746 !important; font-weight: 700 !important; text-transform: none !important; }
+.trail-label-title { fill: #6b7982; font-size: 18px; font-weight: 600; }
+.trail-label-value { fill: #111c24; font-size: 22px; font-weight: 800; }
+@media (max-width: 1000px) { .dash { grid-template-columns: 1fr 1fr; } .dash-list-card { grid-column: span 2; } }
+@media (max-width: 640px) {
+  .dash { grid-template-columns: 1fr; margin: -48px 10px 0; } .dash-list-card { grid-column: auto; }
+  .conditions-bar { flex-wrap: wrap; margin: 12px 10px 0; } .conditions-more { width: 100%; }
+}
