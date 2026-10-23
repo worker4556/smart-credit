@@ -6,7 +6,6 @@ import { defaultData } from "./data/application";
 import { DEFAULT_DEMO_ACCOUNT, demoAccounts, type DemoAccount } from "./data/demoAccounts";
 import { Header, StepRail } from "./components/ApplicationShell";
 import GoalPage from "./pages/GoalPage";
-import AmountPage from "./pages/AmountPage";
 import CompanyPage from "./pages/CompanyPage";
 import FinancePage from "./pages/FinancePage";
 import OffersPage from "./pages/OffersPage";
@@ -160,7 +159,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (screen !== 1 || !data.applicationId) return;
+    if (screen !== 0 || !data.applicationId) return;
     const term = data.goal.includes("кассов") ? 12 : data.term;
     const timer = window.setTimeout(() => void api.quote(data.goal, data.amount, term)
       .then((quote) => { setData((current) => ({ ...current, quote })); setAmountError(""); })
@@ -172,7 +171,7 @@ export default function App() {
   }, [screen, data.applicationId, data.goal, data.amount, data.term]);
 
   useEffect(() => {
-    if (screen !== 7 || !data.applicationId || !data.submitted || data.outcome !== "review") return;
+    if (screen !== 6 || !data.applicationId || !data.submitted || data.outcome !== "review") return;
     const timer = window.setInterval(() => void api.application(data.applicationId!)
       .then(async (record) => {
         applyApplication(record);
@@ -185,11 +184,36 @@ export default function App() {
     return () => window.clearInterval(timer);
   }, [screen, data.applicationId, data.submitted, data.outcome, applyApplication]);
 
+  const saveDraft = async () => {
+    if (!data.applicationId) return undefined;
+    const createDraft = async () => {
+      const created = await api.createApplication(data);
+      const newId = created.applicationId ?? created.id;
+      if (!newId) throw new Error("Backend не вернул номер нового черновика");
+      applyApplication(created);
+      setToast("Предыдущая заявка уже отправлена. Продолжаем заполнение в новом черновике.");
+      return newId;
+    };
+    if (data.submitted) return createDraft();
+    try {
+      await api.updateApplication(data.applicationId, data);
+      return data.applicationId;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) return createDraft();
+      throw error;
+    }
+  };
+
   const next = async (index = screen + 1) => {
-    if (data.applicationId && index !== 7) {
-      try { await api.updateApplication(data.applicationId, data); }
+    if (screen === 4 && index === 5 && (!data.docs.passport || !data.docs.tax)) {
+      setApiError("Загрузите паспорт руководителя и налоговую отчетность, чтобы продолжить.");
+      return;
+    }
+    if (data.applicationId && index !== 6) {
+      try { await saveDraft(); }
       catch (error) { setApiError(toMessage(error, "Не удалось сохранить заявку")); return; }
     }
+    setApiError("");
     setScreen(index);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -197,7 +221,7 @@ export default function App() {
   const navigateToStep = async (index: number) => {
     if (index === screen) return;
     if (index > 0 && data.applicationId) {
-      try { await api.updateApplication(data.applicationId, data); }
+      try { await saveDraft(); }
       catch (error) { setApiError(toMessage(error, "Не удалось сохранить заявку")); return; }
     }
     setApiError("");
@@ -209,22 +233,28 @@ export default function App() {
     if (!data.applicationId) return;
     setLoading(true); setApiError("");
     try {
-      await api.updateApplication(data.applicationId, data);
-      const result = await api.precheck(data.applicationId);
+      const applicationId = await saveDraft();
+      if (!applicationId) return;
+      const result = await api.precheck(applicationId);
       setData((current) => ({ ...current, precheck: result, goalOffers: result.goalOffers }));
-      setSelectedOffer(0); setScreen(4);
+      setSelectedOffer(0); setScreen(3);
     } catch (error) { setApiError(toMessage(error, "Не удалось получить предложения")); }
     finally { setLoading(false); }
   };
 
   const submit = async () => {
     if (!data.applicationId) return;
+    if (!data.docs.passport || !data.docs.tax) {
+      setApiError("Для отправки заявки загрузите паспорт руководителя и налоговую отчетность.");
+      setScreen(4);
+      return;
+    }
     setLoading(true); setApiError("");
     try {
       const response = await api.submit(data.applicationId, data);
       applyApplication(response);
       setData((current) => ({ ...current, submitted: true, outcome: "review" }));
-      setScreen(7); window.scrollTo({ top: 0, behavior: "smooth" });
+      setScreen(6); window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) { setApiError(toMessage(error, "Не удалось отправить заявку")); }
     finally { setLoading(false); }
   };
@@ -240,9 +270,10 @@ export default function App() {
     }
   };
 
-  const addDocument = async (file: File) => {
+  const addDocument = async (file: File, docId?: string) => {
     if (!data.applicationId) return;
-    applyApplication(await api.uploadDocument(data.applicationId, file));
+    applyApplication(await api.uploadDocument(data.applicationId, file, docId));
+    if (docId) setData((current) => ({ ...current, docs: { ...current.docs, [docId]: file.name } }));
   };
   const accept = async () => {
     if (!data.applicationId) return;
@@ -291,7 +322,6 @@ export default function App() {
   const chosen = offers[selectedOffer];
   const pages = [
     <GoalPage key="goal" data={data} update={update} next={next} />,
-    <AmountPage key="amount" data={data} update={update} next={next} monthly={monthly} total={total} />,
     <CompanyPage key="company" data={data} update={update} next={next} lookupCompany={lookupCompany} profileCompany={profile.company ?? undefined} setToast={setToast} />,
     <FinancePage key="finance" data={data} update={update} next={next} company={data.company} setSelectedOffer={setSelectedOffer} onShowOffers={showOffers} />,
     <OffersPage key="offers" data={data} update={update} next={next} goalOffers={offers} selectedOffer={selectedOffer} setSelectedOffer={setSelectedOffer} monthly={monthly} chosen={chosen} setToast={setToast} />,

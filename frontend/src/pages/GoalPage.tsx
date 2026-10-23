@@ -58,7 +58,7 @@ export default function GoalPage({ data, update, next }: GoalPageProps) {
   };
 
   return <>
-    <StepTitle eyebrow="ШАГ 1 · ЗАДАЧА" title="Зачем деньги, сколько и на какой срок?" subtitle="Напишите как удобно — помощник разложит на поля. Или заполните форму справа: она всегда под рукой." />
+    <StepTitle eyebrow="ШАГ 1 ИЗ 6 · ЗАДАЧА" title="Зачем деньги, сколько и на какой срок?" subtitle="Напишите как удобно — помощник разложит на поля. Или заполните форму справа: она всегда под рукой." />
     <Typography className="goal-prompt">Сначала расскажите, для чего бизнесу финансирование</Typography>
     <Box className="goal-intent-layout">
       <Box className="intent-panel">

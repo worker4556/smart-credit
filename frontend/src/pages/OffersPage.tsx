@@ -55,7 +55,7 @@ export default function OffersPage({
   return (
     <>
       <StepTitle
-        eyebrow="ШАГ 5 ИЗ 7 · ПОДБОР ДЛЯ ВАС"
+        eyebrow="ШАГ 4 ИЗ 6 · ПОДБОР ДЛЯ ВАС"
         title="Вот что нам подходит"
         subtitle="Сравните варианты. Все условия пока предварительные."
       />
@@ -183,13 +183,13 @@ export default function OffersPage({
           <Button
             variant="contained"
             fullWidth
-            onClick={() => next(5)}
+            onClick={() => next(4)}
             endIcon={<ArrowForward />}
           >
             {chosen ? "Выбрать этот вариант" : "Продолжить без предложения"}
           </Button>
-          <Button variant="text" color="inherit" onClick={() => next(1)}>
-            Изменить сумму или срок
+          <Button variant="text" color="inherit" onClick={() => next(0)}>
+            Изменить цель, сумму или срок
           </Button>
           <Typography className="mini-disclaimer">
             Окончательные условия назовем после проверки заявки.
@@ -207,8 +207,8 @@ export default function OffersPage({
         <Typography variant="body2" color="text.secondary">Дополнительные продукты доступны в каталоге банка.</Typography>
       </Box>
       <FooterNav
-        onBack={() => next(3)}
-        onNext={() => next(5)}
+        onBack={() => next(2)}
+        onNext={() => next(4)}
         next={
           goalOffers.length
             ? "Продолжить с выбранным вариантом"

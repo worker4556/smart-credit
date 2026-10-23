@@ -52,7 +52,7 @@ export default function ReviewPage({
   return (
     <>
       <StepTitle
-        eyebrow="ШАГ 7 ИЗ 7 · ФИНИШНАЯ ПРЯМАЯ"
+        eyebrow="ШАГ 6 ИЗ 6 · ФИНИШНАЯ ПРЯМАЯ"
         title="Проверьте и отправляйте"
         subtitle="Убедитесь, что всё верно. Изменить данные можно в любой момент."
       />
@@ -71,7 +71,7 @@ export default function ReviewPage({
                 Платеж около {money(monthly)} в месяц
               </Typography>
             </Box>
-            <Button onClick={() => next(1)}>Изменить</Button>
+            <Button onClick={() => next(0)}>Изменить</Button>
           </Box>
           <Divider />
           <Box className="review-block">
@@ -88,7 +88,7 @@ export default function ReviewPage({
                 · кредиты: {data.hasLoans.toLowerCase()}
               </Typography>
             </Box>
-            <Button onClick={() => next(2)}>Изменить</Button>
+            <Button onClick={() => next(1)}>Изменить</Button>
           </Box>
           <Divider />
           <Box className="review-block">
@@ -105,7 +105,7 @@ export default function ReviewPage({
                 загружено · остальное получим сами
               </Typography>
             </Box>
-            <Button onClick={() => next(5)}>Изменить</Button>
+            <Button onClick={() => next(4)}>Изменить</Button>
           </Box>
         </Paper>
         <Paper className="consent-panel">
@@ -153,7 +153,7 @@ export default function ReviewPage({
         придется.
       </Box>
       <FooterNav
-        onBack={() => next(5)}
+        onBack={() => next(4)}
         onNext={submit}
         next="Отправить заявку"
         disabled={!data.consent1 || !data.consent2 || loading}

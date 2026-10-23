@@ -47,10 +47,11 @@ export default function DocumentsPage({
   next,
   uploadFile,
 }: DocumentsPageProps) {
+  const requiredDocumentsUploaded = Boolean(data.docs.passport && data.docs.tax);
   return (
     <>
       <StepTitle
-        eyebrow="ШАГ 6 ИЗ 7 · ДОКУМЕНТЫ"
+        eyebrow="ШАГ 5 ИЗ 6 · ДОКУМЕНТЫ"
         title="Нужны только эти документы"
         subtitle="Все остальное мы уже получили сами. Можно загрузить сейчас или вернуться позже."
       />
@@ -130,9 +131,7 @@ export default function DocumentsPage({
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  void uploadFile(file).then(() =>
-                    update("docs", { ...data.docs, [id]: file.name }),
-                  );
+                  void uploadFile(file, id);
                 }}
               />
             </Button>
@@ -142,12 +141,16 @@ export default function DocumentsPage({
           Документы передаются по защищенному соединению и доступны только
           банку.
         </Alert>
+        {!requiredDocumentsUploaded && <Alert severity="warning" className="required-docs-alert">
+          Чтобы продолжить, загрузите паспорт руководителя и налоговую отчетность.
+        </Alert>}
       </Paper>
       <FooterNav
-        onBack={() => next(4)}
-        onNext={() => next(6)}
+        onBack={() => next(3)}
+        onNext={() => next(5)}
         next="Дальше"
-        note="Можно загрузить после отправки"
+        disabled={!requiredDocumentsUploaded}
+        note={requiredDocumentsUploaded ? "Обязательные документы загружены" : "Загрузите паспорт и налоговую отчетность"}
       />
     </>
   );

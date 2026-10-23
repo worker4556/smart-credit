@@ -2043,3 +2043,81 @@ body {
   .help-user-message, .help-answer, .help-welcome > .MuiPaper-root { max-width: 90%; }
 }
 
+/* Give the route diagram and its checklist room on the submitted-application screen. */
+.decision-route-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+  margin: 24px 0 !important;
+  padding: 26px !important;
+  overflow: visible;
+  border: 1px solid #e3e3e3;
+  border-radius: 18px !important;
+  box-shadow: 0 4px 18px #00000008 !important;
+}
+.decision-route-panel .route-map {
+  width: 100%;
+  min-width: 0;
+  padding: 0 0 12px;
+}
+.decision-route-panel .route-map-heading { padding: 0 2px 10px; }
+.decision-route-panel .route-map-title { font-size: 20px !important; line-height: 1.35; }
+.decision-route-panel .route-landscape { height: clamp(175px, 22vw, 250px); margin-top: 10px; }
+.decision-route-panel .map-label { max-width: 42%; padding: 9px 12px; }
+.decision-route-panel .map-label p { font-size: 10px; line-height: 1.4; }
+.decision-route-panel .map-label b { font-size: 13px; line-height: 1.4; }
+.decision-route-panel .map-legend { flex-wrap: wrap; gap: 10px 20px; padding-top: 9px; font-size: 10px; }
+.route-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid #ededed;
+  border-radius: 14px;
+  background: #fafafa;
+}
+.route-steps > .eyebrow { margin: 0 !important; }
+.route-steps > h5 { margin: 0 0 4px; font-size: clamp(20px, 2vw, 26px); line-height: 1.35; }
+.route-step { min-width: 0; }
+.route-step label {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+}
+.route-step input[type="checkbox"] {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+  margin: 2px 0 0;
+  accent-color: #78b900;
+}
+.route-step label > span { display: block; min-width: 0; flex: 1; }
+.route-step b { display: block; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.route-step small { display: block; margin-top: 5px; color: #686868; font-size: 12px; line-height: 1.55; overflow-wrap: anywhere; }
+.route-steps .precheck-disclaimer { margin: 4px 0 0 !important; color: #777; font-size: 11px; line-height: 1.55; }
+.status-note { margin: 20px 0 !important; }
+.status-note .MuiTypography-root { line-height: 1.55; }
+.status-actions { display: flex; justify-content: flex-start; padding-top: 8px; }
+.required-docs-alert { margin-top: 12px; font-size: 12px; }
+@media (max-width: 760px) {
+  .decision-route-panel { gap: 18px; margin: 18px 0 !important; padding: 17px !important; }
+  .decision-route-panel .route-map-title { font-size: 17px !important; }
+  .decision-route-panel .route-landscape { height: 165px; }
+  .decision-route-panel .map-label { max-width: 46%; padding: 7px 9px; }
+  .decision-route-panel .map-label p { font-size: 8px; }
+  .decision-route-panel .map-label b { font-size: 10px; }
+  .decision-route-panel .map-legend { gap: 8px 13px; font-size: 9px; }
+  .route-steps { gap: 11px; padding: 17px; }
+  .route-step label { gap: 11px; padding: 13px; }
+  .route-step b { font-size: 13px; }
+  .route-step small { font-size: 11px; }
+}
+

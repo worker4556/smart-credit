@@ -79,12 +79,12 @@ export function Header({ screen, setScreen, userName = "Клиент", openProfi
         </Box>
         <Box className="navlinks">
           <Button
-            className={screen < 7 ? "nav-active" : ""}
+            className={screen < 6 ? "nav-active" : ""}
             onClick={() => openApplication ? openApplication(0) : setScreen(0)}
           >
             Кредит
           </Button>
-          <Button onClick={() => openApplication ? openApplication(7) : setScreen(7)}>Мои заявки</Button>
+          <Button onClick={() => openApplication ? openApplication(6) : setScreen(6)}>Мои заявки</Button>
           <Button onClick={openHelp}>Помощь</Button>
         </Box>
         <Box className="head-actions">
@@ -113,7 +113,6 @@ export function Header({ screen, setScreen, userName = "Клиент", openProfi
 export function StepRail({ screen, setScreen }: HeaderProps) {
   const labels = [
     "Цель",
-    "Сумма",
     "Компания",
     "Финансы",
     "Предложение",
@@ -125,12 +124,12 @@ export function StepRail({ screen, setScreen }: HeaderProps) {
       <Box className="rail-top">
         <Typography variant="overline">НОВАЯ ЗАЯВКА</Typography>
         <Typography className="rail-count">
-          {Math.min(screen + 1, 7)} <span>/ 7</span>
+          {Math.min(screen + 1, 6)} <span>/ 6</span>
         </Typography>
       </Box>
       <LinearProgress
         variant="determinate"
-        value={screen === 7 ? 100 : ((screen + 1) / 7) * 100}
+        value={screen === 6 ? 100 : ((screen + 1) / 6) * 100}
         className="rail-progress"
       />
       <Stack className="rail-list">
@@ -142,10 +141,10 @@ export function StepRail({ screen, setScreen }: HeaderProps) {
             disabled={i >= screen}
             onClick={() => void setScreen(i)}
             aria-current={screen === i ? "step" : undefined}
-            className={`rail-item ${screen === i ? "current" : ""} ${screen > i || screen === 7 ? "done" : ""}`}
+            className={`rail-item ${screen === i ? "current" : ""} ${screen > i || screen === 6 ? "done" : ""}`}
           >
             <Box className="rail-dot">
-              {screen > i || screen === 7 ? (
+              {screen > i || screen === 6 ? (
                 <CheckCircle fontSize="small" />
               ) : (
                 <span>0{i + 1}</span>
@@ -164,7 +163,7 @@ export function StepRail({ screen, setScreen }: HeaderProps) {
         <Typography variant="body2" color="text.secondary">
           Сохраняем каждый шаг. Продолжите в любое время.
         </Typography>
-        <Button endIcon={<ArrowForward />} onClick={() => setScreen(7)}>
+        <Button endIcon={<ArrowForward />} onClick={() => setScreen(6)}>
           Мои заявки
         </Button>
       </Paper>

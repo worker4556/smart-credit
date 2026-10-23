@@ -15,7 +15,7 @@ export default function FinancePage({
   return (
     <>
       <StepTitle
-        eyebrow="ШАГ 4 ИЗ 7 · ФИНАНСЫ"
+        eyebrow="ШАГ 3 ИЗ 6 · ФИНАНСЫ"
         title="Немного о финансах"
         subtitle="Точные цифры не нужны — укажите примерный среднемесячный оборот."
       />
@@ -103,7 +103,7 @@ export default function FinancePage({
         </Paper>
       </Box>
       <FooterNav
-        onBack={() => next(2)}
+        onBack={() => next(1)}
         onNext={onShowOffers}
         next="Показать предложения"
         note="≈ 40 секунд"
