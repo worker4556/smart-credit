@@ -1,3 +1,5 @@
+import { Menu, MenuItem } from "@mui/material";
+import { useState } from "react";
 import {
   Box,
   Typography,
@@ -52,6 +54,7 @@ interface FooterNavProps {
   disabled?: boolean;
   back?: boolean;
   note?: string;
+  secondary?: { label: string; onClick: () => void };
 }
 interface SelectCardProps {
   selected: boolean;
@@ -67,6 +70,9 @@ export function IconBubble({ children, lime = false }: IconBubbleProps) {
   return <Box className={`icon-bubble ${lime ? "lime" : ""}`}>{children}</Box>;
 }
 export function Header({ screen, setScreen, userName = "Клиент", openProfile, openHelp, openApplication, onLogout }: HeaderProps) {
+  // На узком экране ссылки шапки спрятаны — открываем их из меню
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const go = (action?: () => void) => { setMenuAnchor(null); action?.(); };
   return (
     <AppBar position="sticky" color="inherit" elevation={0} className="appbar">
       <Toolbar className="toolbar">
@@ -102,9 +108,15 @@ export function Header({ screen, setScreen, userName = "Клиент", openProfi
             <Box className="user-name">{userName}<br /><span>Личный кабинет</span></Box>
           </Button>
           <Button onClick={onLogout} className="logout-button">Выйти</Button>
-          <IconButton className="menu-mobile">
+          <IconButton className="menu-mobile" aria-label="Меню" onClick={(event) => setMenuAnchor(event.currentTarget)}>
             <MenuIcon />
           </IconButton>
+          <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
+            <MenuItem onClick={() => go(() => (openApplication ? openApplication(0) : setScreen(0)))}>Кредит</MenuItem>
+            <MenuItem onClick={() => go(() => (openApplication ? openApplication(6) : setScreen(6)))}>Мои заявки</MenuItem>
+            <MenuItem onClick={() => go(openHelp)}>Помощь</MenuItem>
+            <MenuItem onClick={() => go(openProfile)}>Личный кабинет</MenuItem>
+          </Menu>
         </Box>
       </Toolbar>
     </AppBar>
@@ -187,6 +199,7 @@ export function FooterNav({
   disabled = false,
   back = true,
   note,
+  secondary,
 }: FooterNavProps) {
   return (
     <Box className="footer-nav">
@@ -208,6 +221,11 @@ export function FooterNav({
           <Typography variant="caption" className="footnote">
             {note}
           </Typography>
+        )}
+        {secondary && (
+          <Button variant="outlined" color="inherit" onClick={secondary.onClick}>
+            {secondary.label}
+          </Button>
         )}
         <Button
           variant="contained"

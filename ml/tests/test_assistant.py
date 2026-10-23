@@ -52,9 +52,11 @@ def test_115_never_calls_llm(policy, monkeypatch):
     assert a.topic == "NONCREDIT" and a.source == "TEMPLATE" and "115-ФЗ" in a.answer
 
 
-def test_approved_not_needed(policy):
+def test_approved_explains_terms_instead_of_not_needed(policy):
+    # Раньше при одобрении помощник отвечал «помощь не нужна»; теперь объясняет условия по фактам решения
     a = answer(policy, "почему?", decide(policy, applicant("P1")), None, use_llm=False)
-    assert a.topic == "NOT_NEEDED"
+    assert a.topic == "WHY"
+    assert "850 000 ₽" in a.answer and "43 261 ₽" in a.answer and "196 774 ₽" in a.answer
 
 
 def test_llm_answer_accepted_when_faithful(policy, fake_llm):

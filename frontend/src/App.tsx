@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Alert, Box, Button, CssBaseline, Paper, ThemeProvider, Typography } from "@mui/material";
+import { Alert, Box, Button, CssBaseline, ThemeProvider, Typography } from "@mui/material";
 import ShieldOutlined from "@mui/icons-material/ShieldOutlined";
 import theme from "./theme";
-import { defaultData } from "./data/application";
+import { defaultData, goals } from "./data/application";
 import { DEFAULT_DEMO_ACCOUNT, demoAccounts, type DemoAccount } from "./data/demoAccounts";
 import { Header, StepRail } from "./components/ApplicationShell";
 import GoalPage from "./pages/GoalPage";
@@ -15,12 +15,13 @@ import StatusPage from "./pages/StatusPage";
 import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import HelpPage from "./pages/HelpPage";
+import BankPage from "./pages/BankPage";
+import AdminPage from "./pages/AdminPage";
 import { api, ApiError, clearToken, getToken, saveToken, type ApplicationResponse, type UserProfile } from "./api";
-import type { ApplicationData, Company, Role } from "./types";
+import type { ApplicationData, Company } from "./types";
 import "./styles.css";
 
 const PROFILE_SESSION_KEY = "credit-user-profile";
-const roleLabels: Record<Role, string> = { CLIENT: "Клиент", SPECIALIST: "Специалист", ADMIN: "Администратор" };
 
 function demoAccountForLogin(login?: string): DemoAccount {
   return demoAccounts.find((account) => account.id.toLowerCase() === login?.toLowerCase()) ?? DEFAULT_DEMO_ACCOUNT;
@@ -110,20 +111,50 @@ export default function App() {
     }));
   }, []);
 
-  useEffect(() => {
-    if (!isAuthenticated || !profile || profile.role !== "CLIENT") return;
-    let active = true;
+  // Открывает актуальную заявку клиента: свежий черновик продолжаем, отправленную показываем на экране статуса,
+  // нет ни одной — создаём черновик. Вызывается при входе и когда текущая заявка пропала (например, сброс демо).
+  const syncApplication = useCallback(async (): Promise<string | undefined> => {
+    if (!profile || profile.role !== "CLIENT") return undefined;
     const draft = applicationForAccount(demoAccountForLogin(profile.login), profile);
     setData(draft);
-    void api.createApplication(draft)
-      .then((response) => { if (active) applyApplication(response); })
-      .catch((error) => {
-        if (!active) return;
-        if (error instanceof ApiError && (error.status === 401 || error.status === 404)) return;
-        setApiError(toMessage(error, "Не удалось создать черновик"));
-      });
-    return () => { active = false; };
-  }, [profile, isAuthenticated, applyApplication]);
+    setSelectedOffer(0);
+    const list = await api.applications();
+    const latest = list[0];
+    if (latest?.status === "DRAFT") {
+      applyApplication(latest);
+      setScreen(0);
+      return latest.applicationId;
+    }
+    if (latest) {
+      applyApplication(latest);
+      setScreen(6);
+      if (["REJECTED", "COUNTER_OFFER", "DECLINED_BY_CLIENT"].includes(latest.status ?? "") && latest.applicationId) {
+        const route = await api.route(latest.applicationId);
+        setData((current) => ({ ...current, route }));
+      }
+      return latest.applicationId;
+    }
+    const response = await api.createApplication(draft);
+    applyApplication(response);
+    setScreen(0);
+    return response.applicationId ?? response.id;
+  }, [profile, applyApplication]);
+
+  // 404 по текущей заявке — её больше нет: молча переключаемся на актуальную
+  const recoverIfStale = useCallback(async (error: unknown): Promise<boolean> => {
+    if (!(error instanceof ApiError && error.status === 404)) return false;
+    try { await syncApplication(); setApiError(""); setToast("Данные заявки обновились — открыли актуальную"); window.setTimeout(() => setToast(""), 3000); }
+    catch (syncError) { setApiError(toMessage(syncError, "Не удалось загрузить заявку")); }
+    return true;
+  }, [syncApplication]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !profile || profile.role !== "CLIENT") return;
+    void syncApplication().catch((error) => {
+      if (error instanceof ApiError && error.status === 401) return;
+      setApiError(toMessage(error, "Не удалось загрузить заявку"));
+    });
+  }, [profile, isAuthenticated, syncApplication]);
 
   const loginWithPassword = async (login: string, password: string) => {
     const response = await api.login(login, password);
@@ -171,7 +202,7 @@ export default function App() {
   }, [screen, data.applicationId, data.goal, data.amount, data.term]);
 
   useEffect(() => {
-    if (screen !== 6 || !data.applicationId || !data.submitted || data.outcome !== "review") return;
+    if (screen !== 6 || !data.applicationId || !data.submitted || !["review", "specialist", "signed"].includes(data.outcome)) return;
     const timer = window.setInterval(() => void api.application(data.applicationId!)
       .then(async (record) => {
         applyApplication(record);
@@ -180,24 +211,24 @@ export default function App() {
           setData((current) => ({ ...current, route }));
         }
       })
-      .catch((error) => setApiError(toMessage(error, "Не удалось обновить статус заявки"))), 3000);
+      .catch(async (error) => { if (!(await recoverIfStale(error))) setApiError(toMessage(error, "Не удалось обновить статус заявки")); }), 3000);
     return () => window.clearInterval(timer);
-  }, [screen, data.applicationId, data.submitted, data.outcome, applyApplication]);
+  }, [screen, data.applicationId, data.submitted, data.outcome, data.status, applyApplication]);
 
-  const saveDraft = async () => {
-    if (!data.applicationId) return undefined;
+  const saveDraft = async (snapshot: ApplicationData = data) => {
+    if (!snapshot.applicationId) return undefined;
     const createDraft = async () => {
-      const created = await api.createApplication(data);
+      const created = await api.createApplication(snapshot);
       const newId = created.applicationId ?? created.id;
       if (!newId) throw new Error("Backend не вернул номер нового черновика");
       applyApplication(created);
       setToast("Предыдущая заявка уже отправлена. Продолжаем заполнение в новом черновике.");
       return newId;
     };
-    if (data.submitted) return createDraft();
+    if (snapshot.submitted) return createDraft();
     try {
-      await api.updateApplication(data.applicationId, data);
-      return data.applicationId;
+      await api.updateApplication(snapshot.applicationId, snapshot);
+      return snapshot.applicationId;
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) return createDraft();
       throw error;
@@ -242,6 +273,39 @@ export default function App() {
     finally { setLoading(false); }
   };
 
+  // Выбранный вариант становится условиями заявки: сумма, срок и продукт
+  const chooseOffer = async () => {
+    const offer = (data.goalOffers ?? data.precheck?.goalOffers ?? [])[selectedOffer];
+    let updated = data;
+    if (offer && typeof offer.amount === "number") {
+      const cashGap = goals[2][0];
+      const goal = offer.product === "OVERDRAFT" ? cashGap : data.goal === cashGap ? goals[0][0] : data.goal;
+      updated = {
+        ...data,
+        goal,
+        amount: offer.amount,
+        term: offer.termMonths ?? data.term,
+        quote: offer.monthly != null ? { monthly: offer.monthly, total: offer.amount + (offer.fullCost ?? 0), rate: offer.rate } : data.quote,
+      };
+      setData(updated);
+    }
+    if (updated.applicationId) {
+      try { await saveDraft(updated); }
+      catch (error) { setApiError(toMessage(error, "Не удалось сохранить заявку")); return; }
+    }
+    setScreen(4);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const startNewApplication = async () => {
+    const draft = applicationForAccount(demoAccountForLogin(profile?.login), profile ?? undefined);
+    setData(draft);
+    setSelectedOffer(0);
+    setScreen(0);
+    try { applyApplication(await api.createApplication(draft)); }
+    catch (error) { setApiError(toMessage(error, "Не удалось создать черновик")); }
+  };
+
   const submit = async () => {
     if (!data.applicationId) return;
     if (!data.docs.passport || !data.docs.tax) {
@@ -280,10 +344,40 @@ export default function App() {
     await api.accept(data.applicationId);
     applyApplication(await api.application(data.applicationId));
   };
+  const sign = async () => {
+    if (!data.applicationId) return;
+    try {
+      await api.sign(data.applicationId);
+      applyApplication(await api.application(data.applicationId));
+    } catch (error) { setApiError(toMessage(error, "Не удалось подписать договор")); }
+  };
+  // Клиент отклонил иные условия — маршрут строится от решения (что держит сумму)
+  const decline = async () => {
+    if (!data.applicationId) return;
+    try {
+      await api.decline(data.applicationId);
+      applyApplication(await api.application(data.applicationId));
+      const route = await api.route(data.applicationId);
+      setData((current) => ({ ...current, route }));
+    } catch (error) { setApiError(toMessage(error, "Не удалось отклонить предложение")); }
+  };
+  const withdraw = async () => {
+    if (!data.applicationId) return;
+    try {
+      await api.withdraw(data.applicationId);
+      applyApplication(await api.application(data.applicationId));
+    } catch (error) { setApiError(toMessage(error, "Не удалось отозвать заявку")); }
+  };
   const recalcRoute = async (done: string[]) => {
     if (!data.applicationId) return;
     const route = await api.recalculateRoute(data.applicationId, done);
-    setData((current) => ({ ...current, route }));
+    // ML возвращает только оставшиеся шаги — выполненные оставляем в списке отмеченными
+    const doneSet = new Set(done);
+    const remaining = new Set(route.steps.map((step) => step.code));
+    const kept = (data.route?.steps ?? [])
+      .filter((step) => doneSet.has(step.code) && !remaining.has(step.code))
+      .map((step) => ({ ...step, done: true }));
+    setData((current) => ({ ...current, route: { ...route, steps: [...kept, ...route.steps] } }));
   };
 
   useEffect(() => {
@@ -308,11 +402,12 @@ export default function App() {
 
   if (checkingSession) return <ThemeProvider theme={theme}><CssBaseline /><Box className="login-page"><Typography>Проверяем учётную запись…</Typography></Box></ThemeProvider>;
   if (!isAuthenticated || !profile) return <ThemeProvider theme={theme}><CssBaseline /><LoginPage onLogin={loginWithPassword} notice={authNotice} /></ThemeProvider>;
-  if (profile.role !== "CLIENT") return <ThemeProvider theme={theme}><CssBaseline /><RolePlaceholder profile={profile} onLogout={logout} /></ThemeProvider>;
+  if (profile.role === "SPECIALIST") return <ThemeProvider theme={theme}><CssBaseline /><BankPage userName={profile.name} onLogout={logout} /></ThemeProvider>;
+  if (profile.role === "ADMIN") return <ThemeProvider theme={theme}><CssBaseline /><AdminPage userName={profile.name} onLogout={logout} /></ThemeProvider>;
   if (page === "profile") return <ThemeProvider theme={theme}><CssBaseline /><ProfilePage profile={profile} onBack={backFromProfile} /></ThemeProvider>;
   if (page === "help") return <ThemeProvider theme={theme}><CssBaseline />
     <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHelp={openHelp} openApplication={openApplication} onLogout={logout} />
-    <HelpPage data={data} onBack={backFromHelp} />
+    <HelpPage data={data} onBack={backFromHelp} onStaleApplication={syncApplication} />
     <Box className="bottom-help"><ShieldOutlined /> Безопасно. Просто. На ваших условиях. <span>© Альфа-Бизнес · Кредитный кабинет</span></Box>
   </ThemeProvider>;
 
@@ -324,10 +419,10 @@ export default function App() {
     <GoalPage key="goal" data={data} update={update} next={next} />,
     <CompanyPage key="company" data={data} update={update} next={next} lookupCompany={lookupCompany} profileCompany={profile.company ?? undefined} setToast={setToast} />,
     <FinancePage key="finance" data={data} update={update} next={next} company={data.company} setSelectedOffer={setSelectedOffer} onShowOffers={showOffers} />,
-    <OffersPage key="offers" data={data} update={update} next={next} goalOffers={offers} selectedOffer={selectedOffer} setSelectedOffer={setSelectedOffer} monthly={monthly} chosen={chosen} setToast={setToast} />,
+    <OffersPage key="offers" data={data} update={update} next={next} goalOffers={offers} selectedOffer={selectedOffer} setSelectedOffer={setSelectedOffer} monthly={monthly} chosen={chosen} setToast={setToast} onChoose={chooseOffer} />,
     <DocumentsPage key="documents" data={data} update={update} next={next} uploadFile={addDocument} />,
     <ReviewPage key="review" data={data} update={update} next={next} monthly={monthly} submit={submit} loading={loading} />,
-    <StatusPage key="status" data={data} update={update} setData={setData} setScreen={setScreen} next={next} monthly={monthly} total={total} uploadDocument={addDocument} acceptOffer={accept} recalculateRoute={recalcRoute} />,
+    <StatusPage key="status" data={data} update={update} setData={setData} setScreen={setScreen} next={next} monthly={monthly} total={total} uploadDocument={addDocument} acceptOffer={accept} signOffer={sign} declineOffer={decline} withdrawApplication={withdraw} onNewApplication={startNewApplication} recalculateRoute={recalcRoute} />,
   ];
 
   return <ThemeProvider theme={theme}><CssBaseline />
@@ -341,8 +436,5 @@ export default function App() {
   </ThemeProvider>;
 }
 
-function RolePlaceholder({ profile, onLogout }: { profile: UserProfile; onLogout: () => void }) {
-  return <Box className="role-placeholder"><Paper><Box className="brand-mark" sx={{ alignSelf: "center" }}>а</Box><Typography className="eyebrow">АЛЬФА-БИЗНЕС</Typography><Typography variant="h3">{profile.name}</Typography><Typography className="role-name">Роль: {roleLabels[profile.role].toLowerCase()}</Typography><Typography color="text.secondary">Раздел для этой роли появится после подключения API специалиста и админки.</Typography><Button variant="contained" onClick={onLogout}>Выйти</Button></Paper></Box>;
-}
 
 function toMessage(error: unknown, fallback: string) { return error instanceof Error ? error.message : fallback; }

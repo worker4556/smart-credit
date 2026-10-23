@@ -11,7 +11,7 @@ from app.db.base import engine
 from app.db.models import Application, ApplicationEvent, Company
 from app.db.ops import change_status, utcnow
 from app.services import ml
-from app.services.applicants import build_applicant
+from app.services.applicants import build_applicant, specialist_for_route
 from app.services.applications import STATUS_TEXT
 from app.services.personas import get_persona_by_key
 
@@ -192,7 +192,7 @@ def _build_route(
             {
                 "applicant": applicant,
                 "assume_done": [],
-                "specialist_decision": None,
+                "specialist_decision": specialist_for_route(application),
             },
             request_id=request_id,
         )

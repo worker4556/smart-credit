@@ -373,7 +373,7 @@ def _activity(session: Session, application_id: uuid.UUID) -> list[ActivityEvent
     events = session.exec(statement).all()
     return [
         ActivityEvent(
-            at=event.at.strftime("%H:%M"),
+            at=(event.at if event.at.tzinfo else event.at.replace(tzinfo=timezone.utc)).isoformat(),
             text=event.reason or STATUS_TEXT.get(event.to_status, event.to_status),
         )
         for event in events
@@ -429,6 +429,9 @@ def response_for(
         status=application.status,
         outcome=OUTCOME_BY_STATUS.get(application.status, "review"),
         submitted=application.status != "DRAFT",
+        goal=(application.data or {}).get("goal"),
+        amount=(application.data or {}).get("amount"),
+        term=(application.data or {}).get("term"),
         next_action=NEXT_ACTION.get(application.status),
         decision_text=application.decision_text,
         decision_amount=int(amount) if isinstance(amount, (int, float)) else None,
@@ -443,8 +446,7 @@ def response_for(
         info_request=info_request,
         route_available=bool(application.route)
         or application.status in {"REJECTED", "DECLINED_BY_CLIENT"},
-        assistant_available=application.status
-        in {"REJECTED", "COUNTER_OFFER", "INFO_REQUESTED"},
+        assistant_available=True,
         activity=activity or [],
     )
 

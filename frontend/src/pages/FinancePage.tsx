@@ -17,7 +17,7 @@ export default function FinancePage({
       <StepTitle
         eyebrow="ШАГ 3 ИЗ 6 · ФИНАНСЫ"
         title="Немного о финансах"
-        subtitle="Точные цифры не нужны — укажите примерный среднемесячный оборот."
+        subtitle="Шаг можно пропустить: обороты по счёту мы видим сами. Ответы просто сделают оценку точнее."
       />
       <Box className="finance-grid">
         <Paper className="question-card">
@@ -105,6 +105,7 @@ export default function FinancePage({
       <FooterNav
         onBack={() => next(1)}
         onNext={onShowOffers}
+        secondary={{ label: "Пропустить", onClick: () => void onShowOffers() }}
         next="Показать предложения"
         note="≈ 40 секунд"
       />

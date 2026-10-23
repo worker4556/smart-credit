@@ -249,6 +249,9 @@ def specialist_decision(
         pass
 
     application.decision = decision
+    # Маршрут пересчитается от решения специалиста при следующем запросе клиента
+    application.route = None
+    application.route_text = None
     change_status(
         session,
         application,

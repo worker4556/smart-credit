@@ -141,6 +141,7 @@ class Reason(CamelModel):
 
 
 class LoanOffer(CamelModel):
+    kind: str | None = None
     product: ProductCode
     name: str
     amount: int = Field(gt=0)
@@ -183,6 +184,10 @@ class ApplicationResponse(CamelModel):
     status: Status
     outcome: Outcome
     submitted: bool = False
+    # Что просил клиент: нужно, чтобы вернуться к отправленной заявке после повторного входа
+    goal: str | None = None
+    amount: int | None = Field(default=None, gt=0)
+    term: int | None = Field(default=None, gt=0)
     next_action: str | None = None
     decision_text: str | None = None
     decision_amount: int | None = Field(default=None, ge=0)
@@ -205,6 +210,7 @@ class RouteStep(CamelModel):
     points_gain: int = 0
     done: bool = False
     bki_delay_business_days: int | None = None
+    target_turnover: int | None = Field(default=None, ge=0)
 
 
 class ApplicationRoute(CamelModel):

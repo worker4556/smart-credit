@@ -1,211 +1,128 @@
 # API-контракт
 
-Статус: **v1, согласуется**. После согласования изменения — только с предупреждением фронта, бэка и ML.
-Схема взаимодействия — в [architecture.md](architecture.md). Машиночитаемая схема backend генерируется FastAPI: `http://localhost:8000/docs`, экспорт в `docs/openapi.yaml`.
+Описание реализованного API. Машиночитаемые схемы: backend — [openapi-backend.json](openapi-backend.json)
+(Swagger: `http://localhost:8000/docs`), движок одобрения — [openapi-ml.yaml](openapi-ml.yaml)
+(Swagger: `http://localhost:8001/docs`). Готовые запросы — [postman/](postman/). Схема взаимодействия — в
+[architecture.md](architecture.md).
 
 ## Общие соглашения
 
-- Базовый путь backend: `/api/v1`. JSON, `snake_case`, суммы в **рублях целым числом**, ставки — проценты (`19.5`), даты — ISO 8601 UTC.
-- Авторизация: `Authorization: Bearer <jwt>`.
-- Мутирующие запросы `submit`, `decision`, `offer/accept`, `signature/confirm` принимают `Idempotency-Key` — повтор с тем же ключом возвращает прежний ответ.
-- Формат ошибки:
+- Базовый путь backend: `/api/v1`. Фронт ходит через nginx: `http://localhost:3000/api/v1` (напрямую — `:8000`).
+- JSON в **camelCase** (backend) и **snake_case** (ml). Суммы — рубли целым числом, ставки — проценты (`20.0`),
+  время — ISO 8601 с часовым поясом.
+- Авторизация: `Authorization: Bearer <accessToken>` из `POST /auth/login`. Роль проверяется на каждом эндпоинте.
+- Формат ошибки: `{ "detail": "Текст для человека" }`, для ошибки поля — `{ "detail": "...", "field": "amount" }`.
 
-```json
-{ "error": { "code": "VALIDATION_ERROR", "message": "Проверьте поля формы", "fields": { "amount": "Максимум 5 000 000 ₽" } } }
-```
+| HTTP | Когда |
+|---|---|
+| 400 | Неверные данные или ограничение продукта (например, сумма вне диапазона) |
+| 401 | Нет или просрочен токен, неверный логин/пароль |
+| 403 | Не та роль |
+| 404 | Нет объекта или заявка чужой компании |
+| 409 | Действие недопустимо в текущем статусе (подписать неодобренную, отправить не черновик) |
+| 422 | Тело не прошло валидацию |
+| 502 | Движок `ml` недоступен после 3 попыток |
 
-| HTTP | `code` | Когда |
-|---|---|---|
-| 400 | `VALIDATION_ERROR` | Неверные поля |
-| 401 | `UNAUTHORIZED` | Нет или просрочен токен |
-| 403 | `FORBIDDEN` | Чужая заявка / не та роль |
-| 404 | `NOT_FOUND` | Нет объекта |
-| 409 | `INVALID_TRANSITION` | Действие недопустимо в текущем статусе |
-| 409 | `CONFLICT` | Заявку изменили параллельно (`version`) |
-| 502 | `UPSTREAM_UNAVAILABLE` | `ml`/`mocks` недоступны после ретраев |
-
-## Справочники
-
-**Продукты** (`products`):
-
-| code | Название | Сумма, ₽ | Срок, мес | Базовая ставка |
-|---|---|---|---|---|
-| `WORKING_CAPITAL` | Кредит на пополнение оборотных средств | 300 000 – 10 000 000 | 6–36 | 18.0 |
-| `EQUIPMENT` | Кредит на оборудование | 500 000 – 20 000 000 | 12–60 | 16.5 |
-| `OVERDRAFT` | Овердрафт | 100 000 – 3 000 000 | 12 | 20.0 |
-| `CREDIT_LINE` | Кредитная линия | 1 000 000 – 30 000 000 | 12–36 | 17.5 |
-
-**Цели** (`purpose`): `EQUIPMENT`, `WORKING_CAPITAL`, `CASH_GAP`, `CONTRACT`, `EXPANSION`, `OTHER`.
+**Продукты.** `WORKING_CAPITAL` — оборотный кредит (аннуитет), `OVERDRAFT` — овердрафт (проценты на использованный
+остаток + комиссия за установку лимита). Продукт выбирается по цели: «Перекрыть кассовый разрыв» → овердрафт,
+остальные цели → оборотный кредит. Диапазоны и ставки — в `ml/config/policy.yaml`.
 
 **Статусы** — см. [architecture.md §2](architecture.md#2-жизненный-цикл-заявки).
 
 ---
 
-# A. backend — клиентская часть
+# A. backend — клиент (роль `CLIENT`)
 
-### `POST /auth/login`
+### `POST /auth/login` (без токена)
 ```json
-// req
-{ "login": "sokolova", "password": "demo" }
-// 200
-{ "access_token": "eyJ...", "user": { "id": "uuid", "login": "sokolova", "role": "CLIENT", "full_name": "Соколова Анна" } }
+{ "login": "p1", "password": "demo" }
+→ { "accessToken": "eyJ...", "user": { "id": "uuid", "login": "p1", "role": "CLIENT", "name": "Ольга",
+     "company": { "inn": "631200000001", "name": "ИП Ольга · кофейня", "legalForm": "IP", "okved": "56.10",
+                  "activity": "Кофейня, ОКВЭД 56.10", "region": "Самарская область", "registrationYear": 2023,
+                  "averageMonthlyTurnover": 950000 } } }
 ```
 
-### `GET /me`
-Пользователь + его компании: `{ "user": {...}, "companies": [ { "id", "inn", "name" } ] }`.
+### `GET /me` → тот же `user`. `GET /companies/{inn}` → компания, только своя (иначе `404`).
 
-### `GET /products`
-Список продуктов из справочника.
+### `POST /intent` — разбор свободной фразы
+`{ "text": "Нужно 850 тысяч на 2 года на закупку" }` → `{ goal, amount, term, missing[], productReason, needsConfirmation, source: "LLM"|"RULES" }`
 
-### `POST /recommendations`
+### `POST /quote` — платёж на лету
+`{ goal, amount, term }` → `{ monthly, total, fullCost, rate, termMonths, disclaimer }`
+
+### Заявка — тело `ApplicationData`
 ```json
-// req
-{ "purpose": "EQUIPMENT", "amount": 1500000, "term_months": 36, "company_id": "uuid|null" }
-// 200
-{ "items": [
-  { "product_code": "EQUIPMENT", "fit": "BEST", "reason": "Подходит для покупки оборудования: срок до 5 лет и ставка ниже оборотного кредита" },
-  { "product_code": "WORKING_CAPITAL", "fit": "ALTERNATIVE", "reason": "Если оборудование стоит меньше 500 000 ₽" }
-] }
+{ "goal": "Закупить товар или материалы", "amount": 850000, "term": 24, "monthlyRevenue": 950000,
+  "hasLoans": "Да", "loanPayment": 20000, "hadOverdue2y": false, "collateral": "",
+  "consent1": true, "consent2": true, "docs": {} }
 ```
+`monthlyRevenue`, `hasLoans`, `loanPayment`, `hadOverdue2y` — ответы шага «Финансы» (шаг можно пропустить).
 
-### `GET /companies/lookup?inn=500100000002`
-Данные ЕГРЮЛ/ЕГРИП для автозаполнения.
+| Метод | Что делает | Статус до → после |
+|---|---|---|
+| `GET /applications` | Заявки своей компании, новые первыми | — |
+| `POST /applications` → `201` | Создать черновик | → `DRAFT` |
+| `GET /applications/{id}` | Заявка (объект **Application**, ниже) | — |
+| `PUT /applications/{id}` | Сохранить черновик | `DRAFT` |
+| `POST /applications/{id}/precheck` | Предоценка без БКИ (**Precheck**, ниже) | `DRAFT` |
+| `POST /applications/{id}/submit` | Отправить; нужны оба согласия. Конвейер запускается в фоне | `DRAFT` → `SUBMITTED` → `IN_REVIEW` → решение |
+| `POST /applications/{id}/documents` (multipart `file`) | Дозагрузка выписки в ту же заявку, повторная оценка | `INFO_REQUESTED` → `IN_REVIEW` |
+| `POST /applications/{id}/accept` | Принять условия (тело опционально: `{ amount, term }`) | `APPROVED`/`COUNTER_OFFER` → `OFFER_ACCEPTED` |
+| `POST /applications/{id}/decline` | Отклонить иные условия | `COUNTER_OFFER` → `DECLINED_BY_CLIENT` |
+| `POST /applications/{id}/sign` | Подписать (демо), выдача в фоне | `OFFER_ACCEPTED` → `SIGNED` → `DISBURSED` |
+| `POST /applications/{id}/withdraw` | Отозвать до решения | `SUBMITTED`/`SPECIALIST_REVIEW` → `WITHDRAWN` |
+| `POST /applications/{id}/route` | Маршрут к одобрению (**Route**, ниже) | — |
+| `POST /applications/{id}/route/recalculate` | Пересчёт: `{ "doneSteps": ["S_TAX", "O_DEBT"] }` → **Route** | — |
+| `POST /applications/{id}/assistant` | Помощник на любой стадии: `{ question, useLlm }` → `{ answer, source, topic, terms[] }`. До подачи отвечает по предоценке, на проверке и после одобрения — по стадии, при отказе — по решению и маршруту | — |
+| `GET /glossary`, `GET /glossary/{term}` | Словарь простых слов | — |
+
+### Объект **Application**
 ```json
-{ "inn": "500100000002", "legal_form": "IP", "name": "ИП Соколова Анна Сергеевна", "okved": "56.10",
-  "okved_name": "Деятельность ресторанов и услуги по доставке продуктов питания",
-  "reg_date": "2024-09-12", "status": "ACTIVE", "address": "г. Москва, ...", "head": "Соколова Анна Сергеевна" }
+{ "applicationId": "uuid", "number": "A-000001", "status": "COUNTER_OFFER", "outcome": "partial", "submitted": true,
+  "goal": "Закупить товар или материалы", "amount": 3000000, "term": 18,
+  "nextAction": "Посмотрите предложение банка", "decisionText": "Вы хотели 3 000 000 ₽ — банк может предложить 2 850 000 ₽ ...",
+  "decisionAmount": 2850000, "decisionTerm": 18, "decisionRate": 20.0, "decisionMonthly": 184575, "decisionFullCost": 500852,
+  "decisionWeather": { "rows": [ ... ], "disclaimer": "..." },
+  "reasons": ["Сумму ограничивает оборот, а не баллы", "..."],
+  "infoRequest": null, "routeAvailable": false, "assistantAvailable": true,
+  "activity": [ { "at": "2026-10-22T16:44:00+00:00", "text": "Заявка отправлена" } ] }
 ```
+`outcome` — упрощённый статус для экрана: `review | specialist | approved | partial | info | rejected | suspended`.
+При `REJECTED`, `INFO_REQUESTED`, `SUSPENDED_115FZ` суммы решения не отдаются.
 
-### `POST /applications` → `201`
-Создаёт черновик.
-```json
-// req
-{ "company_inn": "500100000002", "product_code": "EQUIPMENT", "purpose": "EQUIPMENT",
-  "amount": 1500000, "term_months": 36, "annual_revenue": 9600000, "comment": "Кофемашина La Marzocco" }
-```
-Ответ — объект **Application** (ниже).
+### Объект **Precheck**
+`{ chance: "HIGH"|"MEDIUM"|"LOW", amountLow, amountHigh, requestedAmount, reasons: [{ code, text }], text, ownerNote,
+disclaimer, validUntil, weather, goalOffers: [ LoanOffer ] }`
 
-### `PATCH /applications/{id}`
-Изменение черновика, только в `DRAFT`. Тело — любые поля из `POST` + `version`.
+`LoanOffer`: `{ kind: "REQUESTED"|"WITHIN_ESTIMATE"|"OTHER_TERM"|"OTHER_PRODUCT", product, name, amount, termMonths, rate,
+monthly, fullCost, why, chance, weather }`. Варианты упорядочены движком: первый — лучший реалистичный.
 
-### `POST /applications/{id}/precheck`
-Предварительная оценка, **не является решением** и не меняет статус.
-```json
-// req
-{ "amount": 1500000, "term_months": 36 }
-// 200
-{ "chance": "MEDIUM",
-  "estimated_rate": { "from": 18.5, "to": 21.0 },
-  "monthly_payment": 54300,
-  "hints": [
-    { "change": { "amount": 1200000 }, "chance": "HIGH", "text": "При сумме до 1 200 000 ₽ шансы высокие" },
-    { "change": { "term_months": 48 }, "chance": "HIGH", "text": "Увеличьте срок до 48 мес — платёж станет ниже" }
-  ],
-  "disclaimer": "Предварительная оценка. Итоговое решение принимает банк." }
-```
-`chance`: `HIGH` | `MEDIUM` | `LOW`.
-
-### `POST /applications/{id}/submit` → `202`
-`DRAFT → SUBMITTED`, запускает конвейер. Ответ — **Application**.
-
-### `GET /applications`
-Заявки текущего клиента: `{ "items": [ApplicationShort] }`.
-
-### `GET /applications/{id}` — объект **Application**
-```json
-{
-  "id": "uuid", "number": "SC-2026-000123", "version": 4,
-  "status": "COUNTER_OFFER",
-  "status_text": "Есть предложение — примите условия",
-  "next_action": { "actor": "CLIENT", "action": "ACCEPT_OFFER", "text": "Посмотрите предложение банка" },
-  "company": { "inn": "500100000002", "name": "ИП Соколова Анна Сергеевна" },
-  "product_code": "EQUIPMENT", "purpose": "EQUIPMENT",
-  "amount": 1500000, "term_months": 36, "annual_revenue": 9600000,
-  "timeline": [
-    { "stage": "SUBMITTED", "title": "Заявка отправлена", "state": "DONE", "at": "2026-10-20T10:00:00Z" },
-    { "stage": "CHECKING", "title": "Проверка данных", "state": "DONE", "at": "..." },
-    { "stage": "ENRICHING", "title": "Сведения о компании и кредитная история", "state": "DONE", "at": "..." },
-    { "stage": "SCORING", "title": "Оценка заявки", "state": "DONE", "at": "..." },
-    { "stage": "DECISION", "title": "Решение", "state": "CURRENT", "at": "..." },
-    { "stage": "SIGNING", "title": "Подписание", "state": "PENDING", "at": null },
-    { "stage": "DISBURSED", "title": "Выдача", "state": "PENDING", "at": null }
-  ],
-  "decision": {
-    "outcome": "COUNTER_OFFER",
-    "explanation": "Мы готовы выдать 1 200 000 ₽: при запрошенной сумме ежемесячный платёж был бы слишком высок относительно выручки.",
-    "reasons": [ { "code": "DSCR_LOW", "text": "Платёж выше допустимой доли выручки" } ],
-    "recommendations": [ "Через 6 месяцев стабильной выручки можно запросить увеличение" ]
-  },
-  "offer": { "id": "uuid", "amount": 1200000, "term_months": 36, "rate": 19.5, "monthly_payment": 44300, "status": "PENDING" },
-  "tasks": [],
-  "documents": [],
-  "created_at": "...", "updated_at": "..."
-}
-```
-`timeline[].state`: `DONE` | `CURRENT` | `PENDING` | `SKIPPED`. `decision`, `offer` — `null`, пока их нет.
-
-### `GET /applications/{id}/events`
-Полный журнал переходов: `[ { "from_status", "to_status", "actor", "reason", "at" } ]`.
-
-### `POST /applications/{id}/documents` (multipart)
-Поля: `file` (pdf/png/jpg/xlsx/csv, ≤ 10 МБ), `doc_type` (`BANK_STATEMENT`, `FINANCIAL_REPORT`, `OTHER`), `task_id?`. Ответ: `{ "id", "doc_type", "filename", "uploaded_at" }`.
-
-### `POST /tasks/{task_id}/complete`
-Клиент сообщает, что задача выполнена. Для `INFO_REQUESTED` → конвейер повторяет `SCORING`.
-
-### `POST /applications/{id}/offer/accept` · `POST /applications/{id}/offer/decline`
-`APPROVED|COUNTER_OFFER → OFFER_ACCEPTED` / `→ CANCELLED`.
-
-### `POST /applications/{id}/signature`
-`OFFER_ACCEPTED → SIGNING`. Ответ: `{ "session_id": "uuid", "demo_code": "4821", "expires_at": "..." }` — код показывается в интерфейсе вместо SMS.
-
-### `POST /applications/{id}/signature/confirm`
-`{ "session_id": "uuid", "code": "4821" }` → `SIGNED`, затем воркер → `DISBURSED`. Неверный код → `400 INVALID_CODE`.
-
-### `GET /notifications` · `POST /notifications/{id}/read`
-`{ "items": [ { "id", "application_id", "text", "read", "created_at" } ], "unread": 2 }`.
+### Объект **Route**
+`{ status: "ACTIVE"|"READY"|"NO_ROUTE", holds: "SCORE"|"STOP"|"TIME_WINDOW"|"TURNOVER"|"STOP_PERMANENT"|"NONCREDIT"|"NONE",
+basedOn: "SYSTEM"|"SPECIALIST", steps: [{ code, action, term, pointsGain, done, bkiDelayBusinessDays }], horizonText, message,
+advice[], projectedAmount, disclaimer, text }`. После решения специалиста маршрут строится от его решения.
 
 ---
 
-# B. backend — кабинет банка (роль `UNDERWRITER`)
+# B. backend — кредитный специалист (роль `SPECIALIST`)
 
-### `GET /bank/applications?status=MANUAL_REVIEW&page=1`
-`{ "items": [ { "id", "number", "company_name", "product_code", "amount", "status", "grade", "submitted_at", "sla_due_at" } ], "total": 12 }`.
+| Метод | Что делает |
+|---|---|
+| `GET /bank/queue` | Очередь `SPECIALIST_REVIEW`: `[{ applicationId, number, companyName, amount, triggers[], waitingMinutes }]` |
+| `GET /bank/applications/{id}` | Досье: всё из **Application** + `factors[{ label, points, maxPoints }]`, `stops[]`, `limits{ WORKING_CAPITAL, OVERDRAFT }`, `recommendation{ outcome, amount }`, `events[]` |
+| `GET /bank/reasons` | Справочник причин движка — специалист выбирает код только из него |
+| `POST /bank/applications/{id}/decision` → `204` | `{ outcome: "APPROVED"|"COUNTER_OFFER"|"INFO_REQUESTED"|"REJECTED", amount?, term?, reasonCode, comment }`. Код причины обязателен; решение пишется в журнал |
 
-### `GET /bank/applications/{id}` — досье
-**Application** + блоки:
-```json
-{
-  "checks": [
-    { "source": "EGRUL", "status": "OK", "summary": "Действующая, 3 года 2 мес" },
-    { "source": "BKI", "status": "WARN", "summary": "2 активных кредита, просрочка 15 дней в 2025" },
-    { "source": "FNS", "status": "OK", "summary": "Налоговой задолженности нет" }
-  ],
-  "scoring": {
-    "model_version": "scorecard-1.0", "score": 612, "pd": 0.064, "grade": "C",
-    "factors": [
-      { "feature": "company_age_months", "label": "Возраст бизнеса", "value": 38, "points": 35, "impact": "POSITIVE" },
-      { "feature": "max_dpd_12m", "label": "Макс. просрочка за 12 мес", "value": 15, "points": -40, "impact": "NEGATIVE" }
-    ]
-  },
-  "policy": { "limit": 3000000, "rate": 19.0, "triggered_rules": [ "GRADE_C_MANUAL" ] },
-  "recommendation": { "outcome": "APPROVED", "text": "Рекомендуем одобрить 3 000 000 ₽ при подтверждении выручки выпиской" },
-  "events": [ ... ]
-}
-```
+Триггеры попадания к специалисту: `AMOUNT_ABOVE_2M`, `BORDERLINE_SCORE`, `MISMATCH_UNRESOLVED`, `CLIENT_DISPUTE`,
+а также ошибка движка при автоматической оценке.
 
-### `POST /bank/applications/{id}/decision`
-Только из `MANUAL_REVIEW`.
-```json
-{ "outcome": "APPROVED", "amount": 3000000, "term_months": 24, "rate": 19.0, "comment": "Выручка подтверждена выпиской" }
-```
-`outcome`: `APPROVED` | `COUNTER_OFFER` | `REJECTED`. Для `REJECTED` поле `reasons: [code]` обязательно.
+# B2. backend — администратор (роль `ADMIN`)
 
-### `POST /bank/applications/{id}/info-requests`
-`{ "doc_type": "BANK_STATEMENT", "description": "Выписка по расчётному счёту за 6 месяцев" }` → создаётся задача клиенту, статус `INFO_REQUESTED`.
-
-### `POST /admin/demo/reset` (роль `ADMIN`)
-Пересоздаёт демо-данные.
+| Метод | Что делает |
+|---|---|
+| `GET /admin/system` | `{ backend, ml, llm{ enabled, ready, model }, policyVersion }` |
+| `GET /admin/applications` | Все заявки: `[{ applicationId, number, companyName, amount, status, outcome, decidedBy }]` |
+| `POST /admin/demo/reset` → `204` | Удалить все заявки и события; учётки остаются |
 
 ---
 
@@ -347,28 +264,27 @@ LLM только пересказывает шаблон; ответ с новы
 
 ---
 
-# D. mocks — внешние системы (`http://mocks:8002`)
+# D. Внешние системы — моки
 
-Ответы детерминированы по ИНН (персонажи — в [concept.md](concept.md#демо-персонажи)). Неизвестный ИНН генерирует «средний» профиль по хэшу ИНН. ИНН, оканчивающийся на `99`, отвечает `503` на первый запрос — для демонстрации ретраев.
-
-| Метод | Ответ |
-|---|---|
-| `GET /egrul/{inn}` | `{ inn, legal_form, name, okved, okved_name, reg_date, status: ACTIVE\|LIQUIDATED\|BANKRUPT, address, head }` |
-| `GET /bki/{inn}` | `{ active_loans_count, existing_monthly_payments, max_dpd_12m, overdue_count_12m, loans: [ { lender, amount, monthly_payment, dpd } ] }` |
-| `GET /fns/{inn}` | `{ tax_debt, mass_address, mass_director, reported_revenue_last_year }` |
-| `POST /esign/sessions` | `{ session_id, demo_code, expires_at }` |
-| `POST /esign/sessions/{id}/confirm` | `{ code }` → `{ signed: true, signed_at }` |
-| `POST /abs/disbursements` | `{ application_id, amount, account }` → `{ operation_id, status: "DONE", executed_at }` |
-| `GET /health` | `{ status: "ok" }` |
+Отдельного сервиса нет: кейс требует автономности, поэтому ответы ЕГРЮЛ/ЕГРИП, счёта, ФНС/ФССП, БКИ и ЗСК
+детерминированно заданы для каждой демо-компании в [ml/fixtures/personas.json](../ml/fixtures/personas.json) и
+подставляются бэкендом при сборке анкеты для движка (`backend/app/services/applicants.py`). До подачи берутся только
+реестры и счёт, владелец — со слов клиента; БКИ и ЗСК — только после подачи. Подписание и выдача смоделированы сменой
+статуса. Перечень смоделированных интеграций — в [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
 
 ---
 
 ## Демо-учётки (сиды)
 
-| Логин / пароль | Роль | Компании |
-|---|---|---|
-| `sokolova` / `demo` | CLIENT | ИП Соколова (500100000002) |
-| `vector` / `demo` | CLIENT | ООО «Вектор», ООО «Ритм» |
-| `stroy` / `demo` | CLIENT | ООО «СтройМонтаж», ИП Ким, ООО «Альтаир» |
-| `underwriter` / `demo` | UNDERWRITER | — |
-| `admin` / `demo` | ADMIN | — |
+Пароль у всех — `demo`. Одна учётка клиента — одна компания.
+
+| Логин | Роль | Компания (ИНН) | Путь |
+|---|---|---|---|
+| `p1` | CLIENT | ИП Ольга, кофейня (`631200000001`) | A — одобрение |
+| `p2` | CLIENT | ООО «Полка» (`771500000002`) | B + G — специалист, иные условия |
+| `p3` | CLIENT | ИП Тимур, автосервис (`026800000003`) | F → D — отказ, маршрут |
+| `p4` | CLIENT | ИП Марина, студия маникюра (`540600000004`) | E — отказ без быстрого пути |
+| `p5` | CLIENT | ИП Андрей, стройматериалы (`662300000005`) | C — нужны данные → одобрено |
+| `zsk` | CLIENT | ООО «Северный Контур» (`770100000099`) | H — 115-ФЗ |
+| `specialist` | SPECIALIST | — | очередь и решения |
+| `admin` | ADMIN | — | состояние и сброс демо |

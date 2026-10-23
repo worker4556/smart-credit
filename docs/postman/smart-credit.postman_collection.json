@@ -1,0 +1,2192 @@
+{
+  "info": {
+    "name": "Smart Credit — «Маршрут к одобрению»",
+    "_postman_id": "8f6c1d7e-5b8a-4c39-9a51-2c9f0f6e1a01",
+    "description": "Сквозные сценарии из docs/test-scenarios.md. Запускайте папки по порядку (Runner) или по одному запросу. baseUrl по умолчанию — через nginx фронта. Пароль всех демо-учёток: demo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1"
+    },
+    {
+      "key": "mlUrl",
+      "value": "http://localhost:8001"
+    },
+    {
+      "key": "clientToken",
+      "value": ""
+    },
+    {
+      "key": "specialistToken",
+      "value": ""
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "applicationId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Сервисы",
+      "item": [
+        {
+          "name": "backend health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/health",
+              "host": [
+                "http://localhost:8000"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "ml health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mlUrl}}/health",
+              "host": [
+                "{{mlUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "ml: справочник причин",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mlUrl}}/v1/reasons",
+              "host": [
+                "{{mlUrl}}"
+              ],
+              "path": [
+                "v1",
+                "reasons"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. P1 Ольга — одобрение до выдачи (путь A)",
+      "item": [
+        {
+          "name": "Вход p1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"p1\",\n  \"password\": \"demo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"clientToken\", pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Профиль и компания (ИНН из учётки)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"ИНН 631200000001\", () => { const j = pm.response.json(); pm.expect(j.company.inn === \"631200000001\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Разбор фразы",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/intent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "intent"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Нужно 850 тысяч на 2 года на закупку к сезону\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"850 000 ₽ на 24 мес.\", () => { const j = pm.response.json(); pm.expect(j.amount === 850000 && j.term === 24).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Черновик",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"goal\": \"Закупить товар или материалы\",\n  \"amount\": 850000,\n  \"term\": 24,\n  \"monthlyRevenue\": 950000,\n  \"hasLoans\": \"Да\",\n  \"loanPayment\": 20000,\n  \"hadOverdue2y\": false,\n  \"collateral\": \"\",\n  \"consent1\": true,\n  \"consent2\": true,\n  \"docs\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"applicationId\", pm.response.json().applicationId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Расчёт платежа",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quote"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"goal\": \"Закупить товар или материалы\",\n  \"amount\": 850000,\n  \"term\": 24\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"43 261 ₽ в месяц\", () => { const j = pm.response.json(); pm.expect(j.monthly === 43261).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Предоценка",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/precheck",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "precheck"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"шанс высокий\", () => { const j = pm.response.json(); pm.expect(j.chance === \"HIGH\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Отправить",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "submit"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"goal\": \"Закупить товар или материалы\",\n  \"amount\": 850000,\n  \"term\": 24,\n  \"monthlyRevenue\": 950000,\n  \"hasLoans\": \"Да\",\n  \"loanPayment\": 20000,\n  \"hadOverdue2y\": false,\n  \"collateral\": \"\",\n  \"consent1\": true,\n  \"consent2\": true,\n  \"docs\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Статус → APPROVED",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// ждём фоновый конвейер банка",
+                  "setTimeout(() => {}, 4000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"850 000 ₽, полная стоимость 196 774 ₽\", () => { const j = pm.response.json(); pm.expect(j.status === \"APPROVED\" && j.decisionAmount === 850000 && j.decisionFullCost === 196774).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Принять условия",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "accept"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подписать",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/sign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "sign"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Статус → DISBURSED",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// ждём фоновый конвейер банка",
+                  "setTimeout(() => {}, 4000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"деньги перечислены\", () => { const j = pm.response.json(); pm.expect(j.status === \"DISBURSED\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. P2 «Полка» — специалист и иные условия (пути B + G)",
+      "item": [
+        {
+          "name": "Вход p2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"p2\",\n  \"password\": \"demo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"clientToken\", pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Черновик 3 000 000 ₽",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"goal\": \"Закупить товар или материалы\",\n  \"amount\": 3000000,\n  \"term\": 18,\n  \"monthlyRevenue\": 1900000,\n  \"hasLoans\": \"Да\",\n  \"loanPayment\": 50000,\n  \"hadOverdue2y\": false,\n  \"collateral\": \"\",\n  \"consent1\": true,\n  \"consent2\": true,\n  \"docs\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"applicationId\", pm.response.json().applicationId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Предоценка",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/precheck",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "precheck"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"вилка 2,55–2,85 млн\", () => { const j = pm.response.json(); pm.expect(j.chance === \"MEDIUM\" && j.amountLow === 2550000 && j.amountHigh === 2850000).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Отправить",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "submit"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"goal\": \"Закупить товар или материалы\",\n  \"amount\": 3000000,\n  \"term\": 18,\n  \"monthlyRevenue\": 1900000,\n  \"hasLoans\": \"Да\",\n  \"loanPayment\": 50000,\n  \"hadOverdue2y\": false,\n  \"collateral\": \"\",\n  \"consent1\": true,\n  \"consent2\": true,\n  \"docs\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Статус → SPECIALIST_REVIEW",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// ждём фоновый конвейер банка",
+                  "setTimeout(() => {}, 4000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"у специалиста\", () => { const j = pm.response.json(); pm.expect(j.status === \"SPECIALIST_REVIEW\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Вход specialist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"specialist\",\n  \"password\": \"demo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"specialistToken\", pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Очередь",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bank/queue",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank",
+                "queue"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{specialistToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"триггер AMOUNT_ABOVE_2M\", () => { const j = pm.response.json(); pm.expect(j.some(i => i.triggers.includes(\"AMOUNT_ABOVE_2M\"))).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Досье",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bank/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank",
+                "applications",
+                "{{applicationId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{specialistToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"72 балла; овердрафт при тех же баллах 760 000 ₽\", () => { const j = pm.response.json(); pm.expect(j.factors.reduce((s,f)=>s+f.points,0) === 72 && j.limits.OVERDRAFT === 760000).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Решение: иные условия, код L_TURNOVER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bank/applications/{{applicationId}}/decision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank",
+                "applications",
+                "{{applicationId}}",
+                "decision"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{specialistToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outcome\": \"COUNTER_OFFER\",\n  \"amount\": 2850000,\n  \"term\": 18,\n  \"reasonCode\": \"L_TURNOVER\",\n  \"comment\": \"Сумму держит оборот\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Клиент видит «хотели — можем»",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3 000 000 → 2 850 000 ₽, 184 575 ₽/мес.\", () => { const j = pm.response.json(); pm.expect(j.status === \"COUNTER_OFFER\" && j.amount === 3000000 && j.decisionAmount === 2850000 && j.decisionMonthly === 184575).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Маршрут от решения специалиста",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/route",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "route"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"держит оборот, а не баллы\", () => { const j = pm.response.json(); pm.expect(j.basedOn === \"SPECIALIST\" && j.holds === \"TURNOVER\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. P3 Тимур — отказ, маршрут, пересчёт (пути F → D)",
+      "item": [
+        {
+          "name": "Вход p3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"p3\",\n  \"password\": \"demo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"clientToken\", pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Черновик",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"goal\": \"Закупить товар или материалы\",\n  \"amount\": 1200000,\n  \"term\": 24,\n  \"monthlyRevenue\": 750000,\n  \"hasLoans\": \"Да\",\n  \"loanPayment\": 25000,\n  \"hadOverdue2y\": true,\n  \"collateral\": \"\",\n  \"consent1\": true,\n  \"consent2\": true,\n  \"docs\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"applicationId\", pm.response.json().applicationId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Предоценка",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/precheck",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "precheck"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"шанс низкий, первая причина S_TAX\", () => { const j = pm.response.json(); pm.expect(j.chance === \"LOW\" && j.reasons[0].code === \"S_TAX\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Отправить",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "submit"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"goal\": \"Закупить товар или материалы\",\n  \"amount\": 1200000,\n  \"term\": 24,\n  \"monthlyRevenue\": 750000,\n  \"hasLoans\": \"Да\",\n  \"loanPayment\": 25000,\n  \"hadOverdue2y\": true,\n  \"collateral\": \"\",\n  \"consent1\": true,\n  \"consent2\": true,\n  \"docs\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Статус → REJECTED",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// ждём фоновый конвейер банка",
+                  "setTimeout(() => {}, 4000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"отказ\", () => { const j = pm.response.json(); pm.expect(j.status === \"REJECTED\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Маршрут",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/route",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "route"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3 шага, ~3 мес.\", () => { const j = pm.response.json(); pm.expect(j.horizonText === \"~3 мес.\" && j.steps.length === 3).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Пересчёт после двух шагов",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/route/recalculate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "route",
+                "recalculate"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"doneSteps\": [\n    \"S_TAX\",\n    \"O_DEBT\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"остался шаг «вся выручка через один счёт»\", () => { const j = pm.response.json(); pm.expect(j.steps.length === 1 && j.steps[0].code === \"B_TURNOVER\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Помощник: почему отказали",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/assistant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "assistant"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Почему отказали?\",\n  \"useLlm\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. P5 Андрей — нужны данные → одобрено (путь C)",
+      "item": [
+        {
+          "name": "Вход p5",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"p5\",\n  \"password\": \"demo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"clientToken\", pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Черновик овердрафт 300 000 ₽",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"goal\": \"Перекрыть кассовый разрыв\",\n  \"amount\": 300000,\n  \"term\": 12,\n  \"monthlyRevenue\": 900000,\n  \"hasLoans\": \"Да\",\n  \"loanPayment\": 20000,\n  \"hadOverdue2y\": false,\n  \"collateral\": \"\",\n  \"consent1\": true,\n  \"consent2\": true,\n  \"docs\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"applicationId\", pm.response.json().applicationId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Предоценка",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/precheck",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "precheck"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"потолок 220 000 ₽, D_MISMATCH\", () => { const j = pm.response.json(); pm.expect(j.amountHigh === 220000 && j.reasons[0].code === \"D_MISMATCH\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Отправить",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "submit"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"goal\": \"Перекрыть кассовый разрыв\",\n  \"amount\": 300000,\n  \"term\": 12,\n  \"monthlyRevenue\": 900000,\n  \"hasLoans\": \"Да\",\n  \"loanPayment\": 20000,\n  \"hadOverdue2y\": false,\n  \"collateral\": \"\",\n  \"consent1\": true,\n  \"consent2\": true,\n  \"docs\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Статус → INFO_REQUESTED",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// ждём фоновый конвейер банка",
+                  "setTimeout(() => {}, 4000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"запрошена выписка со сроком\", () => { const j = pm.response.json(); pm.expect(j.status === \"INFO_REQUESTED\" && !!j.infoRequest).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Загрузить выписку (docs/demo-files/vypiska-p5-demo.pdf)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "docs/demo-files/vypiska-p5-demo.pdf"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "documents"
+              ]
+            },
+            "description": "В Postman выберите файл docs/demo-files/vypiska-p5-demo.pdf, если путь не подставился."
+          }
+        },
+        {
+          "name": "Статус → APPROVED 300 000 ₽",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// ждём фоновый конвейер банка",
+                  "setTimeout(() => {}, 4000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"300 000 ₽, 5 425 ₽/мес.\", () => { const j = pm.response.json(); pm.expect(j.status === \"APPROVED\" && j.decisionAmount === 300000 && j.decisionMonthly === 5425).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. ZSK — приостановка по 115-ФЗ (путь H)",
+      "item": [
+        {
+          "name": "Вход zsk",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"zsk\",\n  \"password\": \"demo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"clientToken\", pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Черновик",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"goal\": \"Закупить товар или материалы\",\n  \"amount\": 1000000,\n  \"term\": 12,\n  \"monthlyRevenue\": 1500000,\n  \"hasLoans\": \"Нет\",\n  \"loanPayment\": 0,\n  \"hadOverdue2y\": false,\n  \"collateral\": \"\",\n  \"consent1\": true,\n  \"consent2\": true,\n  \"docs\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"applicationId\", pm.response.json().applicationId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Отправить",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "submit"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"goal\": \"Закупить товар или материалы\",\n  \"amount\": 1000000,\n  \"term\": 12,\n  \"monthlyRevenue\": 1500000,\n  \"hasLoans\": \"Нет\",\n  \"loanPayment\": 0,\n  \"hadOverdue2y\": false,\n  \"collateral\": \"\",\n  \"consent1\": true,\n  \"consent2\": true,\n  \"docs\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Статус → SUSPENDED_115FZ",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// ждём фоновый конвейер банка",
+                  "setTimeout(() => {}, 4000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"отдельный статус, маршрута нет\", () => { const j = pm.response.json(); pm.expect(j.status === \"SUSPENDED_115FZ\" && j.routeAvailable === false).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Администратор",
+      "item": [
+        {
+          "name": "Вход admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"admin\",\n  \"password\": \"demo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"adminToken\", pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Состояние сервисов",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/system",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "system"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"ml ok\", () => { const j = pm.response.json(); pm.expect(j.ml === \"ok\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Все заявки",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "applications"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Сбросить демо-данные (удаляет все заявки!)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/demo/reset",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "demo",
+                "reset"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "description": "⚠️ Последний запрос удаляет ВСЕ заявки (сброс демо). Не запускайте во время показа: открытые вкладки клиентов переключатся на новую заявку."
+    }
+  ]
+}
