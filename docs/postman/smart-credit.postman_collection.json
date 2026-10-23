@@ -1449,7 +1449,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"остался шаг «вся выручка через один счёт»\", () => { const j = pm.response.json(); pm.expect(j.steps.length === 1 && j.steps[0].code === \"B_TURNOVER\").to.be.true; });"
+                  "pm.test(\"остался шаг «вся выручка через один счёт», выполненные сохранены\", () => { const j = pm.response.json(); const left = j.steps.filter(s => !s.done).map(s => s.code); const done = j.steps.filter(s => s.done).map(s => s.code); pm.expect(left).to.eql([\"B_TURNOVER\"]); pm.expect(done).to.include.members([\"S_TAX\", \"O_DEBT\"]); });"
                 ]
               }
             }
