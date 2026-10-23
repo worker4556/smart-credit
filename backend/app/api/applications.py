@@ -127,6 +127,9 @@ def precheck_application(
         "text": text,
         "valid_until": result.valid_until.isoformat(),
     }
+    # Новая предоценка (сумма, срок, ответы) — маршрут черновика пересчитаем от неё
+    application.route = None
+    application.route_text = None
     application.updated_at = datetime.now(timezone.utc)
     session.add(application)
     session.commit()
@@ -300,7 +303,7 @@ def _route_data(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Нет демо-данных компании",
         )
-    applicant = build_applicant(application, persona, stage="DECISION")
+    applicant = build_applicant(application, persona, stage=service.route_stage(application))
     try:
         payload = ml.route(
             {

@@ -20,6 +20,7 @@ import { formatMoney } from "../utils/format";
 
 interface LandingPageProps {
   userName?: string;
+  onOpenRoute?: () => void;
   application?: ApplicationData;
   onStart: () => void;
   onProfile: () => void;
@@ -74,7 +75,7 @@ function routeVariants(steps: RouteStep[]): RouteVariant[] {
   ].filter((v) => v.steps.length > 0);
 }
 
-function useMetrics(app?: ApplicationData) {
+export function useMetrics(app?: ApplicationData) {
   return useMemo(() => {
     if (!app) return null;
     const decided = ["approved", "partial"].includes(app.outcome) && app.decisionAmount;
@@ -94,6 +95,7 @@ function useMetrics(app?: ApplicationData) {
       goal: app.goal,
       variants: routeVariants(app.route?.steps ?? []),
       steps: app.route?.steps ?? [],
+      holds: app.route?.holds,
       projected: app.route?.projectedAmount ?? null,
       horizon: app.route?.horizonText,
       offers: app.goalOffers ?? precheck?.goalOffers ?? [],
@@ -108,7 +110,7 @@ function useMetrics(app?: ApplicationData) {
 const TRAIL = "M390 588 C540 620 660 624 800 590 S1020 505 1165 480 S1280 385 1388 188";
 const clamp = (x: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x));
 
-type Metrics = ReturnType<typeof useMetrics>;
+export type Metrics = ReturnType<typeof useMetrics>;
 
 /** Положение на тропе (0 — подножие, 1 — вершина): старт — сумма, доступная сейчас, финиш — прогноз маршрута.
  *  Шаги маршрута стоят привалами между ними; каждый выполненный шаг поднимает альпиниста к следующему привалу. */
@@ -118,14 +120,17 @@ function trailPlan(m: NonNullable<Metrics>) {
   const finish = steps.length ? clamp(Math.max((m.projected ?? m.summit) / m.summit, start + 0.25), 0, 1) : start;
   const at = (i: number) => start + (finish - start) * (i / Math.max(steps.length, 1));
   const done = steps.filter((s) => s.done).length;
+  // Временное окно (просрочка 90+, молодой бизнес): ускорить нельзя — альпинист стоит у подножия, без анимации
+  const still = m.holds === "TIME_WINDOW";
   return {
-    climber: steps.length ? at(done) : start,
+    still,
+    climber: steps.length && !still ? at(done) : start,
     stops: steps.map((s, i) => ({ t: at(i + 1), done: s.done, text: s.action })),
     done, total: steps.length,
   };
 }
 
-function MountainRoute({ metrics }: { metrics: Metrics }) {
+export function MountainRoute({ metrics }: { metrics: Metrics }) {
   const pathRef = useRef<SVGPathElement>(null);
   const [, setMounted] = useState(false);
   // Координаты считаются по самой тропе; после монтирования — перерисовка, когда элемент уже в DOM
@@ -141,10 +146,11 @@ function MountainRoute({ metrics }: { metrics: Metrics }) {
   const hiker = point(plan?.climber ?? 0);
   const summit = point(1);
   const label = metrics
-    ? plan && plan.total ? `Шагов пройдено: ${plan.done} из ${plan.total}` : `Доступно: ${formatMoney(metrics.height)}`
+    ? plan?.still ? `Ускорить нельзя${metrics.horizon ? ` · ${metrics.horizon.replace(/,?\s*ускорить нельзя/i, "")}` : ""}`
+      : plan && plan.total ? `Шагов пройдено: ${plan.done} из ${plan.total}` : `Доступно: ${formatMoney(metrics.height)}`
     : "Вы здесь";
 
-  return <svg className="landing-route-overlay" viewBox="0 0 1774 887" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  return <svg className={plan?.still ? "landing-route-overlay trail-still" : "landing-route-overlay"} viewBox="0 0 1774 887" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
     <defs>
       <filter id="trail-shadow" x="-50%" y="-50%" width="200%" height="200%">
         <feDropShadow dx="0" dy="6" stdDeviation="8" floodColor="#0b1f2c" floodOpacity=".28" />
@@ -306,7 +312,7 @@ function ConditionsBar({ season, onDetails }: { season: Season; onDetails: () =>
   </Paper>;
 }
 
-export default function LandingPage({ userName, application, onStart, onProfile, onLogout, onHome }: LandingPageProps) {
+export default function LandingPage({ userName, application, onStart, onProfile, onLogout, onHome, onOpenRoute }: LandingPageProps) {
   const [season, setSeason] = useState<Season>(initialSeason);
   const [panel, setPanel] = useState<"metrics" | "conditions" | null>(null);
   const metrics = useMetrics(application);
@@ -342,7 +348,7 @@ export default function LandingPage({ userName, application, onStart, onProfile,
 
       </Box>
 
-      {metrics ? <RouteDashboard metrics={metrics} credit={credit} onOpenRoute={() => setPanel("metrics")} /> : <Box className="landing-benefits">
+      {metrics ? <RouteDashboard metrics={metrics} credit={credit} onOpenRoute={() => (application?.route && onOpenRoute ? onOpenRoute() : setPanel("metrics"))} /> : <Box className="landing-benefits">
         {benefits.map((benefit) => <Paper key={benefit.title} className="landing-benefit">
           <Box className="landing-benefit-icon">{benefit.icon}</Box>
           <Typography fontWeight={800}>{benefit.title}</Typography>
@@ -398,7 +404,8 @@ export default function LandingPage({ userName, application, onStart, onProfile,
           {metrics.horizon && <Typography className="landing-metric-note">Ориентир: {metrics.horizon}. Это не обещание одобрения.</Typography>}
         </Paper>
 
-        <Button variant="contained" endIcon={<ArrowForward />} onClick={() => { close(); onStart(); }}>Открыть заявку</Button>
+        {application?.route && onOpenRoute && <Button variant="contained" endIcon={<ArrowForward />} onClick={() => { close(); onOpenRoute(); }}>Открыть маршрут</Button>}
+        <Button variant={application?.route && onOpenRoute ? "outlined" : "contained"} endIcon={<ArrowForward />} onClick={() => { close(); onStart(); }}>Открыть заявку</Button>
       </Box>}
     </Drawer>
 

@@ -266,3 +266,33 @@ def test_route_done_steps_reads_saved_marks() -> None:
     )
 
     assert route_done_steps(application) == ["S_TAX", "O_DEBT"]
+
+
+def test_draft_route_uses_precheck_data_without_bki() -> None:
+    from app.services.applications import route_stage
+
+    persona = get_persona_by_key("P3")
+    assert persona is not None
+    draft = application()
+    assert route_stage(draft) == "PRECHECK"
+    applicant = build_applicant(draft, persona, route_stage(draft))
+    assert applicant["owner"]["source"] == "SELF_REPORTED"     # ответы клиента, не бюро
+    assert "zsk_level" not in applicant["company"]              # ЗСК до подачи неизвестен
+
+    submitted = application()
+    submitted.status = "REJECTED"
+    assert route_stage(submitted) == "DECISION"
+    assert build_applicant(submitted, persona, route_stage(submitted))["owner"]["source"] == "BKI"
+
+
+def test_done_steps_stay_in_route_after_recalculation() -> None:
+    from app.services.applications import merge_done_steps
+
+    before = [{"code": "S_TAX", "action": "Погасить ЕНС"}, {"code": "O_DEBT", "action": "Кредитки"},
+              {"code": "B_TURNOVER", "action": "Выручка через счёт"}]
+    after = [{"code": "B_TURNOVER", "action": "Выручка через счёт"}]          # ML вернул только оставшийся шаг
+    merged = merge_done_steps(before, after, ["S_TAX", "O_DEBT"])
+    assert [s["code"] for s in merged] == ["S_TAX", "O_DEBT", "B_TURNOVER"]
+    # снятая отметка — шаг возвращается от ML, дубля нет
+    again = merge_done_steps(merged, [{"code": "O_DEBT"}, {"code": "B_TURNOVER"}], ["S_TAX"])
+    assert [s["code"] for s in again] == ["S_TAX", "O_DEBT", "B_TURNOVER"]

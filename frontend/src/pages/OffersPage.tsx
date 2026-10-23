@@ -80,7 +80,11 @@ export default function OffersPage({
   chosen,
   setToast: _setToast,
   onChoose,
+  onOpenRoute,
 }: OffersPageProps) {
+  // Стоп-фактор в предоценке: подавать заявку бессмысленно — основное действие «Открыть маршрут без подачи»
+  const hasStop = (data.precheck?.reasons ?? []).some((reason) => reason.code?.startsWith("S_"));
+  const showRoute = Boolean(onOpenRoute) && needsRoute(data.precheck, data.amount);
   return (
     <>
       <StepTitle
@@ -136,6 +140,16 @@ export default function OffersPage({
                   </Box>
                 );
               })}
+              {showRoute && (
+                <Button variant={hasStop ? "contained" : "outlined"} className="open-route-btn" endIcon={<ArrowForward />} onClick={onOpenRoute}>
+                  Открыть маршрут без подачи
+                </Button>
+              )}
+              {showRoute && (
+                <Typography variant="body2" color="text.secondary">
+                  Заявка не создаётся и бюро кредитных историй не запрашивается — маршрут считается по предварительной оценке.
+                </Typography>
+              )}
             </Box>
           )}
           <Typography className="precheck-explanation">{data.precheck.text}</Typography>
@@ -249,8 +263,13 @@ export default function OffersPage({
               Налоговая отчетность
             </Box>
           </Stack>
+          {showRoute && hasStop && (
+            <Button variant="contained" fullWidth endIcon={<ArrowForward />} onClick={onOpenRoute}>
+              Открыть маршрут без подачи
+            </Button>
+          )}
           <Button
-            variant="contained"
+            variant={showRoute && hasStop ? "outlined" : "contained"}
             fullWidth
           onClick={() => void onChoose()}
             endIcon={<ArrowForward />}

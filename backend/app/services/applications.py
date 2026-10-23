@@ -157,6 +157,8 @@ def save_route(
     done_steps: list[str],
 ) -> Application:
     route = dict(payload)
+    previous = (application.route or {}).get("steps") if isinstance(application.route, dict) else None
+    route["steps"] = merge_done_steps(previous or [], payload.get("steps") or [], done_steps)
     route["_done"] = list(dict.fromkeys(done_steps))
     application.route = route
     application.route_text = text
@@ -165,6 +167,23 @@ def save_route(
     session.commit()
     session.refresh(application)
     return application
+
+
+def merge_done_steps(previous: list[Any], current: list[Any], done_steps: list[str]) -> list[Any]:
+    """ML после пересчёта возвращает только оставшиеся шаги. Выполненные шаги сохраняем в маршруте
+    (в прежнем порядке, перед оставшимися), чтобы при следующем входе клиент видел свой прогресс."""
+    done = set(done_steps)
+    current_codes = {str(step.get("code")) for step in current if isinstance(step, dict)}
+    kept = [
+        step for step in previous
+        if isinstance(step, dict) and str(step.get("code")) in done and str(step.get("code")) not in current_codes
+    ]
+    return kept + list(current)
+
+
+def route_stage(application: Application) -> str:
+    """Маршрут черновика — по предоценке (ответы клиента, без бюро), после подачи — по данным решения."""
+    return "PRECHECK" if application.status == "DRAFT" else "DECISION"
 
 
 def route_done_steps(application: Application) -> list[str]:
@@ -190,6 +209,9 @@ def submit_application(
         )
     application.data = data.model_dump()
     application.version += 1
+    # Маршрут черновика строился по словам клиента; после решения банка он строится заново
+    application.route = None
+    application.route_text = None
     change_status(
         session,
         application,

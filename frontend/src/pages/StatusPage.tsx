@@ -71,6 +71,7 @@ export default function StatusPage({
   withdrawApplication,
   onNewApplication,
   recalculateRoute,
+  onOpenRoute,
 }: StatusPageProps) {
   const byStatus = data.status ? statusOverride[data.status] : undefined;
   const [baseTitle, summary] = byStatus ?? statusCopy[data.outcome];
@@ -292,6 +293,9 @@ export default function StatusPage({
             <Typography className="precheck-disclaimer">
               {data.route?.disclaimer}
             </Typography>
+            {onOpenRoute && data.route?.status !== "NO_ROUTE" && data.route?.holds !== "STOP_PERMANENT" && (
+              <Button variant="contained" className="open-route-btn" onClick={onOpenRoute}>Открыть маршрут</Button>
+            )}
           </Box>
         </Paper>
       )}
