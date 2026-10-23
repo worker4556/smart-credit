@@ -47,26 +47,26 @@ export default function DocumentsPage({
   next,
   uploadFile,
 }: DocumentsPageProps) {
-  const requiredDocumentsUploaded = Boolean(data.docs.passport && data.docs.tax);
+  const uploadedDocuments = Object.values(data.docs).filter(Boolean).length;
   return (
     <>
       <StepTitle
         eyebrow="ШАГ 5 ИЗ 6 · ДОКУМЕНТЫ"
-        title="Нужны только эти документы"
-        subtitle="Все остальное мы уже получили сами. Можно загрузить сейчас или вернуться позже."
+        title="Документы для заявки"
+        subtitle="При желании приложите паспорт руководителя и налоговую отчетность. Продолжить можно и без них."
       />
       <Paper className="docs-panel">
         <Box className="docs-progress">
           <Box>
             <Typography className="eyebrow">ГОТОВНОСТЬ ДОКУМЕНТОВ</Typography>
             <Typography fontWeight={800}>
-              {Object.values(data.docs).filter(Boolean).length + 2} из 4 готово
+              {uploadedDocuments + 2} из 4 готово
             </Typography>
           </Box>
           <LinearProgress
             variant="determinate"
             value={
-              ((2 + Object.values(data.docs).filter(Boolean).length) / 4) * 100
+              ((2 + uploadedDocuments) / 4) * 100
             }
           />
         </Box>
@@ -141,16 +141,15 @@ export default function DocumentsPage({
           Документы передаются по защищенному соединению и доступны только
           банку.
         </Alert>
-        {!requiredDocumentsUploaded && <Alert severity="warning" className="required-docs-alert">
-          Чтобы продолжить, загрузите паспорт руководителя и налоговую отчетность.
-        </Alert>}
+        <Alert severity="info" className="required-docs-alert">
+          Загрузка документов необязательна. Банк может запросить их позднее, если они понадобятся для рассмотрения.
+        </Alert>
       </Paper>
       <FooterNav
         onBack={() => next(3)}
         onNext={() => next(5)}
         next="Дальше"
-        disabled={!requiredDocumentsUploaded}
-        note={requiredDocumentsUploaded ? "Обязательные документы загружены" : "Загрузите паспорт и налоговую отчетность"}
+        note={uploadedDocuments ? `Загружено файлов: ${uploadedDocuments}` : "Этот шаг можно пропустить"}
       />
     </>
   );

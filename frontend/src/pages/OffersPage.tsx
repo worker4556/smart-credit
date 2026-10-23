@@ -59,6 +59,16 @@ function minIndex(offers: LoanOffer[], key: "monthly" | "fullCost"): number {
   });
   return best;
 }
+
+function displayMoney(value: string | number | undefined): string {
+  if (typeof value === "number") return money(value);
+  if (value && /^\s*[\d\s.,]+\s*(₽|руб\.?|р\.)?\s*$/i.test(value)) {
+    const amount = Number(value.replace(/[^\d]/g, ""));
+    if (Number.isFinite(amount)) return money(amount);
+  }
+  return value ?? "—";
+}
+
 export default function OffersPage({
   data,
   update,
@@ -83,7 +93,7 @@ export default function OffersPage({
           <Box className="precheck-amounts">
             <Box>
               <Typography className="eyebrow">ТЕКУЩАЯ ВЫСОТА</Typography>
-              <Typography variant="h5" fontWeight={800}>
+              <Typography className="precheck-value">
                 {data.precheck.amountHigh > 0
                   ? `${money(data.precheck.amountLow)} — ${money(data.precheck.amountHigh)}`
                   : "Пока недоступно"}
@@ -91,15 +101,15 @@ export default function OffersPage({
             </Box>
             <Box>
               <Typography className="eyebrow">ВАША ВЕРШИНА</Typography>
-              <Typography variant="h5" fontWeight={800}>
+              <Typography className="precheck-value">
                 {money(data.amount)}
               </Typography>
             </Box>
             <Box>
               <Typography className="eyebrow">ПРЕДВАРИТЕЛЬНЫЙ ШАНС</Typography>
               <Chip
-                label={chanceLabel[data.precheck.chance] ?? data.precheck.chance}
-                className={`tone-chip tone-${chanceTone[data.precheck.chance] ?? "amber"}`}
+                label={chanceLabel[data.precheck.chance?.toUpperCase()] ?? data.precheck.chance}
+                className={`tone-chip tone-${chanceTone[data.precheck.chance?.toUpperCase()] ?? "amber"}`}
               />
             </Box>
           </Box>
@@ -128,9 +138,7 @@ export default function OffersPage({
               })}
             </Box>
           )}
-          <Typography className="precheck-explanation">
-            {data.precheck.text}
-          </Typography>
+          <Typography className="precheck-explanation">{data.precheck.text}</Typography>
           {data.precheck.ownerNote && (
             <Alert severity="info" className="owner-note">
               {data.precheck.ownerNote}
@@ -159,12 +167,12 @@ export default function OffersPage({
           {goalOffers.map((o, i) => {
             const lowestPayment = goalOffers.length > 1 && i === minIndex(goalOffers, "monthly") && i !== 0;
             const lowestCost = goalOffers.length > 1 && i === minIndex(goalOffers, "fullCost") && i !== 0;
-            const amountText = typeof o.amount === "number" ? money(o.amount) : o.amount;
+            const amountText = displayMoney(o.amount);
             const detail = o.detail ?? [
               o.termMonths ? `${o.termMonths} мес.` : null,
               o.rate != null ? `ставка ${o.rate}%` : null,
-              o.monthly ? `платёж ${money(o.monthly)}/мес.` : null,
-              o.fullCost ? `переплата ${money(o.fullCost)}` : null,
+                o.monthly ? `платёж ${money(o.monthly)}/мес.` : null,
+                o.fullCost ? `переплата ${money(o.fullCost)}` : null,
             ].filter(Boolean).join(" · ");
             return (
             <Card
@@ -214,8 +222,8 @@ export default function OffersPage({
               <Typography variant="h4" className="rec-payment">
                 {money(chosen.monthly ?? monthly)}
               </Typography>
-              <Typography color="text.secondary">
-                в месяц · {typeof chosen.amount === "number" ? money(chosen.amount) : chosen.amount}
+              <Typography className="recommend-detail" color="text.secondary">
+                в месяц · {displayMoney(chosen.amount)}
                 {chosen.termMonths ? ` на ${chosen.termMonths} мес.` : ""} · предварительно
               </Typography>
             </>

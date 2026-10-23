@@ -17,6 +17,7 @@ import LoginPage from "./pages/LoginPage";
 import HelpPage from "./pages/HelpPage";
 import BankPage from "./pages/BankPage";
 import AdminPage from "./pages/AdminPage";
+import LandingPage from "./pages/LandingPage";
 import { api, ApiError, clearToken, getToken, saveToken, type ApplicationResponse, type UserProfile } from "./api";
 import type { ApplicationData, Company } from "./types";
 import "./styles.css";
@@ -50,10 +51,11 @@ export default function App() {
   const [screen, setScreen] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getToken()));
   const [checkingSession, setCheckingSession] = useState(() => Boolean(getToken()));
-  const [page, setPage] = useState<"application" | "profile" | "help" | "bank" | "admin">(() => {
+  const [page, setPage] = useState<"home" | "login" | "application" | "profile" | "help" | "bank" | "admin">(() => {
     const path = window.location.pathname;
-    return path === "/profile" ? "profile" : path === "/help" ? "help" : path === "/bank" ? "bank" : path === "/admin" ? "admin" : "application";
+    return path === "/profile" ? "profile" : path === "/login" ? "login" : path === "/application" ? "application" : path === "/help" ? "help" : path === "/bank" ? "bank" : path === "/admin" ? "admin" : "home";
   });
+  const [returnToPage, setReturnToPage] = useState<"home" | "application">("home");
   const [selectedOffer, setSelectedOffer] = useState(0);
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
@@ -83,7 +85,7 @@ export default function App() {
       setScreen(0);
       setApiError("");
       setAuthNotice("");
-      setPage(user.role === "CLIENT" && window.location.pathname === "/profile" ? "profile" : "application");
+      setPage(user.role === "CLIENT" && window.location.pathname === "/profile" ? "profile" : window.location.pathname === "/application" ? "application" : "home");
     }).catch((error) => {
       setAuthNotice(
         error instanceof ApiError && error.status === 401
@@ -164,7 +166,7 @@ export default function App() {
     setProfile(user);
     setData(applicationForAccount(demoAccountForLogin(user.login), user));
     setScreen(0);
-    const destination = user.role === "SPECIALIST" ? "/bank" : user.role === "ADMIN" ? "/admin" : "/";
+    const destination = user.role === "SPECIALIST" ? "/bank" : user.role === "ADMIN" ? "/admin" : "/application";
     setPage(user.role === "SPECIALIST" ? "bank" : user.role === "ADMIN" ? "admin" : "application");
     setApiError("");
     setAuthNotice("");
@@ -179,7 +181,7 @@ export default function App() {
     setIsAuthenticated(false);
     setScreen(0);
     setData(applicationForAccount(DEFAULT_DEMO_ACCOUNT));
-    setPage("application");
+    setPage("home");
     setAuthNotice("");
     window.history.pushState({}, "", "/");
   };
@@ -236,10 +238,6 @@ export default function App() {
   };
 
   const next = async (index = screen + 1) => {
-    if (screen === 4 && index === 5 && (!data.docs.passport || !data.docs.tax)) {
-      setApiError("Загрузите паспорт руководителя и налоговую отчетность, чтобы продолжить.");
-      return;
-    }
     if (data.applicationId && index !== 6) {
       try { await saveDraft(); }
       catch (error) { setApiError(toMessage(error, "Не удалось сохранить заявку")); return; }
@@ -308,11 +306,6 @@ export default function App() {
 
   const submit = async () => {
     if (!data.applicationId) return;
-    if (!data.docs.passport || !data.docs.tax) {
-      setApiError("Для отправки заявки загрузите паспорт руководителя и налоговую отчетность.");
-      setScreen(4);
-      return;
-    }
     setLoading(true); setApiError("");
     try {
       const response = await api.submit(data.applicationId, data);
@@ -383,30 +376,43 @@ export default function App() {
   useEffect(() => {
     const onPopState = () => {
       const path = window.location.pathname;
-      setPage(path === "/profile" ? "profile" : path === "/help" ? "help" : path === "/bank" ? "bank" : path === "/admin" ? "admin" : "application");
+      setPage(path === "/profile" ? "profile" : path === "/login" ? "login" : path === "/application" ? "application" : path === "/help" ? "help" : path === "/bank" ? "bank" : path === "/admin" ? "admin" : "home");
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  const openProfile = () => { window.history.pushState({}, "", "/profile"); setPage("profile"); };
-  const backFromProfile = () => { window.history.pushState({}, "", "/"); setPage("application"); };
-  const openHelp = () => { window.history.pushState({}, "", "/help"); setPage("help"); };
-  const backFromHelp = () => { window.history.pushState({}, "", "/"); setPage("application"); };
-  const openApplication = (targetScreen: number) => {
+  const openProfile = () => {
+    if (!isAuthenticated || !profile) { window.history.pushState({}, "", "/login"); setPage("login"); return; }
+    setReturnToPage(page === "application" ? "application" : "home");
+    window.history.pushState({}, "", "/profile"); setPage("profile");
+  };
+  const openHome = () => {
     if (window.location.pathname !== "/") window.history.pushState({}, "", "/");
+    setPage("home");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const backFromProfile = () => { const destination = returnToPage === "application" ? "/application" : "/"; window.history.pushState({}, "", destination); setPage(returnToPage); };
+  const openHelp = () => { window.history.pushState({}, "", "/help"); setPage("help"); };
+  const backFromHelp = () => { window.history.pushState({}, "", "/application"); setPage("application"); };
+  const openApplication = (targetScreen: number) => {
+    if (window.location.pathname !== "/application") window.history.pushState({}, "", "/application");
     setPage("application");
     if (targetScreen === screen) return;
     void navigateToStep(targetScreen);
   };
 
   if (checkingSession) return <ThemeProvider theme={theme}><CssBaseline /><Box className="login-page"><Typography>Проверяем учётную запись…</Typography></Box></ThemeProvider>;
-  if (!isAuthenticated || !profile) return <ThemeProvider theme={theme}><CssBaseline /><LoginPage onLogin={loginWithPassword} notice={authNotice} /></ThemeProvider>;
+  if (!isAuthenticated || !profile) {
+    if (page === "login") return <ThemeProvider theme={theme}><CssBaseline /><LoginPage onLogin={loginWithPassword} onBack={() => { window.history.pushState({}, "", "/"); setPage("home"); }} notice={authNotice} /></ThemeProvider>;
+    return <ThemeProvider theme={theme}><CssBaseline /><LandingPage onStart={() => { window.history.pushState({}, "", "/login"); setPage("login"); }} onProfile={openProfile} /></ThemeProvider>;
+  }
   if (profile.role === "SPECIALIST") return <ThemeProvider theme={theme}><CssBaseline /><BankPage userName={profile.name} onLogout={logout} /></ThemeProvider>;
   if (profile.role === "ADMIN") return <ThemeProvider theme={theme}><CssBaseline /><AdminPage userName={profile.name} onLogout={logout} /></ThemeProvider>;
+  if (page === "home") return <ThemeProvider theme={theme}><CssBaseline /><LandingPage userName={profile.name} onStart={() => openApplication(0)} onProfile={openProfile} onLogout={logout} onHome={openHome} /></ThemeProvider>;
   if (page === "profile") return <ThemeProvider theme={theme}><CssBaseline /><ProfilePage profile={profile} onBack={backFromProfile} /></ThemeProvider>;
   if (page === "help") return <ThemeProvider theme={theme}><CssBaseline />
-    <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHelp={openHelp} openApplication={openApplication} onLogout={logout} />
+    <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHome={openHome} openHelp={openHelp} openApplication={openApplication} onLogout={logout} />
     <HelpPage data={data} onBack={backFromHelp} onStaleApplication={syncApplication} />
     <Box className="bottom-help"><ShieldOutlined /> Безопасно. Просто. На ваших условиях. <span>© Альфа-Бизнес · Кредитный кабинет</span></Box>
   </ThemeProvider>;
@@ -426,7 +432,7 @@ export default function App() {
   ];
 
   return <ThemeProvider theme={theme}><CssBaseline />
-    <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHelp={openHelp} openApplication={openApplication} onLogout={logout} />
+    <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHome={openHome} openHelp={openHelp} openApplication={openApplication} onLogout={logout} />
     <Box className="app-shell"><StepRail screen={screen} setScreen={navigateToStep} /><Box component="main" className="main-content">
       {apiError && <Alert severity="error" onClose={() => setApiError("")} sx={{ mb: 2 }}>{apiError}</Alert>}
       {pages[screen]}

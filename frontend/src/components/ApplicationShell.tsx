@@ -38,6 +38,7 @@ interface HeaderProps {
   setScreen: (screen: number) => void | Promise<void>;
   userName?: string;
   openProfile?: () => void;
+  openHome?: () => void;
   openHelp?: () => void;
   openApplication?: (screen: number) => void;
   onLogout?: () => void;
@@ -69,14 +70,14 @@ interface SelectCardProps {
 export function IconBubble({ children, lime = false }: IconBubbleProps) {
   return <Box className={`icon-bubble ${lime ? "lime" : ""}`}>{children}</Box>;
 }
-export function Header({ screen, setScreen, userName = "Клиент", openProfile, openHelp, openApplication, onLogout }: HeaderProps) {
+export function Header({ screen, setScreen, userName = "Клиент", openProfile, openHome, openHelp, openApplication, onLogout }: HeaderProps) {
   // На узком экране ссылки шапки спрятаны — открываем их из меню
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const go = (action?: () => void) => { setMenuAnchor(null); action?.(); };
   return (
     <AppBar position="sticky" color="inherit" elevation={0} className="appbar">
       <Toolbar className="toolbar">
-        <Box className="brand" onClick={() => openApplication ? openApplication(0) : setScreen(0)}>
+        <Box className="brand" component="button" type="button" onClick={openHome ?? (() => (openApplication ? openApplication(0) : setScreen(0)))} aria-label="Перейти на заглавную страницу">
           <Box className="brand-mark">а</Box>
           <Box>
             <Typography className="brand-name">альфа-бизнес</Typography>
