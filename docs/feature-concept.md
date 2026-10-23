@@ -1,6 +1,7 @@
 # Концепция восприятия «Маршрут к одобрению»
 
-<img width="1340" height="435" alt="image" src="https://github.com/user-attachments/assets/7c4e9d48-3bf7-4331-9673-9bf7277aae42" />
+![Uploading image.png…]()
+
 
 ## 1. Главная идея образа
 
