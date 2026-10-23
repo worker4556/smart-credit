@@ -2478,3 +2478,8 @@ body {
   .landing-pin-summit { left: 62%; top: 30%; }
 }
 .intent-refining { display: flex; align-items: center; margin-top: 8px !important; color: #6b7982; font-size: 12px !important; }
+.trail-hiker { transition: transform 1.1s cubic-bezier(.4, 0, .2, 1); }
+.trail-progress { transition: stroke-dasharray 1.1s cubic-bezier(.4, 0, .2, 1); }
+.trail-label-title { fill: #6b7982; font-size: 20px; font-weight: 700; }
+.trail-label-value { fill: #172633; font-size: 22px; font-weight: 800; }
+@media (prefers-reduced-motion: reduce) { .trail-hiker, .trail-progress { transition: none; } }

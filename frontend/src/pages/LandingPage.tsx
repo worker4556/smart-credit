@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Box, Button, Chip, Drawer, IconButton, LinearProgress, Paper, Typography } from "@mui/material";
 import AccountBalanceWalletOutlined from "@mui/icons-material/AccountBalanceWalletOutlined";
 import AccountCircleOutlined from "@mui/icons-material/AccountCircleOutlined";
@@ -78,7 +78,8 @@ function useMetrics(app?: ApplicationData) {
     const precheck = app.precheck;
     if (!decided && !precheck && !app.route) return null;   // метрики появляются, когда у клиента есть оценка или решение
     const summit = app.amount;
-    const height = decided ? app.decisionAmount! : precheck?.amountHigh ?? app.route?.projectedAmount ?? 0;
+    // Высота — то, что доступно сейчас: решение банка или предоценка; прогноз маршрута — это не текущая высота
+    const height = decided ? app.decisionAmount! : precheck?.amountHigh ?? 0;
     return {
       summit,
       height,
@@ -88,12 +89,82 @@ function useMetrics(app?: ApplicationData) {
       turnover: app.company?.averageMonthlyTurnover,
       goal: app.goal,
       variants: routeVariants(app.route?.steps ?? []),
+      steps: app.route?.steps ?? [],
+      projected: app.route?.projectedAmount ?? null,
       horizon: app.route?.horizonText,
       offers: app.goalOffers ?? precheck?.goalOffers ?? [],
       // До вершины не хватает, а маршрута ещё нет — показываем, что мешает, а не «лучший вариант»
       blockers: height < summit ? (precheck?.reasons ?? []).slice(0, 3).map((r) => r.text) : [],
     };
   }, [app]);
+}
+
+// ---------- Альпинист на горе: идёт по тропе по мере выполнения шагов маршрута ----------
+
+const TRAIL = "M390 588 C540 620 660 624 800 590 S1020 505 1165 480 S1280 385 1388 188";
+const HIKER = "M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2m4 5.28c-1.23-.37-2.22-1.17-2.8-2.18l-1-1.6c-.41-.65-1.11-1-1.84-1-.78 0-1.59.5-1.78 1.44S7 23 7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3c1 1.15 2.41 2.01 4 2.34V23H19V9h-1.5zM7.43 13.13l-2.12-.41c-.54-.11-.9-.63-.79-1.17l.76-3.93c.21-1.08 1.26-1.79 2.34-1.58l1.16.23z";
+const clamp = (x: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x));
+
+type Metrics = ReturnType<typeof useMetrics>;
+
+/** Положение на тропе (0 — подножие, 1 — вершина): старт — сумма, доступная сейчас, финиш — прогноз маршрута.
+ *  Шаги маршрута стоят привалами между ними; каждый выполненный шаг поднимает альпиниста к следующему привалу. */
+function trailPlan(m: NonNullable<Metrics>) {
+  const start = m.summit > 0 ? clamp(m.height / m.summit, 0, 1) : 0;
+  const steps = m.steps;
+  const finish = steps.length ? clamp(Math.max((m.projected ?? m.summit) / m.summit, start + 0.25), 0, 1) : start;
+  const at = (i: number) => start + (finish - start) * (i / Math.max(steps.length, 1));
+  const done = steps.filter((s) => s.done).length;
+  return {
+    climber: steps.length ? at(done) : start,
+    stops: steps.map((s, i) => ({ t: at(i + 1), done: s.done, text: s.action })),
+    done, total: steps.length,
+  };
+}
+
+function MountainRoute({ metrics }: { metrics: Metrics }) {
+  const pathRef = useRef<SVGPathElement>(null);
+  const [, setMounted] = useState(false);
+  // Координаты считаются по самой тропе; после монтирования — перерисовка, когда элемент уже в DOM
+  useLayoutEffect(() => { setMounted(true); }, []);
+  const len = pathRef.current?.getTotalLength() ?? 0;
+  const point = (t: number) => {
+    const el = pathRef.current;
+    if (!el || !len) return { x: 390, y: 588 };
+    const p = el.getPointAtLength(clamp(t) * len);
+    return { x: p.x, y: p.y };
+  };
+  const plan = metrics ? trailPlan(metrics) : null;
+  const hiker = point(plan?.climber ?? 0);
+  const summit = point(1);
+  const label = metrics
+    ? plan && plan.total ? `Шагов пройдено: ${plan.done} из ${plan.total}` : `Доступно: ${formatMoney(metrics.height)}`
+    : "Вы здесь";
+
+  return <svg className="landing-route-overlay" viewBox="0 0 1774 887" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <path ref={pathRef} d={TRAIL} fill="none" stroke="#fff" strokeWidth="5" strokeDasharray="12 13" strokeLinecap="round" opacity=".95" />
+    {plan && len > 0 && <path d={TRAIL} fill="none" stroke="#ef3124" strokeWidth="6" strokeLinecap="round"
+      strokeDasharray={`${clamp(plan.climber) * len} ${len}`} className="trail-progress" />}
+    {plan?.stops.map((s, i) => { const p = point(s.t); return <g key={i} transform={`translate(${p.x} ${p.y})`}>
+      <circle r="14" fill={s.done ? "#2e9e57" : "#fff"} stroke={s.done ? "#fff" : "#ef3124"} strokeWidth="6" />
+      {s.done && <path d="M-6 0 l4 4 l8 -9" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" />}
+      <title>{s.text}</title>
+    </g>; })}
+    <g transform={`translate(${summit.x} ${summit.y})`}>
+      <circle r="18" fill="#ef3124" stroke="#fff" strokeWidth="8" />
+      <path d="M0 -18 V-70 M0 -70 L34 -58 L0 -46" fill="#ef3124" stroke="#fff" strokeWidth="5" strokeLinejoin="round" />
+      <g transform="translate(-118 -150)"><rect width="236" height="62" rx="14" fill="#fff" opacity=".96" />
+        <text x="118" y="26" textAnchor="middle" className="trail-label-title">Ваша цель</text>
+        {metrics && <text x="118" y="50" textAnchor="middle" className="trail-label-value">{formatMoney(metrics.summit)}</text>}</g>
+    </g>
+    <g className="trail-hiker" style={{ transform: `translate(${hiker.x}px, ${hiker.y}px)` }}>
+      <circle r="30" fill="#ef3124" stroke="#fff" strokeWidth="6" />
+      <path d={HIKER} transform="translate(-21 -21) scale(1.75)" fill="#fff" />
+      <g transform="translate(-130 44)"><rect width="260" height="62" rx="14" fill="#fff" opacity=".96" />
+        <text x="130" y="26" textAnchor="middle" className="trail-label-title">Вы здесь</text>
+        <text x="130" y="50" textAnchor="middle" className="trail-label-value">{label}</text></g>
+    </g>
+  </svg>;
 }
 
 export default function LandingPage({ userName, application, onStart, onProfile, onLogout, onHome }: LandingPageProps) {
@@ -119,22 +190,14 @@ export default function LandingPage({ userName, application, onStart, onProfile,
           <img src="/images/mountain-route-hero.png" alt="" />
           <Box className="season-tint" />
           <Box className="season-particles" />
-          <svg className="landing-route-overlay" viewBox="0 0 1774 887" preserveAspectRatio="xMidYMid slice">
-            <path d="M390 588 C540 620 660 624 800 590 S1020 505 1165 480 S1280 385 1388 188" fill="none" stroke="#fff" strokeWidth="5" strokeDasharray="12 13" strokeLinecap="round" opacity=".95" />
-            <circle cx="390" cy="588" r="15" fill="#ef3124" stroke="#fff" strokeWidth="7" />
-            <circle cx="800" cy="590" r="13" fill="#ef3124" stroke="#fff" strokeWidth="7" />
-            <circle cx="1165" cy="480" r="13" fill="#ef3124" stroke="#fff" strokeWidth="7" />
-            <circle cx="1388" cy="188" r="18" fill="#ef3124" stroke="#fff" strokeWidth="8" />
-          </svg>
-          <Box className="landing-map-pin landing-pin-start"><b>Вы здесь</b>{metrics && <small>{formatMoney(metrics.height)}</small>}</Box>
-          <Box className="landing-map-pin landing-pin-summit"><b>Ваша цель</b>{metrics && <small>{formatMoney(metrics.summit)}</small>}</Box>
+          <MountainRoute metrics={metrics} />
         </Box>
         <Box className="landing-hero-shade" />
         <Box className="landing-hero-copy">
           <Chip icon={<FlagOutlined />} label="Кредитные продукты для бизнеса" className="landing-kicker" />
           <Typography component="h1">Ваш путь к новым высотам</Typography>
           <Typography className="landing-lead">Помогаем выбрать подходящее финансирование и пройти весь путь — от идеи до решения банка.</Typography>
-          <Button variant="contained" size="large" endIcon={<ArrowForward />} onClick={onStart}>{metrics ? "Продолжить заявку" : "Подобрать кредит"}</Button>
+          <Button variant="contained" size="large" endIcon={<ArrowForward />} onClick={onStart}>{application?.submitted ? "Открыть мою заявку" : metrics ? "Продолжить заявку" : "Подобрать кредит"}</Button>
         </Box>
 
         {/* Язычки выдвижных панелей у края картинки */}
