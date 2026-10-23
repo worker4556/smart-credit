@@ -8,6 +8,8 @@
 
 ## Для жюри
 
+**Онлайн-стенд:** _ссылка появится после деплоя_ — без установки, вход `p1`…`p5` / `demo`. Как развёрнут: [docs/deploy.md](docs/deploy.md).
+
 ### Запуск
 
 Нужны Docker Desktop (Windows, macOS) или Docker Engine с Compose v2 (Linux), **8 ГБ оперативной памяти** и

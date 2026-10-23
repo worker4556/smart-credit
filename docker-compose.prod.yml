@@ -1,0 +1,34 @@
+# Сервер (Yandex Cloud и любой VPS): поверх docker-compose.yml.
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build                 # без LLM
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile llm up -d --build   # с LLM (нужно 8 ГБ ОЗУ)
+# Наружу открыт только Caddy (80/443, HTTPS сам). Backend, ml, llm и postgres — только во внутренней сети.
+# Запускать проще скриптом: scripts/deploy.sh user@host — docs/deploy.md
+services:
+  caddy:
+    image: caddy:2.8.4-alpine
+    ports: ["80:80", "443:443"]
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [frontend]
+    restart: unless-stopped
+
+  frontend:
+    ports: !reset []
+
+  backend:
+    ports: !reset []
+
+  ml:
+    ports: !reset []
+
+  llm:
+    ports: !reset []
+    profiles: ["llm"]
+
+volumes:
+  caddy_data:
+  caddy_config:

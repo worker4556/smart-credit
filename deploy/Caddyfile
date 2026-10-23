@@ -1,0 +1,6 @@
+# SITE_ADDRESS: домен (например 51-250-1-2.sslip.io) — Caddy сам получит HTTPS-сертификат;
+# ":80" — только HTTP по IP.
+{$SITE_ADDRESS} {
+	encode gzip
+	reverse_proxy frontend:3000
+}
