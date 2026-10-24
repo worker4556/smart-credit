@@ -35,6 +35,10 @@ import Autorenew from "@mui/icons-material/Autorenew";
 import CloudOutlined from "@mui/icons-material/CloudOutlined";
 import ThunderstormOutlined from "@mui/icons-material/ThunderstormOutlined";
 import WbSunnyOutlined from "@mui/icons-material/WbSunnyOutlined";
+import Block from "@mui/icons-material/Block";
+import Bolt from "@mui/icons-material/Bolt";
+import Schedule from "@mui/icons-material/Schedule";
+import SwapVert from "@mui/icons-material/SwapVert";
 import type { ReactNode } from "react";
 import {
   FooterNav,
@@ -44,7 +48,7 @@ import {
 } from "../components/ApplicationShell";
 import { formatMoney as money, formatNumber as format } from "../utils/format";
 import { goals } from "../data/application";
-import type { LoanOffer, OffersPageProps, Weather } from "../types";
+import type { LoanOffer, OffersPageProps, Precheck, Weather } from "../types";
 import { chanceLabel, chanceTone, needsRoute, reasonTone, toneLabel } from "../utils/route";
 
 const kindLabel: Record<string, string> = {
@@ -98,63 +102,13 @@ export default function OffersPage({
       />
       {data.precheck && (
         <Paper className="precheck-card">
-          <Box className="precheck-amounts">
-            <Box>
-              <Typography className="eyebrow">ТЕКУЩАЯ ВЫСОТА</Typography>
-              <Typography className="precheck-value">
-                {data.precheck.amountHigh > 0
-                  ? `${money(data.precheck.amountLow)} — ${money(data.precheck.amountHigh)}`
-                  : "Пока недоступно"}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography className="eyebrow">ВАША ВЕРШИНА</Typography>
-              <Typography className="precheck-value">
-                {money(data.amount)}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography className="eyebrow">ПРЕДВАРИТЕЛЬНЫЙ ШАНС</Typography>
-              <Chip
-                label={chanceLabel[data.precheck.chance?.toUpperCase()] ?? data.precheck.chance}
-                className={`tone-chip tone-${chanceTone[data.precheck.chance?.toUpperCase()] ?? "amber"}`}
-              />
-            </Box>
-          </Box>
+          <AltitudeGauge precheck={data.precheck} amount={data.amount} />
           {needsRoute(data.precheck, data.amount) && (
-            <Box className="uncertainty-route">
-              <Typography fontWeight={800}>Что влияет на решение и как это исправить</Typography>
-              {data.precheck.amountHigh > 0 && data.amount > data.precheck.amountHigh && (
-                <Box className="route-item tone-green">
-                  <i />
-                  <span>
-                    Сумма выше оценки. Ниже есть вариант в пределах{" "}
-                    {money(data.precheck.amountHigh)} — по нему шансы выше.
-                  </span>
-                  <Chip size="small" label="Альтернатива" />
-                </Box>
-              )}
-              {(data.precheck.reasons ?? []).map((reason, index) => {
-                const tone = reasonTone(reason.code);
-                return (
-                  <Box key={reason.code ?? index} className={`route-item tone-${tone}`}>
-                    <i />
-                    <span>{reason.text}</span>
-                    <Chip size="small" label={toneLabel[tone]} />
-                  </Box>
-                );
-              })}
-              {showRoute && (
-                <Button variant={hasStop ? "contained" : "outlined"} className="open-route-btn" endIcon={<ArrowForward />} onClick={onOpenRoute}>
-                  Открыть маршрут без подачи
-                </Button>
-              )}
-              {showRoute && (
-                <Typography variant="body2" color="text.secondary">
-                  Заявка не создаётся и бюро кредитных историй не запрашивается — маршрут считается по предварительной оценке.
-                </Typography>
-              )}
-            </Box>
+            <FactorList
+              precheck={data.precheck}
+              amount={data.amount}
+              route={showRoute ? { onOpen: onOpenRoute, primary: hasStop } : undefined}
+            />
           )}
           <Typography className="precheck-explanation">{data.precheck.text}</Typography>
           {data.precheck.ownerNote && (
@@ -344,5 +298,95 @@ function WeatherCard({ weather }: { weather?: Weather | null }) {
       </Box>
       <Typography className="weather-disclaimer">Полная стоимость в рублях: проценты и комиссии сверх суммы кредита. {weather.disclaimer}</Typography>
     </Paper>
+  );
+}
+
+// «Высота»: доступный сейчас диапазон и вершина (запрошенная сумма) на одной шкале
+const short = (value: number) =>
+  value >= 1_000_000 ? `${(value / 1_000_000).toLocaleString("ru-RU", { maximumFractionDigits: 2 })} млн` : `${Math.round(value / 1000)} тыс.`;
+const chanceSteps = ["LOW", "MEDIUM", "HIGH"];
+
+function AltitudeGauge({ precheck, amount }: { precheck: Precheck; amount: number }) {
+  const { amountLow: low, amountHigh: high } = precheck;
+  const chance = precheck.chance?.toUpperCase();
+  // Шкала начинается чуть ниже доступного диапазона: важен разрыв до вершины, а не путь от нуля
+  const top = Math.max(amount, high, 1) * 1.08;
+  const floor = high > 0 ? Math.min(low, amount) * 0.7 : 0;
+  const at = (value: number) => `${Math.min(Math.max((value - floor) / (top - floor), 0), 1) * 100}%`;
+  const gap = high > 0 ? amount - high : amount;
+  return (
+    <Box className="altitude">
+      <Box className="altitude-top">
+        <Box>
+          <Typography className="altitude-label">Доступно сейчас</Typography>
+          <Typography className="altitude-value">{high > 0 ? `${money(low)} — ${money(high)}` : "Пока недоступно"}</Typography>
+        </Box>
+        <Box className="altitude-chance" aria-label={`Предварительный шанс: ${chanceLabel[chance] ?? precheck.chance}`}>
+          <Typography className="altitude-label">Шанс</Typography>
+          <Box className={`chance-meter tone-${chanceTone[chance] ?? "amber"}`}>
+            {chanceSteps.map((step, i) => <i key={step} className={i <= chanceSteps.indexOf(chance) ? "on" : ""} />)}
+            <b>{chanceLabel[chance] ?? precheck.chance}</b>
+          </Box>
+        </Box>
+      </Box>
+      <Box className="altitude-track" aria-hidden="true">
+        <span className="altitude-rail" />
+        {high > 0 && <span className="altitude-band" style={{ left: at(low), width: `calc(${at(high)} - ${at(low)})` }} />}
+        {high > 0 && gap > 0 && <span className="altitude-gap" style={{ left: at(high), width: `calc(${at(amount)} - ${at(high)})` }} />}
+        <span className="altitude-summit" style={{ left: at(amount) }}><em>{short(amount)}</em></span>
+        {high > 0 && <span className="altitude-high" style={{ left: at(low) }}><em>{short(low)}</em></span>}
+        {high > 0 && <span className="altitude-high" style={{ left: at(high) }}><em>{short(high)}</em></span>}
+      </Box>
+      <Typography className={`altitude-note ${gap > 0 ? "short" : "ok"}`}>
+        {gap > 0
+          ? high > 0 ? `До вашей вершины ${money(amount)} не хватает ≈ ${money(gap)}` : `Ваша вершина — ${money(amount)}. Что мешает — ниже`
+          : `Ваша вершина ${money(amount)} в пределах доступного`}
+      </Typography>
+    </Box>
+  );
+}
+
+// Что влияет на решение: строгий список, цвет — только у значка и метки
+const toneIcon: Record<string, ReactNode> = { green: <Bolt />, amber: <Schedule />, red: <Block /> };
+
+function FactorList({ precheck, amount, route }: { precheck: Precheck; amount: number; route?: { onOpen?: () => void; primary: boolean } }) {
+  const reasons = (precheck.reasons ?? []).map((reason) => ({ text: reason.text, tone: reasonTone(reason.code), code: reason.code }));
+  const alternative = precheck.amountHigh > 0 && amount > precheck.amountHigh;
+  const counts = (["green", "amber", "red"] as const)
+    .map((tone) => [tone, reasons.filter((r) => r.tone === tone).length + (tone === "green" && alternative ? 1 : 0)] as const)
+    .filter(([, count]) => count > 0);
+  return (
+    <Box className="factors">
+      <Box className="factors-head">
+        <Typography className="factors-title">Что влияет на решение</Typography>
+        <Box className="factors-counts">
+          {counts.map(([tone, count]) => <span key={tone} className={`factors-count tone-${tone}`}><i />{count} · {toneLabel[tone].toLowerCase()}</span>)}
+        </Box>
+      </Box>
+      <Box className="factors-list">
+        {alternative && (
+          <Box className="factor tone-green">
+            <span className="factor-icon"><SwapVert /></span>
+            <span className="factor-text">Сумма выше оценки. Ниже есть вариант до {money(precheck.amountHigh)} — по нему шансы выше</span>
+            <button type="button" className="factor-tag factor-link" onClick={() => document.querySelector(".offers-list")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Показать</button>
+          </Box>
+        )}
+        {reasons.map((reason, index) => (
+          <Box key={reason.code ?? index} className={`factor tone-${reason.tone}`} style={{ animationDelay: `${index * 50}ms` }}>
+            <span className="factor-icon">{toneIcon[reason.tone]}</span>
+            <span className="factor-text">{reason.text}</span>
+            <span className="factor-tag">{toneLabel[reason.tone]}</span>
+          </Box>
+        ))}
+      </Box>
+      {route && (
+        <Box className="factors-route">
+          <Button variant={route.primary ? "contained" : "outlined"} className="open-route-btn" endIcon={<ArrowForward />} onClick={route.onOpen}>
+            Открыть маршрут без подачи
+          </Button>
+          <Typography className="factors-route-note">Заявка не создаётся, в БКИ не запрашиваем</Typography>
+        </Box>
+      )}
+    </Box>
   );
 }

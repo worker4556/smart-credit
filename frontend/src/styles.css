@@ -3037,3 +3037,72 @@ body { background: var(--bg); color: var(--ink); transition: background-color .3
 .help-drawer .help-messages { flex: 1; overflow-y: auto; min-height: 0; max-height: none !important; }
 .toast-msg { bottom: 84px !important; }
 @media (max-width: 600px) { .assistant-fab { bottom: max(76px, env(safe-area-inset-bottom, 0px)); } }
+
+/* Цвета состояний для тёмной темы: приглушённый фон, светлее сам цвет — пастель на тёмном не читается */
+:root[data-theme="dark"] {
+  --tone-green: #4cd38a; --tone-green-bg: rgba(76, 211, 138, .12);
+  --tone-amber: #f2b64a; --tone-amber-bg: rgba(242, 182, 74, .12);
+  --tone-red: #ff6b5f; --tone-red-bg: rgba(255, 107, 95, .12);
+}
+
+/* ---------- Предоценка: шкала «высоты» и список того, что влияет ---------- */
+.altitude { display: grid; gap: 14px; }
+.altitude-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.altitude-label { font-size: 12px !important; color: var(--muted); font-weight: 600 !important; }
+.altitude-value { font-size: clamp(24px, 3vw, 34px) !important; font-weight: 800 !important; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1.15 !important; }
+.altitude-chance { display: grid; gap: 6px; justify-items: end; }
+.chance-meter { display: flex; align-items: center; gap: 4px; }
+.chance-meter i { width: 22px; height: 8px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--line); transition: background .3s; }
+.chance-meter.tone-green i.on { background: var(--tone-green); border-color: transparent; }
+.chance-meter.tone-amber i.on { background: var(--tone-amber); border-color: transparent; }
+.chance-meter.tone-red i.on { background: var(--tone-red); border-color: transparent; }
+.chance-meter b { margin-left: 8px; font-size: 15px; }
+.chance-meter.tone-green b { color: var(--tone-green); } .chance-meter.tone-amber b { color: var(--tone-amber); } .chance-meter.tone-red b { color: var(--tone-red); }
+.altitude-track { position: relative; height: 54px; margin-top: 4px; }
+.altitude-rail { position: absolute; left: 0; right: 0; top: 30px; height: 6px; border-radius: 3px; background: repeating-linear-gradient(90deg, var(--line) 0 2px, transparent 2px 10px); }
+.altitude-band { position: absolute; top: 28px; height: 10px; border-radius: 5px; background: var(--tone-green); transform-origin: left; animation: band-grow .9s var(--ease-out) both; }
+.altitude-gap { position: absolute; top: 31px; height: 4px; background: repeating-linear-gradient(90deg, var(--tone-amber) 0 6px, transparent 6px 10px); animation: band-grow .9s .3s var(--ease-out) both; transform-origin: left; }
+@keyframes band-grow { from { transform: scaleX(0); } }
+.altitude-summit, .altitude-high { position: absolute; top: 0; transform: translateX(-50%); display: grid; justify-items: center; }
+.altitude-summit em, .altitude-high em { font-style: normal; font-size: 11px; font-weight: 800; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.altitude-summit em { color: var(--ink); }
+.altitude-summit::after { content: ""; width: 2px; height: 28px; margin-top: 2px; background: var(--ink); }
+.altitude-summit::before { content: ""; position: absolute; top: 18px; left: calc(50% + 1px); width: 12px; height: 9px; background: var(--accent); clip-path: polygon(0 0, 100% 0, 72% 50%, 100% 100%, 0 100%); }
+.altitude-high em { color: var(--tone-green); }
+.altitude-high { top: 40px; }
+.altitude-high::before { content: ""; order: -1; width: 2px; height: 0; }
+.altitude-note { font-size: 13px !important; font-weight: 600 !important; display: flex; align-items: center; gap: 8px; }
+.altitude-note::before { content: ""; width: 8px; height: 8px; border-radius: 50%; }
+.altitude-note.short { color: var(--tone-amber); } .altitude-note.short::before { background: var(--tone-amber); }
+.altitude-note.ok { color: var(--tone-green); } .altitude-note.ok::before { background: var(--tone-green); }
+
+.factors { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); display: grid; gap: 12px; }
+.factors-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.factors-title { font-size: 16px !important; font-weight: 800 !important; }
+.factors-counts { display: flex; gap: 14px; flex-wrap: wrap; }
+.factors-count { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.factors-count i { width: 8px; height: 8px; border-radius: 50%; }
+.factors-count.tone-green i { background: var(--tone-green); } .factors-count.tone-amber i { background: var(--tone-amber); } .factors-count.tone-red i { background: var(--tone-red); }
+.factors-list { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.factor { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 14px; background: var(--surface); animation: card-rise .4s var(--ease-out) both; transition: background .2s; }
+.factor + .factor { border-top: 1px solid var(--line); }
+.factor:hover { background: var(--surface-2); }
+.factor-icon { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; }
+.factor-icon svg { font-size: 18px; }
+.factor.tone-green .factor-icon { background: var(--tone-green-bg); color: var(--tone-green); }
+.factor.tone-amber .factor-icon { background: var(--tone-amber-bg); color: var(--tone-amber); }
+.factor.tone-red .factor-icon { background: var(--tone-red-bg); color: var(--tone-red); }
+.factor-text { font-size: 14px; color: var(--ink); line-height: 1.4; }
+.factor-tag { font-size: 12px; font-weight: 700; white-space: nowrap; }
+.factor.tone-green .factor-tag { color: var(--tone-green); } .factor.tone-amber .factor-tag { color: var(--tone-amber); } .factor.tone-red .factor-tag { color: var(--tone-red); }
+.factor-link { font: inherit; font-size: 12px; font-weight: 800; background: var(--tone-green-bg); border: 0; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+.factor-link:hover { filter: brightness(1.05); }
+.factor-link:focus-visible { outline: 2px solid var(--tone-green); outline-offset: 2px; }
+.factors-route { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.factors-route-note { font-size: 12px !important; color: var(--muted); }
+.precheck-card .precheck-explanation { margin-top: 14px; color: var(--muted); font-size: 13px; }
+@media (max-width: 600px) {
+  .factor { grid-template-columns: 28px minmax(0, 1fr); }
+  .factor-tag { grid-column: 2; }
+  .altitude-chance { justify-items: start; }
+}
