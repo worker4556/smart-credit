@@ -3213,3 +3213,29 @@ body { background: var(--bg); color: var(--ink); transition: background-color .3
 .recommend-card { gap: 12px; }
 .recommend-card > .MuiButton-root + .MuiButton-root { margin-top: 2px; }
 .offer-product { font-size: 12px !important; font-weight: 800 !important; color: var(--accent); letter-spacing: .02em; }
+
+/* Главная: кнопка рядом с подзаголовком, чтобы не накрывать альпиниста; на невысоких экранах — компактнее */
+.landing-hero-copy { width: min(62%, 860px); }
+.landing-cta-row { display: flex; align-items: center; gap: 12px 24px; flex-wrap: wrap; }
+.landing-cta-row .landing-lead { margin-bottom: 0 !important; flex: 0 1 445px; }
+.landing-cta-row .MuiButton-root { flex: none; }
+@media (max-height: 900px) and (min-width: 901px) {
+  .landing-hero-copy { padding-top: 30px; }
+  .landing-hero-copy h1 { font-size: clamp(34px, 3.6vw, 46px); margin-bottom: 10px; }
+  .landing-kicker { margin-bottom: 14px !important; }
+}
+/* Кнопка — под подзаголовком; блок текста держим выше головы альпиниста */
+.landing-cta-row { flex-direction: column; align-items: flex-start; gap: 20px; }
+.landing-cta-row .landing-lead { flex: none; max-width: 445px; }
+@media (max-height: 900px) and (min-width: 901px) {
+  .landing-hero-copy { padding-top: 26px; }
+  .landing-cta-row { gap: 14px; }
+  .landing-cta-row .landing-lead { max-width: 640px; }
+}
+@media (max-height: 760px) and (min-width: 901px) {
+  .landing-hero-copy h1 { font-size: clamp(30px, 3vw, 40px); }
+  .landing-kicker { margin-bottom: 10px !important; }
+}
+.hiker-label { transition: opacity .3s ease; }
+.hiker-label.moving { opacity: 0; transition-duration: .1s; }
+@media (max-height: 900px) and (min-width: 1200px) { .landing-cta-row .landing-lead { max-width: 780px; } }

@@ -131,6 +131,8 @@ const TRAIL = TRAIL_POINTS.reduce((d, [x, y], i, pts) => {
   return `${d} C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${x} ${y}`;
 }, "");
 const clamp = (x: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x));
+// Точка над головой альпиниста на картинке (в координатах viewBox 1774×887)
+const HIKER_ANCHOR = { x: 278, y: 452 };
 
 export type Metrics = ReturnType<typeof useMetrics>;
 
@@ -165,7 +167,23 @@ export function MountainRoute({ metrics }: { metrics: Metrics }) {
     return { x: p.x, y: p.y };
   };
   const plan = metrics ? trailPlan(metrics) : null;
-  const hiker = point(plan?.climber ?? 0);
+  // В начале пути метка «Вы здесь» стоит над головой альпиниста (на картинке он у подножия), дальше — на тропе
+  const atStart = !plan || plan.climber <= 0.001;
+  const hiker = atStart ? HIKER_ANCHOR : point(plan.climber);
+  // Подпись — в сторону свободного неба: у вершины слева и ниже цели, внизу — справа сверху; на человека не ложится
+  const labelLeft = hiker.x > 1100;
+  // Пока метка едет по тропе, подпись скрыта: иначе на подъёме она проезжает по альпинисту
+  const [moving, setMoving] = useState(false);
+  const lastPos = useRef(`${Math.round(hiker.x)}:${Math.round(hiker.y)}`);
+  useEffect(() => {
+    const key = `${Math.round(hiker.x)}:${Math.round(hiker.y)}`;
+    if (key === lastPos.current) return;
+    lastPos.current = key;
+    setMoving(true);
+    // Без анимации (reduced motion, «ускорить нельзя») события конца перехода не будет — показываем подпись по таймеру
+    const timer = window.setTimeout(() => setMoving(false), 1300);
+    return () => window.clearTimeout(timer);
+  }, [hiker.x, hiker.y]);
   const summit = point(1);
   const reached = !!metrics && metrics.summit > 0 && metrics.height >= metrics.summit;
   const label = metrics
@@ -194,17 +212,18 @@ export function MountainRoute({ metrics }: { metrics: Metrics }) {
       <path d="M0 -4 V-62" stroke="#233746" strokeWidth="4" strokeLinecap="round" />
       <path d="M2 -66 H50 L38 -52 L50 -38 H2 Z" fill="#ef3124" />
       <text x="17" y="-44" className="trail-flag-letter">А</text>
-      <g transform="translate(-258 -150)"><rect width="240" height="68" rx="12" fill="#fff" />
+      <g transform="translate(-268 -40)"><rect width="240" height="68" rx="12" fill="#fff" />
         <text x="18" y="28" className="trail-label-title">{reached ? "Цель достигнута" : "Ваша цель"}</text>
         {metrics && <text x="18" y="54" className="trail-label-value">{formatMoney(metrics.summit)}</text>}</g>
     </g>
-    <g className="trail-hiker" style={{ transform: `translate(${hiker.x}px, ${hiker.y}px)` }} filter="url(#trail-shadow)">
+    {(atStart || len > 0) && <g className="trail-hiker" style={{ transform: `translate(${hiker.x}px, ${hiker.y}px)` }} filter="url(#trail-shadow)"
+      onTransitionEnd={(e) => { if (e.propertyName === "transform") setMoving(false); }}>
       <path d="M0 0 C-6 -14 -24 -26 -24 -44 A24 24 0 1 1 24 -44 C24 -26 6 -14 0 0 Z" fill="#ef3124" stroke="#fff" strokeWidth="4" />
       <circle cy="-44" r="9" fill="#fff" />
-      <g transform={(plan?.climber ?? 0) > 0.78 ? `translate(${-labelWidth - 32} -40)` : "translate(32 -98)"}><rect width={labelWidth} height="68" rx="12" fill="#fff" />
+      <g className={moving ? "hiker-label moving" : "hiker-label"} transform={labelLeft ? `translate(${-labelWidth - 32} 24)` : atStart ? "translate(132 -76)" : "translate(32 -98)"}><rect width={labelWidth} height="68" rx="12" fill="#fff" />
         <text x="18" y="28" className="trail-label-title">Вы здесь</text>
         <text x="18" y="54" className="trail-label-value">{label}</text></g>
-    </g>
+    </g>}
   </svg>;
 }
 
@@ -372,8 +391,11 @@ export default function LandingPage({ userName, application, onStart, onProfile,
         <Box className="landing-hero-copy">
           <Chip icon={<FlagOutlined />} label="Кредитные продукты для бизнеса" className="landing-kicker" />
           <Typography component="h1">Ваш путь к новым высотам</Typography>
-          <Typography className="landing-lead">Помогаем выбрать подходящее финансирование и пройти весь путь — от идеи до решения банка.</Typography>
-          <Button variant="contained" size="large" endIcon={<ArrowForward />} onClick={onStart}>{application?.submitted ? "Открыть мою заявку" : metrics ? "Продолжить заявку" : "Подобрать кредит"}</Button>
+          {/* Подзаголовок и кнопка — одной строкой: так блок текста не опускается на альпиниста на невысоких экранах */}
+          <Box className="landing-cta-row">
+            <Typography className="landing-lead">Помогаем выбрать подходящее финансирование и пройти весь путь — от идеи до решения банка.</Typography>
+            <Button variant="contained" size="large" endIcon={<ArrowForward />} onClick={onStart}>{application?.submitted ? "Открыть мою заявку" : metrics ? "Продолжить заявку" : "Подобрать кредит"}</Button>
+          </Box>
         </Box>
 
       </Box>
