@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Box, Button, CssBaseline, ThemeProvider, Typography } from "@mui/material";
 import ShieldOutlined from "@mui/icons-material/ShieldOutlined";
-import theme from "./theme";
+import { makeTheme } from "./theme";
+import { useColorMode } from "./utils/colorMode";
+import MlProgress, { type MlRun } from "./components/MlProgress";
 import { defaultData, goals } from "./data/application";
 import { DEFAULT_DEMO_ACCOUNT, demoAccounts, type DemoAccount } from "./data/demoAccounts";
 import { Header, StepRail } from "./components/ApplicationShell";
@@ -47,9 +49,16 @@ function applicationForAccount(account: DemoAccount, profile?: UserProfile): App
 }
 
 export default function App() {
+  const { mode: colorMode, toggle: toggleTheme } = useColorMode();
+  const theme = useMemo(() => makeTheme(colorMode), [colorMode]);
+  const [mlRun, setMlRun] = useState<MlRun | null>(null);
+  // Направление перехода между шагами: вперёд — экран въезжает справа, назад — слева
+  const [screen, setScreen] = useState(0);
+  const previousScreen = useRef(screen);
+  const stepDirection = screen >= previousScreen.current ? "forward" : "back";
+  useEffect(() => { previousScreen.current = screen; }, [screen]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [data, setData] = useState<ApplicationData>(() => applicationForAccount(DEFAULT_DEMO_ACCOUNT));
-  const [screen, setScreen] = useState(0);
   const [maxVisitedStep, setMaxVisitedStep] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getToken()));
   const [checkingSession, setCheckingSession] = useState(() => Boolean(getToken()));
@@ -270,17 +279,37 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Пока ML считает, показываем этапы проверки — не меньше пары секунд, чтобы их можно было прочитать
+  const withMl = async <T,>(run: MlRun, work: () => Promise<T>): Promise<T> => {
+    setMlRun(run);
+    const started = Date.now();
+    const minimum = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? 0 : 2300;
+    try {
+      const result = await work();
+      await new Promise((resolve) => window.setTimeout(resolve, Math.max(0, minimum - (Date.now() - started))));
+      return result;
+    } finally { setMlRun(null); }
+  };
+
   const showOffers = async () => {
     if (!data.applicationId) return;
     setLoading(true); setApiError("");
     try {
       const applicationId = await saveDraft();
       if (!applicationId) return;
-      const result = await api.precheck(applicationId);
+      const result = await withMl("precheck", () => api.precheck(applicationId));
       setData((current) => ({ ...current, precheck: result, goalOffers: result.goalOffers }));
       setSelectedOffer(0); setScreen(3);
     } catch (error) { setApiError(toMessage(error, "Не удалось получить предложения")); }
     finally { setLoading(false); }
+  };
+
+  // Шаг 1: предварительные продукты по текущим цели, сумме и сроку — без перехода на экран предложений
+  const previewOffers = async () => {
+    const applicationId = await saveDraft();
+    if (!applicationId) return [];
+    const result = await api.precheck(applicationId);
+    return result.goalOffers ?? [];
   };
 
   // Выбранный вариант становится условиями заявки: сумма, срок и продукт
@@ -321,7 +350,8 @@ export default function App() {
     if (!data.applicationId) return;
     setLoading(true); setApiError("");
     try {
-      const response = await api.submit(data.applicationId, data);
+      const applicationId = data.applicationId;
+      const response = await withMl("decision", () => api.submit(applicationId, data));
       applyApplication(response);
       setData((current) => ({ ...current, submitted: true, outcome: "review" }));
       setScreen(6); window.scrollTo({ top: 0, behavior: "smooth" });
@@ -443,20 +473,20 @@ export default function App() {
   if (checkingSession) return <ThemeProvider theme={theme}><CssBaseline /><Box className="login-page"><Typography>Проверяем учётную запись…</Typography></Box></ThemeProvider>;
   if (!isAuthenticated || !profile) {
     if (page === "login") return <ThemeProvider theme={theme}><CssBaseline /><LoginPage onLogin={loginWithPassword} onBack={() => { window.history.pushState({}, "", "/"); setPage("home"); }} notice={authNotice} /></ThemeProvider>;
-    return <ThemeProvider theme={theme}><CssBaseline /><LandingPage onStart={() => { window.history.pushState({}, "", "/login"); setPage("login"); }} onProfile={openProfile} /></ThemeProvider>;
+    return <ThemeProvider theme={theme}><CssBaseline /><LandingPage onStart={() => { window.history.pushState({}, "", "/login"); setPage("login"); }} onProfile={openProfile} colorMode={colorMode} onToggleTheme={toggleTheme} /></ThemeProvider>;
   }
   if (profile.role === "SPECIALIST") return <ThemeProvider theme={theme}><CssBaseline /><BankPage userName={profile.name} onLogout={logout} /></ThemeProvider>;
   if (profile.role === "ADMIN") return <ThemeProvider theme={theme}><CssBaseline /><AdminPage userName={profile.name} onLogout={logout} /></ThemeProvider>;
-  if (page === "home") return <ThemeProvider theme={theme}><CssBaseline /><LandingPage userName={profile.name} application={data} onOpenRoute={() => void openRoute()} onStart={() => openApplication(data.submitted ? 6 : 0)} onProfile={openProfile} onLogout={logout} onHome={openHome} /></ThemeProvider>;
+  if (page === "home") return <ThemeProvider theme={theme}><CssBaseline /><LandingPage userName={profile.name} application={data} onOpenRoute={() => void openRoute()} onStart={() => openApplication(data.submitted ? 6 : 0)} onProfile={openProfile} onLogout={logout} onHome={openHome} colorMode={colorMode} onToggleTheme={toggleTheme} /></ThemeProvider>;
   if (page === "profile") return <ThemeProvider theme={theme}><CssBaseline /><ProfilePage profile={profile} onBack={backFromProfile} /></ThemeProvider>;
   if (page === "help") return <ThemeProvider theme={theme}><CssBaseline />
-    <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHome={openHome} openHelp={openHelp} openApplication={openApplication} onLogout={logout} />
+    <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHome={openHome} openHelp={openHelp} openApplication={openApplication} onLogout={logout} colorMode={colorMode} onToggleTheme={toggleTheme} />
     <HelpPage data={data} onBack={backFromHelp} onStaleApplication={syncApplication} />
     <Box className="bottom-help"><ShieldOutlined /> Безопасно. Просто. На ваших условиях. <span>© Альфа-Бизнес · Кредитный кабинет</span></Box>
   </ThemeProvider>;
 
   if (page === "route") return <ThemeProvider theme={theme}><CssBaseline />
-    <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHome={openHome} openHelp={openHelp} openApplication={openApplication} onLogout={logout} />
+    <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHome={openHome} openHelp={openHelp} openApplication={openApplication} onLogout={logout} colorMode={colorMode} onToggleTheme={toggleTheme} />
     <Box component="main" className="main-content route-main-content">
       {apiError && <Alert severity="error" onClose={() => setApiError("")} sx={{ mb: 2 }}>{apiError}</Alert>}
       <RoutePage data={data} recalculateRoute={recalcRoute} onHelp={openHelp} onNewApplication={startNewApplication}
@@ -470,7 +500,7 @@ export default function App() {
   const offers = data.goalOffers ?? data.precheck?.goalOffers ?? [];
   const chosen = offers[selectedOffer];
   const pages = [
-    <GoalPage key="goal" data={data} update={update} next={next} />,
+    <GoalPage key="goal" data={data} update={update} next={next} previewOffers={previewOffers} />,
     <CompanyPage key="company" data={data} update={update} next={next} lookupCompany={lookupCompany} profileCompany={profile.company ?? undefined} setToast={setToast} />,
     <FinancePage key="finance" data={data} update={update} next={next} company={data.company} setSelectedOffer={setSelectedOffer} onShowOffers={showOffers} />,
     <OffersPage key="offers" data={data} update={update} next={next} goalOffers={offers} selectedOffer={selectedOffer} setSelectedOffer={setSelectedOffer} monthly={monthly} chosen={chosen} setToast={setToast} onChoose={chooseOffer} onOpenRoute={() => void openRoute()} />,
@@ -480,11 +510,12 @@ export default function App() {
   ];
 
   return <ThemeProvider theme={theme}><CssBaseline />
-    <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHome={openHome} openHelp={openHelp} openApplication={openApplication} onLogout={logout} />
+    <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHome={openHome} openHelp={openHelp} openApplication={openApplication} onLogout={logout} colorMode={colorMode} onToggleTheme={toggleTheme} />
     <Box className="app-shell"><StepRail screen={screen} maxVisitedStep={maxVisitedStep} setScreen={navigateToStep} /><Box component="main" className="main-content">
       {apiError && <Alert severity="error" onClose={() => setApiError("")} sx={{ mb: 2 }}>{apiError}</Alert>}
-      {pages[screen]}
+      <Box key={screen} className={`step-anim step-${stepDirection}`}>{pages[screen]}</Box>
     </Box></Box>
+    <MlProgress run={mlRun} />
     {toast && <Box className="toast-msg" onClick={() => setToast("")}>{toast}</Box>}
     <Box className="bottom-help"><ShieldOutlined /> Безопасно. Просто. На ваших условиях. <span>© Альфа-Бизнес · Кредитный кабинет</span></Box>
   </ThemeProvider>;

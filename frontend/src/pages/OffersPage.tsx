@@ -32,6 +32,10 @@ import Timeline from "@mui/icons-material/Timeline";
 import VerifiedUser from "@mui/icons-material/VerifiedUser";
 import DescriptionOutlined from "@mui/icons-material/DescriptionOutlined";
 import Autorenew from "@mui/icons-material/Autorenew";
+import CloudOutlined from "@mui/icons-material/CloudOutlined";
+import ThunderstormOutlined from "@mui/icons-material/ThunderstormOutlined";
+import WbSunnyOutlined from "@mui/icons-material/WbSunnyOutlined";
+import type { ReactNode } from "react";
 import {
   FooterNav,
   IconBubble,
@@ -40,7 +44,7 @@ import {
 } from "../components/ApplicationShell";
 import { formatMoney as money, formatNumber as format } from "../utils/format";
 import { goals } from "../data/application";
-import type { LoanOffer, OffersPageProps } from "../types";
+import type { LoanOffer, OffersPageProps, Weather } from "../types";
 import { chanceLabel, chanceTone, needsRoute, reasonTone, toneLabel } from "../utils/route";
 
 const kindLabel: Record<string, string> = {
@@ -225,6 +229,7 @@ export default function OffersPage({
             </Card>
             );
           })}
+          <WeatherCard weather={chosen?.weather ?? data.precheck?.weather} />
         </Box>
         <Paper className="recommend-card">
           <Typography className="eyebrow">ВАШ ВЫБОР</Typography>
@@ -304,5 +309,40 @@ export default function OffersPage({
         }
       />
     </>
+  );
+}
+
+// «Погода» по выбранному варианту: сколько кредит стоит сейчас и что будет, если что-то пойдёт не так
+const weatherIcon: Record<string, ReactNode> = { BASE: <WbSunnyOutlined />, RATE_UP: <CloudOutlined />, OVERDUE_30: <ThunderstormOutlined /> };
+function WeatherCard({ weather }: { weather?: Weather | null }) {
+  if (!weather?.rows?.length) return null;
+  const base = weather.rows.find((row) => row.code === "BASE");
+  return (
+    <Paper className="weather-card">
+      <Box className="weather-head">
+        <Typography className="eyebrow">ПОГОДА ПО КРЕДИТУ</Typography>
+        <Tooltip title={weather.disclaimer}><HelpOutline fontSize="small" aria-label={weather.disclaimer} /></Tooltip>
+      </Box>
+      <Box className="weather-rows">
+        {weather.rows.map((row) => {
+          const ratio = base && base.fullCost > 0 ? Math.min(row.fullCost / (base.fullCost * 1.6), 1) : 1;
+          return (
+            <Box key={row.code} className={`weather-row weather-${row.code.toLowerCase()}`}>
+              <span className="weather-icon" aria-hidden="true">{weatherIcon[row.code]}</span>
+              <Box className="weather-body">
+                <Typography className="weather-title">{row.code === "BASE" ? "Сейчас" : row.title}</Typography>
+                <Box className="weather-bar"><i style={{ transform: `scaleX(${ratio})` }} /></Box>
+                {row.note && <Typography className="weather-note">{row.note}</Typography>}
+              </Box>
+              <Box className="weather-sum">
+                <b>{money(row.fullCost)}</b>
+                <span>{row.deltaFullCost > 0 ? `+${money(row.deltaFullCost)}` : `${money(row.monthlyPayment)}/мес.`}</span>
+              </Box>
+            </Box>
+          );
+        })}
+      </Box>
+      <Typography className="weather-disclaimer">Полная стоимость в рублях: проценты и комиссии сверх суммы кредита. {weather.disclaimer}</Typography>
+    </Paper>
   );
 }

@@ -1,3 +1,5 @@
+import type { PaletteMode } from "@mui/material";
+import ThemeToggle from "../components/ThemeToggle";
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Box, Button, Chip, Drawer, IconButton, LinearProgress, Paper, Typography } from "@mui/material";
 import AccountBalanceWalletOutlined from "@mui/icons-material/AccountBalanceWalletOutlined";
@@ -19,6 +21,8 @@ import type { ApplicationData, RouteStep } from "../types";
 import { formatMoney } from "../utils/format";
 
 interface LandingPageProps {
+  colorMode?: PaletteMode;
+  onToggleTheme?: () => void;
   userName?: string;
   onOpenRoute?: () => void;
   application?: ApplicationData;
@@ -313,7 +317,7 @@ function ConditionsBar({ season, onDetails }: { season: Season; onDetails: () =>
   </Paper>;
 }
 
-export default function LandingPage({ userName, application, onStart, onProfile, onLogout, onHome, onOpenRoute }: LandingPageProps) {
+export default function LandingPage({ userName, application, onStart, onProfile, onLogout, onHome, onOpenRoute, colorMode, onToggleTheme }: LandingPageProps) {
   const [season, setSeason] = useState<Season>(initialSeason);
   const [panel, setPanel] = useState<"metrics" | "conditions" | null>(null);
   const metrics = useMetrics(application);
@@ -324,6 +328,7 @@ export default function LandingPage({ userName, application, onStart, onProfile,
     <Box component="header" className="landing-header">
       <Box className="landing-brand" component="button" type="button" onClick={onHome} aria-label="Перейти на заглавную страницу"><Box component="img" className="brand-mark" src="/images/alfa-mark.png" alt="Альфа-Банк" /><Box><b>альфа-бизнес</b><span>КРЕДИТНЫЙ КАБИНЕТ</span></Box></Box>
       <Box className="landing-nav"><Button onClick={onStart}>Кредит для бизнеса</Button><Button onClick={onProfile}>Мой бизнес</Button><Button onClick={onStart}>Документы</Button><Button onClick={onStart}>Поддержка</Button></Box>
+      {colorMode && onToggleTheme && <ThemeToggle mode={colorMode} onToggle={onToggleTheme} className="landing-theme" />}
       <Button className="landing-account-top" onClick={onProfile} startIcon={<AccountCircleOutlined />} aria-label={userName ? "Мои данные и компания" : "Войти в личный кабинет"}>
         <span>{userName ?? "Личный кабинет"}<small>{userName ? "Мои данные и компания" : "Войти в аккаунт"}</small></span>
       </Button>

@@ -28,6 +28,8 @@ import ShieldOutlined from "@mui/icons-material/ShieldOutlined";
 import Storefront from "@mui/icons-material/Storefront";
 import type { ReactNode } from "react";
 import type { Navigate } from "../types";
+import type { PaletteMode } from "@mui/material";
+import ThemeToggle from "./ThemeToggle";
 
 interface IconBubbleProps {
   children: ReactNode;
@@ -43,6 +45,8 @@ interface HeaderProps {
   openHelp?: () => void;
   openApplication?: (screen: number) => void;
   onLogout?: () => void;
+  colorMode?: PaletteMode;
+  onToggleTheme?: () => void;
 }
 interface StepTitleProps {
   eyebrow: string;
@@ -71,7 +75,7 @@ interface SelectCardProps {
 export function IconBubble({ children, lime = false }: IconBubbleProps) {
   return <Box className={`icon-bubble ${lime ? "lime" : ""}`}>{children}</Box>;
 }
-export function Header({ screen, setScreen, userName = "Клиент", openProfile, openHome, openHelp, openApplication, onLogout }: HeaderProps) {
+export function Header({ screen, setScreen, userName = "Клиент", openProfile, openHome, openHelp, openApplication, onLogout, colorMode, onToggleTheme }: HeaderProps) {
   // На узком экране ссылки шапки спрятаны — открываем их из меню
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const go = (action?: () => void) => { setMenuAnchor(null); action?.(); };
@@ -96,6 +100,7 @@ export function Header({ screen, setScreen, userName = "Клиент", openProfi
           <Button onClick={openHelp}>Помощь</Button>
         </Box>
         <Box className="head-actions">
+          {colorMode && onToggleTheme && <ThemeToggle mode={colorMode} onToggle={onToggleTheme} />}
           <Button
             className="profile-link"
             component="a"
