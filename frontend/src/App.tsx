@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Box, Button, CssBaseline, ThemeProvider, Typography } from "@mui/material";
+import { Alert, Box, Button, CssBaseline, Drawer, ThemeProvider, Typography } from "@mui/material";
+import ChatBubbleOutline from "@mui/icons-material/ChatBubbleOutline";
 import ShieldOutlined from "@mui/icons-material/ShieldOutlined";
 import { makeTheme } from "./theme";
 import { useColorMode } from "./utils/colorMode";
+import { precheckKey } from "./utils/precheckKey";
 import MlProgress, { type MlRun } from "./components/MlProgress";
 import { defaultData, goals } from "./data/application";
 import { DEFAULT_DEMO_ACCOUNT, demoAccounts, type DemoAccount } from "./data/demoAccounts";
@@ -52,6 +54,7 @@ export default function App() {
   const { mode: colorMode, toggle: toggleTheme } = useColorMode();
   const theme = useMemo(() => makeTheme(colorMode), [colorMode]);
   const [mlRun, setMlRun] = useState<MlRun | null>(null);
+  const [assistantOpen, setAssistantOpen] = useState(false);
   // Направление перехода между шагами: вперёд — экран въезжает справа, назад — слева
   const [screen, setScreen] = useState(0);
   const previousScreen = useRef(screen);
@@ -298,18 +301,33 @@ export default function App() {
       const applicationId = await saveDraft();
       if (!applicationId) return;
       const result = await withMl("precheck", () => api.precheck(applicationId));
+      prechecked.current = precheckKey(data);
       setData((current) => ({ ...current, precheck: result, goalOffers: result.goalOffers }));
       setSelectedOffer(0); setScreen(3);
     } catch (error) { setApiError(toMessage(error, "Не удалось получить предложения")); }
     finally { setLoading(false); }
   };
 
-  // Шаг 1: предварительные продукты по текущим цели, сумме и сроку — без перехода на экран предложений
-  const previewOffers = async () => {
-    const applicationId = await saveDraft();
-    if (!applicationId) return [];
+  // Предоценка по тому, что клиент видит сейчас: сохраняем черновик и пересчитываем. Помним, для каких данных считали,
+  // чтобы помощник и превью предложений не отвечали по устаревшему расчёту на сервере.
+  const prechecked = useRef("");
+  const freshPrecheck = async () => {
+    const snapshot = data;
+    const applicationId = await saveDraft(snapshot);
+    if (!applicationId) return undefined;
     const result = await api.precheck(applicationId);
-    return result.goalOffers ?? [];
+    prechecked.current = precheckKey(snapshot);
+    return { applicationId, result };
+  };
+
+  // Шаг 1: предварительные продукты по текущим цели, сумме и сроку — без перехода на экран предложений
+  const previewOffers = async () => (await freshPrecheck())?.result.goalOffers ?? [];
+
+  // Перед вопросом помощнику: черновик, изменённый после последнего расчёта, сначала пересчитываем
+  const prepareAssistant = async (): Promise<string | undefined> => {
+    if (data.submitted || !data.applicationId) return data.applicationId;
+    if (prechecked.current === precheckKey(data)) return data.applicationId;
+    return (await freshPrecheck())?.applicationId ?? data.applicationId;
   };
 
   // Выбранный вариант становится условиями заявки: сумма, срок и продукт
@@ -481,7 +499,7 @@ export default function App() {
   if (page === "profile") return <ThemeProvider theme={theme}><CssBaseline /><ProfilePage profile={profile} onBack={backFromProfile} /></ThemeProvider>;
   if (page === "help") return <ThemeProvider theme={theme}><CssBaseline />
     <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHome={openHome} openHelp={openHelp} openApplication={openApplication} onLogout={logout} colorMode={colorMode} onToggleTheme={toggleTheme} />
-    <HelpPage data={data} onBack={backFromHelp} onStaleApplication={syncApplication} />
+    <HelpPage data={data} onBack={backFromHelp} onStaleApplication={syncApplication} prepare={prepareAssistant} />
     <Box className="bottom-help"><ShieldOutlined /> Безопасно. Просто. На ваших условиях. <span>© Альфа-Бизнес · Кредитный кабинет</span></Box>
   </ThemeProvider>;
 
@@ -516,6 +534,11 @@ export default function App() {
       <Box key={screen} className={`step-anim step-${stepDirection}`}>{pages[screen]}</Box>
     </Box></Box>
     <MlProgress run={mlRun} />
+    {/* Помощник под рукой на каждом шаге: открывается сбоку, заявка остаётся на месте */}
+    {!assistantOpen && <Button className="assistant-fab" startIcon={<ChatBubbleOutline />} onClick={() => setAssistantOpen(true)}>Спросить</Button>}
+    <Drawer anchor="right" open={assistantOpen} onClose={() => setAssistantOpen(false)} slotProps={{ paper: { className: "assistant-drawer" } }}>
+      <HelpPage data={data} variant="drawer" onBack={() => setAssistantOpen(false)} onStaleApplication={syncApplication} prepare={prepareAssistant} />
+    </Drawer>
     {toast && <Box className="toast-msg" onClick={() => setToast("")}>{toast}</Box>}
     <Box className="bottom-help"><ShieldOutlined /> Безопасно. Просто. На ваших условиях. <span>© Альфа-Бизнес · Кредитный кабинет</span></Box>
   </ThemeProvider>;

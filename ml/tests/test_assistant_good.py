@@ -4,6 +4,7 @@ from conftest import applicant, precheck_applicant
 from fastapi.testclient import TestClient
 
 from service.assistant import answer
+from service.explain import rub
 from service.decision import decide, precheck
 from service.main import app
 
@@ -32,6 +33,14 @@ def test_draft_amount_above_estimate_points_to_alternative(policy):
     a = answer(policy, "почему такая сумма?", None, None, use_llm=False, stage="DRAFT", precheck=p)
     assert a.topic == "AMOUNT"
     assert "3 000 000 ₽" in a.answer and "2 850 000 ₽" in a.answer
+
+
+def test_draft_cost_question_names_payment_even_above_estimate(policy):
+    p = precheck(policy, precheck_applicant("P2"))
+    assert p.cost is not None and p.requested_amount > p.amount_range.high
+    a = answer(policy, "какой будет платёж в месяц?", None, None, use_llm=False, stage="DRAFT", precheck=p)
+    assert rub(p.cost.monthly_payment) in a.answer and rub(p.cost.full_cost) in a.answer
+    assert "2 850 000 ₽" in a.answer                   # и подсказка про вариант в пределах оценки остаётся
 
 
 def test_draft_without_precheck_guides_through_steps(policy):

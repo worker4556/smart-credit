@@ -209,10 +209,12 @@ def good_template(policy: Policy, topic: Topic, stage: str | None, decision: Dec
                 first = precheck.reasons[0].text.lower() if precheck.reasons else ""
                 body += (f" Главное препятствие: {first}." if first else "") + \
                     " Что сделать, чтобы сумма появилась, покажет маршрут на шаге «Предложение»."
-            elif precheck.requested_amount > high:
-                body += f" Сумма выше оценки — на шаге «Предложение» есть вариант в пределах {rub(high)}, по нему шансы выше."
-            elif precheck.cost:
-                body += f" Условия на запрошенную сумму: {_cost_text(precheck.cost)}."
+            else:
+                # Платёж и полную стоимость называем всегда, даже если сумма выше оценки: клиент спрашивает о деньгах
+                if precheck.cost:
+                    body += f" Условия на запрошенную сумму: {_cost_text(precheck.cost)}."
+                if precheck.requested_amount > high:
+                    body += f" Сумма выше оценки — на шаге «Предложение» есть вариант в пределах {rub(high)}, по нему шансы выше."
             return f"{body} {precheck.disclaimer}"
         reasons = [r.text for r in precheck.reasons]
         body = f"Предварительный шанс — {chance}: {rng}."

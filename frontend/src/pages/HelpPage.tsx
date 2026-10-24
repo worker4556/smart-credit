@@ -3,11 +3,13 @@ import { Alert, Avatar, Box, Button, CircularProgress, IconButton, Paper, TextFi
 import ArrowBack from "@mui/icons-material/ArrowBack";
 import AutoAwesome from "@mui/icons-material/AutoAwesome";
 import Send from "@mui/icons-material/Send";
+import Close from "@mui/icons-material/Close";
 import { api, ApiError, type AssistantAnswer } from "../api";
 import type { ApplicationData } from "../types";
 
 interface ChatMessage { id: string; question: string; answer: string; source?: AssistantAnswer["source"]; topic?: string; enhancing?: boolean; error?: boolean; }
-interface HelpPageProps { data: ApplicationData; onBack: () => void; onStaleApplication: () => Promise<string | undefined>; }
+// variant="drawer" — тот же помощник в боковой панели на шагах заявки: клиент спрашивает, не уходя с шага
+interface HelpPageProps { data: ApplicationData; onBack: () => void; onStaleApplication: () => Promise<string | undefined>; variant?: "page" | "drawer"; prepare?: () => Promise<string | undefined>; }
 
 // Подсказки под стадию заявки: помощник отвечает и когда всё хорошо, не только при отказе
 function promptsFor(data: ApplicationData): string[] {
@@ -18,7 +20,7 @@ function promptsFor(data: ApplicationData): string[] {
   return ["Почему одобрили?", "Что дальше?", "Сколько это стоит?", "Что такое полная стоимость кредита?"];
 }
 
-export default function HelpPage({ data, onBack, onStaleApplication }: HelpPageProps) {
+export default function HelpPage({ data, onBack, onStaleApplication, variant = "page", prepare }: HelpPageProps) {
   const storageKey = useMemo(() => `credit-help-chat:${data.applicationId ?? "no-application"}`, [data.applicationId]);
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try { return JSON.parse(sessionStorage.getItem(storageKey) ?? "[]") as ChatMessage[]; } catch { return []; }
@@ -43,7 +45,8 @@ export default function HelpPage({ data, onBack, onStaleApplication }: HelpPageP
     setSending(true);
     setMessages((current) => [...current, { id, question: text, answer: "Готовим ответ…", enhancing: true }]);
     try {
-      let applicationId = data.applicationId;
+      // Помощник отвечает по данным на сервере — сначала доносим туда то, что клиент видит на экране
+      let applicationId = (await prepare?.()) ?? data.applicationId;
       let template: AssistantAnswer;
       try {
         template = await api.assistant(applicationId, text, false);
@@ -69,13 +72,16 @@ export default function HelpPage({ data, onBack, onStaleApplication }: HelpPageP
     }
   };
 
-  return <Box className="help-page">
-    <Box className="help-heading">
+  return <Box className={`help-page help-${variant}`}>
+    {variant === "page" ? <Box className="help-heading">
       <Button startIcon={<ArrowBack />} onClick={onBack}>К заявке</Button>
       <Typography className="eyebrow">ПОМОЩЬ ПО ЗАЯВКЕ</Typography>
       <Typography variant="h2">Чем можем помочь?</Typography>
       <Typography color="text.secondary">Спросите о шансах, условиях, следующих шагах или непонятном слове. Ответ формируется по данным вашей заявки — на любом этапе.</Typography>
-    </Box>
+    </Box> : <Box className="help-drawer-head">
+      <Typography fontWeight={800}>Вопрос по заявке</Typography>
+      <IconButton onClick={onBack} aria-label="Закрыть помощника"><Close /></IconButton>
+    </Box>}
     <Paper className="help-chat" elevation={0}>
       <Box className="help-chat-top"><Avatar><AutoAwesome /></Avatar><Box><Typography fontWeight={800}>Помощник Альфа-Бизнес</Typography><Typography variant="caption">Объясняет шансы, решение и следующие шаги по данным банка</Typography></Box></Box>
       <Box className="help-messages" aria-live="polite">
