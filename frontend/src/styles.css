@@ -57,13 +57,10 @@ body {
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: #ef3124;
-  color: white;
-  display: grid;
-  place-items: center;
-  font-size: 28px;
-  font-weight: 800;
-  line-height: 1;
+  display: block;
+  flex: 0 0 auto;
+  object-fit: cover;
+  overflow: hidden;
 }
 .brand-name {
   font-size: 18px !important;
@@ -1009,7 +1006,6 @@ body {
 .status-doc-top .brand-mark {
   width: 23px;
   height: 23px;
-  font-size: 19px;
   border-radius: 7px;
 }
 .status-doc-top .MuiChip-root {
@@ -2706,7 +2702,7 @@ body {
 
 @media (max-width: 390px) {
   .toolbar { padding-inline: 10px !important; }
-  .brand-mark { width: 31px; height: 31px; font-size: 25px; }
+  .brand-mark { width: 31px; height: 31px; }
   .brand-name { font-size: 14px !important; }
   .brand-caption { font-size: 6px !important; }
   .head-actions { gap: 3px; }

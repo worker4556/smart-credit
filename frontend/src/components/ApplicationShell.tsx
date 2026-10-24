@@ -79,7 +79,7 @@ export function Header({ screen, setScreen, userName = "Клиент", openProfi
     <AppBar position="sticky" color="inherit" elevation={0} className="appbar">
       <Toolbar className="toolbar">
         <Box className="brand" component="button" type="button" onClick={openHome ?? (() => (openApplication ? openApplication(0) : setScreen(0)))} aria-label="Перейти на заглавную страницу">
-          <Box className="brand-mark">а</Box>
+          <Box component="img" className="brand-mark" src="/images/alfa-mark.png" alt="Альфа-Банк" />
           <Box>
             <Typography className="brand-name">альфа-бизнес</Typography>
             <Typography className="brand-caption">КРЕДИТНЫЙ КАБИНЕТ</Typography>
