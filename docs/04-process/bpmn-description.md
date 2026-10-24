@@ -12,8 +12,6 @@
 
 ![BPMN: работа клиента с маршрутом](bpmn-roadmap.png)
 
-<img width="1776" height="415" alt="image" src="https://github.com/user-attachments/assets/8a5fd83d-b309-46f8-9bb1-5292a0a2f509" />
-
 ---
  
 ## 1. Коротко
