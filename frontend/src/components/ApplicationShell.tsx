@@ -35,6 +35,7 @@ interface IconBubbleProps {
 }
 interface HeaderProps {
   screen: number;
+  maxVisitedStep?: number;
   setScreen: (screen: number) => void | Promise<void>;
   userName?: string;
   openProfile?: () => void;
@@ -123,7 +124,7 @@ export function Header({ screen, setScreen, userName = "Клиент", openProfi
     </AppBar>
   );
 }
-export function StepRail({ screen, setScreen }: HeaderProps) {
+export function StepRail({ screen, maxVisitedStep = screen, setScreen }: HeaderProps) {
   const labels = [
     "Цель",
     "Компания",
@@ -151,13 +152,13 @@ export function StepRail({ screen, setScreen }: HeaderProps) {
             key={l}
             component="button"
             type="button"
-            disabled={i >= screen}
+            disabled={i > maxVisitedStep}
             onClick={() => void setScreen(i)}
             aria-current={screen === i ? "step" : undefined}
-            className={`rail-item ${screen === i ? "current" : ""} ${screen > i || screen === 6 ? "done" : ""}`}
+            className={`rail-item ${screen === i ? "current" : ""} ${i < maxVisitedStep || screen === 6 ? "done" : ""}`}
           >
             <Box className="rail-dot">
-              {screen > i || screen === 6 ? (
+              {i < maxVisitedStep || screen === 6 ? (
                 <CheckCircle fontSize="small" />
               ) : (
                 <span>0{i + 1}</span>
