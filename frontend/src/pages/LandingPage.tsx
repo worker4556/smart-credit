@@ -324,7 +324,7 @@ export default function LandingPage({ userName, application, onStart, onProfile,
     <Box component="header" className="landing-header">
       <Box className="landing-brand" component="button" type="button" onClick={onHome} aria-label="Перейти на заглавную страницу"><Box component="img" className="brand-mark" src="/images/alfa-mark.png" alt="Альфа-Банк" /><Box><b>альфа-бизнес</b><span>КРЕДИТНЫЙ КАБИНЕТ</span></Box></Box>
       <Box className="landing-nav"><Button onClick={onStart}>Кредит для бизнеса</Button><Button onClick={onProfile}>Мой бизнес</Button><Button onClick={onStart}>Документы</Button><Button onClick={onStart}>Поддержка</Button></Box>
-      <Button className="landing-account-top" onClick={onProfile} startIcon={<AccountCircleOutlined />}>
+      <Button className="landing-account-top" onClick={onProfile} startIcon={<AccountCircleOutlined />} aria-label={userName ? "Мои данные и компания" : "Войти в личный кабинет"}>
         <span>{userName ?? "Личный кабинет"}<small>{userName ? "Мои данные и компания" : "Войти в аккаунт"}</small></span>
       </Button>
       {userName && onLogout && <Button className="landing-logout" onClick={onLogout}>Выйти</Button>}
