@@ -94,3 +94,14 @@ def test_route_and_quote_validate_term():
     q = client.post("/v1/quote", json={"product": "WORKING_CAPITAL", "amount": 850_000, "term_months": 60})
     assert q.status_code == 422
     assert client.post("/v1/quote", json={"product": "OVERDRAFT", "amount": 300_000, "term_months": 6}).status_code == 422
+
+
+def test_new_application_after_route_counts_completed_steps():
+    # P3: маршрут пройден (налоговый долг погашен и т. д.) — новая заявка оценивается с учётом этих шагов
+    a = PERSONAS["P3"]["decision"]
+    route = client.post("/v1/route", json={"applicant": a}).json()
+    done = [s["code"] for s in route["steps"]]
+    before = client.post("/v1/decision", json=a).json()
+    after = client.post("/v1/decision", json={**a, "assume_done": done}).json()
+    assert before["outcome"] == "REJECTED"
+    assert after["outcome"] != "REJECTED" and after["score"]["score"] > before["score"]["score"]

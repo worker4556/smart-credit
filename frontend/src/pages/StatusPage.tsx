@@ -9,6 +9,12 @@ import {
   Typography,
 } from "@mui/material";
 import CheckCircle from "@mui/icons-material/CheckCircle";
+import HourglassEmpty from "@mui/icons-material/HourglassEmpty";
+import PauseCircleOutline from "@mui/icons-material/PauseCircleOutline";
+import SentimentDissatisfiedOutlined from "@mui/icons-material/SentimentDissatisfiedOutlined";
+import SwapHoriz from "@mui/icons-material/SwapHoriz";
+import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
+import type { ReactNode } from "react";
 import CloudUpload from "@mui/icons-material/CloudUpload";
 import ArrowForward from "@mui/icons-material/ArrowForward";
 import { reasonTone, toneLabel } from "../utils/route";
@@ -86,6 +92,8 @@ export default function StatusPage({
   const noDecision = ["WITHDRAWN", "EXPIRED"].includes(data.status ?? "");
   const showReasons = !noDecision && !["approved"].includes(data.outcome);
   const isOverdraft = data.goal === "Перекрыть кассовый разрыв";
+  // Итог одним взглядом: цвет и значок рядом с заголовком
+  const badge = statusBadge(data.status, data.outcome);
   const amountLabel = isOverdraft ? "Лимит овердрафта" : "Сумма";
   const monthlyLabel = isOverdraft ? "Проценты в месяц при полном использовании" : "Платёж в месяц";
 
@@ -93,7 +101,10 @@ export default function StatusPage({
     <>
       <Box className="status-hero">
         <Box>
-          <Chip label={`ЗАЯВКА ${data.number ?? ""}`} className="status-number" />
+          <Box className="status-top">
+            <Chip label={`ЗАЯВКА ${data.number ?? ""}`} className="status-number" />
+            <Box className={`status-badge tone-${badge.tone}`}>{badge.icon}<span>{badge.label}</span></Box>
+          </Box>
           <Typography variant="h2" className="status-title">
             {title}
           </Typography>
@@ -229,7 +240,7 @@ export default function StatusPage({
 
       {data.status === "SPECIALIST_REVIEW" && (
         <Box className="status-actions">
-          <Button color="inherit" onClick={() => void withdrawApplication()}>Отозвать заявку</Button>
+          <Button variant="outlined" color="inherit" onClick={() => void withdrawApplication()}>Отозвать заявку</Button>
         </Box>
       )}
 
@@ -247,22 +258,22 @@ export default function StatusPage({
         </Paper>
       )}
 
-      <Divider sx={{ my: 2 }} />
-      <Stack
-        direction="row"
-        spacing={1}
-        alignItems="center"
-        className="status-note"
-      >
-        <CheckCircle color="success" fontSize="small" />
-        <Typography variant="body2">
-          Статус и история получены с backend API.{" "}
-          {data.outcome === "review" ? "Обновление — каждые 3 секунды." : ""}
-        </Typography>
-      </Stack>
       <Box className="status-actions">
-        <Button onClick={() => void onNewApplication()}>Новая заявка</Button>
+        <Button variant="outlined" color="inherit" onClick={() => void onNewApplication()}>Новая заявка</Button>
       </Box>
     </>
   );
+}
+
+type BadgeTone = "green" | "amber" | "red" | "neutral";
+function statusBadge(status: string | undefined, outcome: string): { tone: BadgeTone; label: string; icon: ReactNode } {
+  if (["APPROVED", "OFFER_ACCEPTED", "SIGNED", "DISBURSED"].includes(status ?? "") || outcome === "approved")
+    return { tone: "green", label: status === "DISBURSED" ? "Деньги на счёте" : "Одобрено", icon: <CheckCircle /> };
+  if (status === "COUNTER_OFFER" || outcome === "partial") return { tone: "amber", label: "Иные условия", icon: <SwapHoriz /> };
+  if (status === "INFO_REQUESTED" || outcome === "info") return { tone: "amber", label: "Нужны документы", icon: <UploadFileOutlined /> };
+  if (status === "SUSPENDED_115FZ" || outcome === "suspended") return { tone: "red", label: "Проверка по 115-ФЗ", icon: <PauseCircleOutline /> };
+  if (["REJECTED", "DECLINED_BY_CLIENT"].includes(status ?? "") || outcome === "rejected")
+    return { tone: "red", label: status === "DECLINED_BY_CLIENT" ? "Вы отказались" : "Пока отказано", icon: <SentimentDissatisfiedOutlined /> };
+  if (["WITHDRAWN", "EXPIRED"].includes(status ?? "")) return { tone: "neutral", label: status === "WITHDRAWN" ? "Отозвана" : "Истекла", icon: <HourglassEmpty /> };
+  return { tone: "neutral", label: outcome === "specialist" ? "У специалиста" : "На проверке", icon: <HourglassEmpty /> };
 }

@@ -58,6 +58,14 @@ components:
       properties:
         account:
           $ref: '#/components/schemas/Account'
+        assume_done:
+          default: []
+          description: 'Шаги маршрута, выполненные до этой заявки: их эффект применяется
+            к данным перед оценкой'
+          items:
+            type: string
+          title: Assume Done
+          type: array
         checks:
           $ref: '#/components/schemas/Checks'
           default:

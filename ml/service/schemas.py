@@ -67,6 +67,7 @@ class Applicant(BaseModel):
     account: Account
     owner: Owner
     checks: Checks = Checks()
+    assume_done: list[str] = Field(default=[], description="Шаги маршрута, выполненные до этой заявки: их эффект применяется к данным перед оценкой")
 
 
 # ---------- выход ----------

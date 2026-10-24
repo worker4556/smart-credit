@@ -152,12 +152,7 @@ export default function ReviewPage({
         <ShieldOutlined /> Мы покажем статус здесь же. Пока ничего делать не
         придется.
       </Box>
-      <FooterNav
-        onBack={() => next(4)}
-        onNext={submit}
-        next="Отправить заявку"
-        disabled={!data.consent1 || !data.consent2 || loading}
-      />
+      <FooterNav onBack={() => next(4)} />
     </>
   );
 }

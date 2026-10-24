@@ -22,7 +22,7 @@ from .assistant import AssistantAnswer, answer
 from .glossary import lookup
 from .explain import Explanation, explain_decision, explain_precheck, explain_route
 from .intent import Intent, parse
-from .route import Route, SpecialistDecision, build_route
+from .route import Route, SpecialistDecision, apply_effect, build_route
 from .finance import quote, weather
 from .schemas import (Applicant, Decision, LimitResult, LoanRequest, Offer, Precheck, ProductCode, Quote, ScoreResult,
                       Weather)
@@ -135,10 +135,17 @@ def intent(req: IntentRequest) -> Intent:
     return parse(req.text, use_llm=req.use_llm)
 
 
+def _with_done(policy, a: Applicant) -> Applicant:
+    """Новая заявка после маршрута: эффект выполненных шагов (погашен долг, нагрузка снижена…) — в данных до оценки."""
+    for code in a.assume_done:
+        a = apply_effect(policy, a, code)
+    return a
+
+
 @app.post("/v1/precheck", response_model=Precheck, summary="Шаг 3: предоценка без заявки и без БКИ")
 def precheck_endpoint(a: Applicant) -> Precheck:
     policy = get_policy()
-    return precheck(policy, _validated(a)).model_copy(update={"audit": audit_of(policy, a)})
+    return precheck(policy, _with_done(policy, _validated(a))).model_copy(update={"audit": audit_of(policy, a)})
 
 
 @app.post("/v1/score", response_model=ScoreResult, summary="Б3: баллы по 9 факторам и стоп-факторы")
@@ -154,7 +161,8 @@ def limit_endpoint(a: Applicant) -> LimitResult:
 @app.post("/v1/decision", response_model=DecisionWithOffers, summary="Б3 + Б4: исход, сумма, стоимость, причины, триггеры специалиста")
 def decision_endpoint(a: Applicant) -> DecisionWithOffers:
     policy = get_policy()
-    d = decide(policy, _validated(a))
+    a = _with_done(policy, _validated(a))
+    d = decide(policy, a)
     METRICS.inc("ml_decisions_total", outcome=d.outcome)
     if d.specialist.required:
         METRICS.inc("ml_specialist_total")
@@ -165,7 +173,7 @@ def decision_endpoint(a: Applicant) -> DecisionWithOffers:
 def route_endpoint(req: RouteRequest) -> Route:
     policy = get_policy()
     try:
-        r = build_route(policy, _validated(req.applicant, "applicant"), req.assume_done, req.specialist_decision)
+        r = build_route(policy, _with_done(policy, _validated(req.applicant, "applicant")), req.assume_done, req.specialist_decision)
         return r.model_copy(update={"audit": audit_of(policy, req)})
     except ValueError as exc:
         raise HTTPException(422, str(exc))

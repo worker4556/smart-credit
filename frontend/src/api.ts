@@ -73,7 +73,7 @@ export const api = {
   application: (id: string) => request<ApplicationResponse>(`/applications/${id}`),
   route: (id: string) => request<ApplicationRoute>(`/applications/${id}/route`, { method: "POST" }),
   recalculateRoute: (id: string, doneSteps: string[]) => request<ApplicationRoute>(`/applications/${id}/route/recalculate`, { method: "POST", body: JSON.stringify({ doneSteps }) }),
-  uploadDocument: (id: string, file: File, docId?: string) => { const form = new FormData(); form.append("file", file); if (docId) form.append("docId", docId); return request<ApplicationResponse>(`/applications/${id}/documents`, { method: "POST", body: form }); },
+  uploadDocument: (id: string, file: File, docId?: string) => { const form = new FormData(); form.append("file", file); if (docId) form.append("doc_id", docId); return request<ApplicationResponse>(`/applications/${id}/documents`, { method: "POST", body: form }); },
   accept: (id: string) => request<void>(`/applications/${id}/accept`, { method: "POST" }),
   sign: (id: string) => request<void>(`/applications/${id}/sign`, { method: "POST" }),
   decline: (id: string) => request<void>(`/applications/${id}/decline`, { method: "POST" }),

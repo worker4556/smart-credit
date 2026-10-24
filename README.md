@@ -50,9 +50,9 @@ docker compose up --build -d
 
 ### Сценарий проверки (7–10 минут)
 
-Шаги клиента: **Компания → Цель → Сумма → Финансы (можно пропустить) → Предложение → Документы → Отправка → Статус**.
+Шаги клиента: **Цель → Компания → Финансы (можно пропустить) → Предложение → Документы → Отправка → Статус**. Сумма и срок задаются на шаге «Цель»; ИНН подставляется из учётки. Для скорости демо ответы персоны на шаге «Финансы» предзаполнены — их можно изменить.
 
-1. **`p1`** — подтвердите компанию, напишите «Нужно 850 тысяч на 2 года на закупку к сезону» → «Разобрать», пройдите
+1. **`p1`** — на шаге «Цель» напишите «Нужно 850 тысяч на 2 года на закупку к сезону» → «Разобрать», подтвердите компанию, пройдите
    шаги и отправьте → одобрение → «Принять условия» → «Подписать договор» → «Деньги перечислены».
 2. **`p2`** — 3 000 000 ₽ на 18 мес.: предоценка покажет вилку 2,55–2,85 млн, отправьте → заявка у специалиста.
    Войдите **`specialist`** → откройте заявку → код причины `L_TURNOVER` → «Сохранить решение». Снова **`p2`**:
@@ -71,6 +71,7 @@ python3 scripts/smoke_api.py                                                    
 npx newman run docs/postman/smart-credit.postman_collection.json --working-dir .      # коллекция запросов
 cd ml && uv run pytest                                                                 # приёмка движка по персонам
 cd backend && uv run pytest                                                            # backend
+cd frontend && npm test                                                                # frontend
 ```
 
 ### Документы
@@ -83,11 +84,12 @@ cd backend && uv run pytest                                                     
 | Коллекция запросов | [docs/postman/smart-credit.postman_collection.json](docs/postman/smart-credit.postman_collection.json) |
 | Диаграмма состояний заявки | [docs/architecture.md](docs/architecture.md#2-жизненный-цикл-заявки) |
 | Модель данных | [docs/architecture.md](docs/architecture.md#4-модель-данных) |
-| Тестовые сценарии | [docs/test-scenarios.md](docs/test-scenarios.md), персоны — [docs/test-user-maps.md](docs/test-user-maps.md) |
+| Тестовые сценарии | [docs/test-scenarios.md](docs/test-scenarios.md), персоны — [docs/06-personas/test-user-maps.md](docs/06-personas/test-user-maps.md) |
 | Синтетические данные | [ml/fixtures/personas.json](ml/fixtures/personas.json), [docs/demo-files/](docs/demo-files/) |
 | Сторонние компоненты, модели, смоделированные интеграции | [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
 | Логика решения и допущения | [docs/decisions.md](docs/decisions.md), [ml/README.md](ml/README.md) |
 | Проверка модели: различение, точность, стабильность | [docs/model-validation.md](docs/model-validation.md) |
+| «Лента под клиента» (стр. 7 кейса) | Её роль в продукте играют история событий заявки на экране статуса и подсказки помощника: они меняются по клиенту и стадии заявки |
 | Версии языков и библиотек | `backend/uv.lock`, `ml/uv.lock`, `frontend/package-lock.json`, `ml/.python-version`, версии образов в Dockerfile |
 
 ### Переменные окружения

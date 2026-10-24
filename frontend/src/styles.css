@@ -3173,3 +3173,43 @@ body { background: var(--bg); color: var(--ink); transition: background-color .3
 .help-chat-top .MuiAvatar-root, .help-welcome > .MuiAvatar-root, .help-answer-row > .MuiAvatar-root { background: var(--accent) !important; color: #fff; }
 :root:not([data-theme="dark"]) .flow-bg { opacity: .9; }
 .help-page.help-page .help-chat { background: color-mix(in srgb, var(--surface) 74%, transparent); }
+
+/* Маршрут на главной — секцией под горой, без шторки: шаги слева, ориентир справа, действия внизу */
+.landing-route-section { margin-top: 14px; scroll-margin-top: 16px; }
+.landing-route-section .rp { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; overflow: hidden; padding: 0; box-shadow: var(--shadow-1);
+  display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); grid-template-areas: "head head" "todo where" "todo goal" "todo avoid" "actions actions"; }
+.landing-route-section .rp-head { grid-area: head; position: static; background: var(--surface); padding: 22px 26px 18px; }
+.landing-route-section .rp-title { font-size: 26px !important; }
+.landing-route-section .rp-todo { grid-area: todo; border-right: 1px solid var(--line); padding: 22px 26px; align-content: start; }
+.landing-route-section .rp-where { grid-area: where; }
+.landing-route-section .rp-goal { grid-area: goal; }
+.landing-route-section .rp-avoid { grid-area: avoid; }
+.landing-route-section .rp-where, .landing-route-section .rp-goal, .landing-route-section .rp-avoid { padding: 18px 26px; }
+.landing-route-section .rp-section:last-of-type { border-bottom: 0; }
+.landing-route-section .rp-actions { grid-area: actions; border-top: 1px solid var(--line); padding: 18px 26px; }
+.rp-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.rp-next { font-size: 13px !important; color: var(--muted); flex: 1 1 260px; }
+.rp-buttons { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.trail-flag-letter { fill: #fff; font: 800 22px Manrope, Arial, sans-serif; }
+@media (max-width: 900px) {
+  .landing-route-section .rp { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "where" "todo" "goal" "avoid" "actions"; }
+  .landing-route-section .rp-todo { border-right: 0; border-bottom: 1px solid var(--line); }
+}
+
+/* Статус: итог значком и цветом; блок условий — с нормальными отступами */
+.status-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px 6px 8px; border-radius: 999px; font-size: 13px; font-weight: 800; animation: card-rise .4s var(--ease-out) both; }
+.status-badge svg { font-size: 20px; }
+.status-badge.tone-green { background: var(--tone-green-bg); color: var(--tone-green); }
+.status-badge.tone-amber { background: var(--tone-amber-bg); color: var(--tone-amber); }
+.status-badge.tone-red { background: var(--tone-red-bg); color: var(--tone-red); }
+.status-badge.tone-neutral { background: var(--surface-2); color: var(--muted); }
+.route-decision { align-items: center; gap: 24px; border: 1px solid var(--line) !important; border-radius: 18px !important; padding: 20px 24px !important; margin-top: 16px; }
+.route-decision .MuiTypography-root:not(.eyebrow) { font-size: 14px; line-height: 1.6; }
+.route-decision .MuiTypography-root:not(.eyebrow) + .MuiTypography-root:not(.eyebrow) { margin-top: 2px; }
+.route-decision .MuiButton-root, .route-decision .MuiChip-root { font-size: 14px; }
+.route-decision > .MuiButton-root + .MuiButton-root { margin-left: -12px; }
+.status-actions { gap: 12px; padding-top: 16px; }
+.recommend-card { gap: 12px; }
+.recommend-card > .MuiButton-root + .MuiButton-root { margin-top: 2px; }
+.offer-product { font-size: 12px !important; font-weight: 800 !important; color: var(--accent); letter-spacing: .02em; }

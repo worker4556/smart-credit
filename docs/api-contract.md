@@ -15,7 +15,7 @@
 
 | HTTP | Когда |
 |---|---|
-| 400 | Неверные данные или ограничение продукта (например, сумма вне диапазона) |
+| 400 | Неверные данные или ограничение продукта (например, сумма вне диапазона). ML в таких случаях отвечает `422`, backend отдаёт клиенту `400` с полем `field` |
 | 401 | Нет или просрочен токен, неверный логин/пароль |
 | 403 | Не та роль |
 | 404 | Нет объекта или заявка чужой компании |
@@ -57,6 +57,7 @@
   "consent1": true, "consent2": true, "docs": {} }
 ```
 `monthlyRevenue`, `hasLoans`, `loanPayment`, `hadOverdue2y` — ответы шага «Финансы» (шаг можно пропустить).
+`routeDone` (необязательно) — коды шагов маршрута, выполненных до этой заявки («Подать новую заявку» из пройденного маршрута): ML оценивает заявку с их учётом.
 
 | Метод | Что делает | Статус до → после |
 |---|---|---|
@@ -84,7 +85,7 @@
   "decisionAmount": 2850000, "decisionTerm": 18, "decisionRate": 20.0, "decisionMonthly": 184575, "decisionFullCost": 500852,
   "decisionWeather": { "rows": [ ... ], "disclaimer": "..." },
   "reasons": ["Сумму ограничивает оборот, а не баллы", "..."],
-  "infoRequest": null, "routeAvailable": false, "assistantAvailable": true,
+  "infoRequest": null, "routeAvailable": true, "assistantAvailable": true,
   "activity": [ { "at": "2026-10-22T16:44:00+00:00", "text": "Заявка отправлена" } ] }
 ```
 `outcome` — упрощённый статус для экрана: `review | specialist | approved | partial | info | rejected | suspended`.
@@ -99,7 +100,7 @@ monthly, fullCost, why, chance, weather }`. Варианты упорядоче�
 
 ### Объект **Route**
 `{ status: "ACTIVE"|"READY"|"NO_ROUTE", holds: "SCORE"|"STOP"|"TIME_WINDOW"|"TURNOVER"|"STOP_PERMANENT"|"NONCREDIT"|"NONE",
-basedOn: "SYSTEM"|"SPECIALIST", steps: [{ code, action, term, pointsGain, done, bkiDelayBusinessDays }], horizonText, message,
+basedOn: "SYSTEM"|"SPECIALIST", steps: [{ code, action, term, pointsGain, done, bkiDelayBusinessDays, targetTurnover }], horizonText, message,
 advice[], projectedAmount, disclaimer, text }`. После решения специалиста маршрут строится от его решения.
 
 ---
@@ -114,7 +115,7 @@ advice[], projectedAmount, disclaimer, text }`. После решения спе
 | `POST /bank/applications/{id}/decision` → `204` | `{ outcome: "APPROVED"|"COUNTER_OFFER"|"INFO_REQUESTED"|"REJECTED", amount?, term?, reasonCode, comment }`. Код причины обязателен; решение пишется в журнал |
 
 Триггеры попадания к специалисту: `AMOUNT_ABOVE_2M`, `BORDERLINE_SCORE`, `MISMATCH_UNRESOLVED`, `CLIENT_DISPUTE`,
-а также ошибка движка при автоматической оценке.
+а также `ML_UNAVAILABLE` — ошибка движка при автоматической оценке.
 
 # B2. backend — администратор (роль `ADMIN`)
 
@@ -122,6 +123,7 @@ advice[], projectedAmount, disclaimer, text }`. После решения спе
 |---|---|
 | `GET /admin/system` | `{ backend, ml, llm{ enabled, ready, model }, policyVersion }` |
 | `GET /admin/applications` | Все заявки: `[{ applicationId, number, companyName, amount, status, outcome, decidedBy }]` |
+| `GET /admin/stats` | Эффект продукта по событиям заявок: `{ funnel, outcomes, autoDecisionShare, fillMinutesMedian, decisionMinutesMedian, topReasons[], refused, returnedAfterRefusalShare, precheckMatchShare, precheckCompared }` |
 | `POST /admin/demo/reset` → `204` | Удалить все заявки и события; учётки остаются |
 
 ---
@@ -147,6 +149,7 @@ Swagger: `http://localhost:8001/docs`. **Машиночитаемый контр
 | `account` | `turnover_monthly` (1–12 мес., от старых к новым), `rko_months`, `business_debt`, `business_monthly_payments`, `external_turnover_monthly` (выписка другого банка) | счёт в Альфе, документы |
 | `owner` | `source` (`SELF_REPORTED` до подачи \| `BKI` после Б2), `had_overdue_2y`, `current_overdue`, `max_dpd_24m`, `months_since_90plus`, `personal_monthly_payments`, `card_utilization` | ответы клиента / БКИ |
 | `checks` | `declared_monthly_revenue`, `missing_documents`, `mismatch_unresolved`, `disputed` | заявка, Б1 |
+| `assume_done` | коды выполненных шагов маршрута (необязательно): эффект шагов применяется к данным до оценки | новая заявка после маршрута |
 
 Пример — `ml/fixtures/personas.json` (P1–P5, ЗСК).
 
@@ -182,7 +185,8 @@ Swagger: `http://localhost:8001/docs`. **Машиночитаемый контр
   "amount_range": { "low": 2550000, "high": 2850000 }, "requested_amount": 3000000,
   "cost": { "product": "WORKING_CAPITAL", "amount": 3000000, "term_months": 18, "rate": 20.0, "monthly_payment": 194290, "fee": 30000, "full_cost": 527213 },
   "reasons": [ { "code": "L_TURNOVER", "kind": "LIMIT", "category": "Финансовые показатели", "text": "Сумму ограничивает оборот, а не баллы", "shortfall": null },
-               { "code": "B_TURNOVER", "kind": "FACTOR", "category": "Финансовые показатели", "text": "Поступления на счёт нерегулярны", "shortfall": 15 } ],
+               { "code": "B_TURNOVER", "kind": "FACTOR", "category": "Финансовые показатели", "text": "Поступления на счёт нерегулярны", "shortfall": 15 },
+               { "code": "B_AMOUNT", "...": "..." } ],
   "offers": [ { "kind": "WITHIN_ESTIMATE", "product": "WORKING_CAPITAL", "amount": 2850000, "term_months": 18, "cost": { "...": "..." } } ],
   "owner_note": "Кредитную историю проверим после подачи — результат может измениться.",
   "valid_days": 30, "disclaimer": "Это оценка по текущим данным, а не решение банка. Действует 30 дней." }
@@ -228,13 +232,13 @@ Swagger: `http://localhost:8001/docs`. **Машиночитаемый контр
 LLM только пересказывает шаблон; ответ с новыми числами, кодами, «одобрено» вне одобрения или обещаниями отбрасывается.
 115-ФЗ — всегда шаблон. Вызывать в фоне в момент решения и сохранять (LLM на CPU отвечает до 30 с).
 
-### `POST /v1/assistant` — помощник при отказе и нехватке
-`{ "question": "почему мне отказали?", "context": { "decision": Decision, "route": Route | null }, "use_llm": true }` →
+### `POST /v1/assistant` — помощник по заявке на любой стадии
+`{ "question": "почему мне отказали?", "context": { "decision": Decision | null, "route": Route | null, "stage": "DRAFT" | … , "precheck": Precheck | null }, "use_llm": true }` →
 ```json
 { "answer": "Главная причина: Налоговая задолженность. … Решение принимает банк по правилам. Помощник только объясняет.",
   "template_answer": "…", "source": "TEMPLATE", "fallback_reason": null, "topic": "WHY", "terms": [] }
 ```
-- `question` 1–500 символов; в `context` нужен `decision` или `route`, иначе `422`.
+- `question` 1–500 символов; в `context` нужен хотя бы один из `decision`, `route`, `stage`, `precheck`, иначе `422`. До подачи помощник отвечает по предоценке, после — по решению, маршруту и стадии.
 - `topic`: `WHY` | `WHAT_TO_DO` | `WHEN` | `TERM` | `AMOUNT` | `OFF_TOPIC` | `NONCREDIT` (115-ФЗ — фиксированный текст, LLM не вызывается) | `NOT_NEEDED` (одобрено).
 - Отвечает только по фактам решения и маршрута и по словарю; проверка ответа LLM — как у `/v1/explain`.
 - Чтобы клиент не ждал: сначала `use_llm: false` (шаблон мгновенно), затем `use_llm: true` и подмена текста, если `source = LLM`.

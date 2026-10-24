@@ -51,9 +51,13 @@ import { goals } from "../data/application";
 import type { LoanOffer, OffersPageProps, Precheck, Weather } from "../types";
 import { chanceLabel, chanceTone, needsRoute, reasonTone, toneLabel } from "../utils/route";
 
+// Кредитный продукт — явно, над «человеческим» названием варианта
+const productLabel: Record<string, string> = { WORKING_CAPITAL: "Оборотный кредит", OVERDRAFT: "Овердрафт" };
+
 const kindLabel: Record<string, string> = {
   REQUESTED: "Запрошенная сумма",
   WITHIN_ESTIMATE: "В пределах оценки",
+  AS_REQUESTED: "Как просили",
   OTHER_TERM: "Другой срок",
   OTHER_PRODUCT: "Другой продукт",
 };
@@ -168,6 +172,7 @@ export default function OffersPage({
                   </Box>
                   <Radio checked={selectedOffer === i} />
                 </Box>
+                {o.product && <Typography className="offer-product">{productLabel[o.product] ?? o.product}</Typography>}
                 <Typography variant="h5" fontWeight={800}>
                   {o.name}
                 </Typography>
@@ -189,6 +194,7 @@ export default function OffersPage({
           <Typography className="eyebrow">ВАШ ВЫБОР</Typography>
           {chosen ? (
             <>
+              {chosen.product && <Typography className="offer-product">{productLabel[chosen.product] ?? chosen.product}</Typography>}
               <Typography variant="h5" fontWeight={800}>
                 {chosen.name}
               </Typography>
@@ -245,23 +251,14 @@ export default function OffersPage({
       </Box>
       <Box className="catalog-teaser">
         <Typography variant="h6" fontWeight={800}>
-          В каталоге также есть
+          Скоро в кабинете
         </Typography>
         <Typography color="text.secondary">
-          Кредит на оборудование · Рефинансирование · Льготные программы
-          поддержки бизнеса
+          Кредитная линия · Кредит на развитие · Лизинг
         </Typography>
-        <Typography variant="body2" color="text.secondary">Дополнительные продукты доступны в каталоге банка.</Typography>
+        <Typography variant="body2" color="text.secondary">Подать заявку на них пока нельзя — сейчас подойдут продукты выше.</Typography>
       </Box>
-      <FooterNav
-        onBack={() => next(2)}
-        onNext={() => void onChoose()}
-        next={
-          goalOffers.length
-            ? "Продолжить с выбранным вариантом"
-            : "Продолжить без предложения"
-        }
-      />
+      <FooterNav onBack={() => next(2)} />
     </>
   );
 }

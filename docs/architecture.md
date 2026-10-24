@@ -1,7 +1,7 @@
 # Архитектура и взаимодействие компонентов
 
 Документ описывает **реализованную** систему: то, что запускается `docker compose up`. Смысл продукта — в
-[concept.md](concept.md), запросы и ответы — в [openapi-backend.json](openapi-backend.json) (backend) и
+[02-product/product-concept.md](02-product/product-concept.md), запросы и ответы — в [openapi-backend.json](openapi-backend.json) (backend) и
 [openapi-ml.yaml](openapi-ml.yaml) (движок одобрения), коллекция запросов — [postman/](postman/).
 
 ## 1. Компоненты
@@ -59,7 +59,7 @@ flowchart LR
 3. **Скоринг ≠ решение, но модель одна.** Скоринг, решение, предоценка и маршрут считаются одним движком по одному
    `policy.yaml`. Поэтому один и тот же балл даёт разные лимиты по разным продуктам (P2: 72 балла → 2 850 000 ₽
    оборотного кредита и 760 000 ₽ овердрафта). Подробно — [decisions.md](decisions.md).
-4. **Вызовы `ml`** — таймаут 5–20 с, до 3 попыток с паузой. Ошибка `ml` переводит заявку к специалисту, а не теряет её.
+4. **Вызовы `ml`** — таймаут 5–40 с в зависимости от вызова (подробно — decisions № 19), до 3 попыток с паузой. Ошибка `ml` переводит заявку к специалисту, а не теряет её.
 5. **Статус меняет только backend**, каждый переход пишется в `application_events` (кто, когда, откуда, куда, причина).
 6. **Фронт узнаёт об изменениях опросом** `GET /applications/{id}` раз в 3 с, пока банк работает над заявкой.
 7. **LLM только пересказывает.** Числа, исход и причины приходят из правил; текст 115-ФЗ всегда шаблонный.
@@ -292,6 +292,7 @@ erDiagram
 - `X-Request-ID` сквозь backend → ml, метрики Prometheus у ml (`/metrics`), `/health` у каждого сервиса.
 - Все данные синтетические; секреты только через `.env` (в Git — `.env.example`).
 - Контейнеры backend запускаются от непривилегированного пользователя.
+- Схема базы — миграциями Alembic (`backend/app/migrations`), при старте backend применяет их сам; CI проверяет миграции на PostgreSQL.
 
 ### Что сделали бы для промышленной эксплуатации
 
@@ -299,7 +300,6 @@ erDiagram
 |---|---|
 | Конвейер — фоновые задачи FastAPI | Очередь задач (Kafka / RabbitMQ / таблица задач с `SKIP LOCKED`) с повторами по этапам |
 | Моки из `personas.json` | Адаптеры к ЕГРЮЛ, БКИ, ФНС, ЗСК с тем же контрактом |
-| Таблицы создаются при старте | Миграции Alembic |
 | Опрос статуса раз в 3 с | SSE / WebSocket |
 
 ## 7. Структура репозитория
@@ -310,8 +310,9 @@ ml/         service/ (движок одобрения), config/ (policy.yaml, re
             eval/, tests/, Dockerfile, uv.lock
 llm/        Ollama + вшитая модель qwen3:1.7b
 frontend/   React + Vite + TS: src/{pages,components,utils}, nginx.conf, package-lock.json
-docs/       architecture, concept, decisions, openapi-backend.json, openapi-ml.yaml, postman/,
-            test-scenarios.md, test-user-maps.md
+docs/       01-research … 06-personas (аналитика: исследование, продукт, требования, процесс, UX, персоны),
+            architecture, decisions, api-contract, deploy, model-validation, test-scenarios,
+            openapi-backend.json, openapi-ml.yaml, postman/
 scripts/    smoke_api.py — сквозная проверка всех персонажей
 docker-compose.yml, .env.example, README.md, THIRD_PARTY_NOTICES.md
 ```

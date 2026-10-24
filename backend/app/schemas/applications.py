@@ -90,6 +90,8 @@ class ApplicationData(CamelModel):
     consent1: bool = False
     consent2: bool = False
     docs: dict[str, str] = Field(default_factory=dict)
+    # Коды шагов маршрута, выполненных до этой заявки («Подать новую заявку» из пройденного маршрута)
+    route_done: list[str] = Field(default_factory=list, max_length=20)
 
 
 class IntentRequest(CamelModel):

@@ -55,7 +55,8 @@ interface StepTitleProps {
 }
 interface FooterNavProps {
   onBack?: () => void;
-  onNext: () => void;
+  /** Без onNext — только «Назад»: основная кнопка шага стоит в его карточке */
+  onNext?: () => void;
   next?: string;
   disabled?: boolean;
   back?: boolean;
@@ -234,14 +235,16 @@ export function FooterNav({
             {secondary.label}
           </Button>
         )}
-        <Button
-          variant="contained"
-          onClick={onNext}
-          disabled={disabled}
-          endIcon={<ArrowForward />}
-        >
-          {next}
-        </Button>
+        {onNext && (
+          <Button
+            variant="contained"
+            onClick={onNext}
+            disabled={disabled}
+            endIcon={<ArrowForward />}
+          >
+            {next}
+          </Button>
+        )}
       </Box>
     </Box>
   );

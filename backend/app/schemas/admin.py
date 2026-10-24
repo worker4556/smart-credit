@@ -41,7 +41,7 @@ class ReasonCount(CamelModel):
 
 
 class AdminStats(CamelModel):
-    """Эффект продукта: только по событиям заявок в базе (docs/route-pages.md, раздел 8)."""
+    """Эффект продукта: только по событиям заявок в базе (docs/05-ux/route-pages.md, раздел 8)."""
     funnel: FunnelStats
     outcomes: dict[str, int]
     auto_decision_share: int | None = None

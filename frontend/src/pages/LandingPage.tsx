@@ -1,6 +1,6 @@
 import type { PaletteMode } from "@mui/material";
 import ThemeToggle from "../components/ThemeToggle";
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Box, Button, Chip, Drawer, IconButton, LinearProgress, Paper, Typography } from "@mui/material";
 import AccountBalanceWalletOutlined from "@mui/icons-material/AccountBalanceWalletOutlined";
 import AccountCircleOutlined from "@mui/icons-material/AccountCircleOutlined";
@@ -117,7 +117,19 @@ export function useMetrics(app?: ApplicationData) {
 
 // ---------- Альпинист на горе: идёт по тропе по мере выполнения шагов маршрута ----------
 
-const TRAIL = "M390 588 C540 620 660 624 800 590 S1020 505 1165 480 S1280 385 1388 188";
+// Тропа идёт по дороге, нарисованной на картинке (от альпиниста по серпантину к вершине), а не по воздуху
+const TRAIL_POINTS: Array<[number, number]> = [
+  [390, 588], [560, 720], [740, 762], [900, 757], [990, 745], [1002, 690], [1020, 640], [1055, 588], [1100, 580],
+  [1200, 582], [1250, 570], [1275, 545], [1272, 522], [1240, 505], [1195, 498], [1172, 475], [1190, 450], [1220, 433],
+  [1262, 415], [1300, 400], [1325, 378], [1318, 355], [1302, 335], [1305, 315], [1335, 275], [1362, 230], [1388, 188],
+];
+// Сглаживание точек (Catmull-Rom → кубические кривые)
+const TRAIL = TRAIL_POINTS.reduce((d, [x, y], i, pts) => {
+  if (i === 0) return `M${x} ${y}`;
+  const [x0, y0] = pts[Math.max(i - 2, 0)], [x1, y1] = pts[i - 1], [x3, y3] = pts[Math.min(i + 1, pts.length - 1)];
+  const c1 = [x1 + (x - x0) / 6, y1 + (y - y0) / 6], c2 = [x - (x3 - x1) / 6, y - (y3 - y1) / 6];
+  return `${d} C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${x} ${y}`;
+}, "");
 const clamp = (x: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x));
 
 export type Metrics = ReturnType<typeof useMetrics>;
@@ -155,6 +167,7 @@ export function MountainRoute({ metrics }: { metrics: Metrics }) {
   const plan = metrics ? trailPlan(metrics) : null;
   const hiker = point(plan?.climber ?? 0);
   const summit = point(1);
+  const reached = !!metrics && metrics.summit > 0 && metrics.height >= metrics.summit;
   const label = metrics
     ? plan?.still ? `Ускорить нельзя${metrics.horizon ? ` · ${metrics.horizon.replace(/,?\s*ускорить нельзя/i, "")}` : ""}`
       : plan && plan.total ? `Шагов пройдено: ${plan.done} из ${plan.total}` : `Доступно: ${formatMoney(metrics.height)}`
@@ -167,7 +180,8 @@ export function MountainRoute({ metrics }: { metrics: Metrics }) {
         <feDropShadow dx="0" dy="6" stdDeviation="8" floodColor="#0b1f2c" floodOpacity=".28" />
       </filter>
     </defs>
-    <path ref={pathRef} d={TRAIL} fill="none" stroke="#fff" strokeWidth="4" strokeDasharray="10 12" strokeLinecap="round" opacity=".9" />
+    <path d={TRAIL} fill="none" stroke="#fff" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" opacity=".22" />
+    <path ref={pathRef} d={TRAIL} fill="none" stroke="#fff" strokeWidth="5" strokeDasharray="12 10" strokeLinecap="round" strokeLinejoin="round" />
     {plan && len > 0 && <path d={TRAIL} fill="none" stroke="#ef3124" strokeWidth="5" strokeLinecap="round"
       strokeDasharray={`${clamp(plan.climber) * len} ${len}`} className="trail-progress" />}
     {plan?.stops.map((s, i) => { const p = point(s.t); return <g key={i} transform={`translate(${p.x} ${p.y})`} filter="url(#trail-shadow)">
@@ -178,9 +192,10 @@ export function MountainRoute({ metrics }: { metrics: Metrics }) {
     <g transform={`translate(${summit.x} ${summit.y})`} filter="url(#trail-shadow)">
       <circle r="7" fill="#233746" />
       <path d="M0 -4 V-62" stroke="#233746" strokeWidth="4" strokeLinecap="round" />
-      <path d="M2 -62 H40 L30 -51 L40 -40 H2 Z" fill="#ef3124" />
-      <g transform="translate(-238 -150)"><rect width="220" height="68" rx="12" fill="#fff" />
-        <text x="18" y="28" className="trail-label-title">Ваша цель</text>
+      <path d="M2 -66 H50 L38 -52 L50 -38 H2 Z" fill="#ef3124" />
+      <text x="17" y="-44" className="trail-flag-letter">А</text>
+      <g transform="translate(-258 -150)"><rect width="240" height="68" rx="12" fill="#fff" />
+        <text x="18" y="28" className="trail-label-title">{reached ? "Цель достигнута" : "Ваша цель"}</text>
         {metrics && <text x="18" y="54" className="trail-label-value">{formatMoney(metrics.summit)}</text>}</g>
     </g>
     <g className="trail-hiker" style={{ transform: `translate(${hiker.x}px, ${hiker.y}px)` }} filter="url(#trail-shadow)">
@@ -329,6 +344,9 @@ export default function LandingPage({ userName, application, onStart, onProfile,
   const metrics = useMetrics(application);
   const credit = useCredit(application);
   const close = () => setPanel(null);
+  const routeRef = useRef<HTMLDivElement>(null);
+  // Маршрут открыли — прокручиваем к нему: гора остаётся сверху, шаги сразу под ней
+  useEffect(() => { if (routeOpen) window.setTimeout(() => routeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 120); }, [routeOpen]);
 
   return <Box className={`landing-page season-${season}`}>
     <Box component="header" className="landing-header">
@@ -360,7 +378,13 @@ export default function LandingPage({ userName, application, onStart, onProfile,
 
       </Box>
 
-      {metrics ? <RouteDashboard metrics={metrics} credit={credit} onOpenRoute={() => (application?.route && onOpenRoute ? onOpenRoute() : setPanel("metrics"))} /> : <Box className="landing-benefits">
+      {routeOpen && application && recalculateRoute ? <Box className="landing-route-section" ref={routeRef}>
+        <RoutePanel data={application} available={metrics?.height ?? 0} onClose={() => onRouteOpenChange?.(false)}
+          recalculateRoute={recalculateRoute}
+          onContinue={onStart}
+          onNewApplication={() => { onRouteOpenChange?.(false); onNewApplication?.(); }}
+          onHelp={() => { onRouteOpenChange?.(false); onHelp?.(); }} />
+      </Box> : metrics ? <RouteDashboard metrics={metrics} credit={credit} onOpenRoute={() => (application?.route && onOpenRoute ? onOpenRoute() : setPanel("metrics"))} /> : <Box className="landing-benefits">
         {benefits.map((benefit) => <Paper key={benefit.title} className="landing-benefit">
           <Box className="landing-benefit-icon">{benefit.icon}</Box>
           <Typography fontWeight={800}>{benefit.title}</Typography>
@@ -420,13 +444,6 @@ export default function LandingPage({ userName, application, onStart, onProfile,
         <Button variant={application?.route && onOpenRoute ? "outlined" : "contained"} endIcon={<ArrowForward />} onClick={() => { close(); onStart(); }}>Открыть заявку</Button>
       </Box>}
     </Drawer>
-
-    {application && recalculateRoute && <Drawer anchor="right" open={routeOpen} onClose={() => onRouteOpenChange?.(false)} PaperProps={{ className: "landing-drawer route-drawer" }}>
-      <RoutePanel data={application} available={metrics?.height ?? 0} onClose={() => onRouteOpenChange?.(false)}
-        recalculateRoute={recalculateRoute}
-        onNewApplication={() => { onRouteOpenChange?.(false); onNewApplication?.(); }}
-        onHelp={() => { onRouteOpenChange?.(false); onHelp?.(); }} />
-    </Drawer>}
 
     <Drawer anchor="right" open={panel === "conditions"} onClose={close} PaperProps={{ className: "landing-drawer" }}>
       <Box className="landing-drawer-body">

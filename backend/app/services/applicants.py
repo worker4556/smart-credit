@@ -52,6 +52,8 @@ def build_applicant(
             ),
             "disputed": False,
         },
+        # Заявка подана после пройденного маршрута: ML применяет эффект выполненных шагов к данным
+        "assume_done": data.route_done,
     }
 
 

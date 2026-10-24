@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 export type Outcome = "review" | "specialist" | "approved" | "partial" | "info" | "rejected" | "suspended";
 export type Role = "CLIENT" | "SPECIALIST" | "ADMIN";
 export type PersonaId = string;
-export interface Quote { monthly: number; total: number; rate?: number; disclaimer?: string; }
+export interface Quote { monthly: number; total: number; fullCost?: number; rate?: number; disclaimer?: string; }
 // «Погода»: полная стоимость сейчас, при росте ставки и при задержке платежа (ml/config/policy.yaml → weather)
 export interface WeatherRow { code: "BASE" | "RATE_UP" | "OVERDUE_30"; title: string; rate: number; monthlyPayment: number; fullCost: number; deltaFullCost: number; note?: string | null; }
 export interface Weather { rows: WeatherRow[]; disclaimer: string; }
@@ -19,6 +19,8 @@ export interface ApplicationData {
   consent1: boolean; consent2: boolean; submitted: boolean; outcome: Outcome; quote?: Quote; precheck?: Precheck; goalOffers?: LoanOffer[]; decision?: Decision;
   decisionText?: string; decisionAmount?: number; decisionRate?: number; decisionMonthly?: number; decisionTerm?: number; decisionFullCost?: number; reasons?: string[];
   route?: ApplicationRoute; company?: Company; activity: ActivityEvent[]; infoRequest?: { text: string; dueDate: string } | null;
+  /** Шаги маршрута, выполненные до этой заявки: банк оценит её с их учётом */
+  routeDone?: string[];
 }
 export interface LoanOffer { name: string; amount: string | number; detail?: string; why?: string; chance?: string; kind?: string; product?: string; termMonths?: number; rate?: number; monthly?: number; fullCost?: number; weather?: Weather | null; }
 export type UpdateApplication = <K extends keyof ApplicationData>(key: K, value: ApplicationData[K]) => void;

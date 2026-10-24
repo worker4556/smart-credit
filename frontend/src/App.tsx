@@ -5,6 +5,7 @@ import ShieldOutlined from "@mui/icons-material/ShieldOutlined";
 import { makeTheme } from "./theme";
 import { useColorMode } from "./utils/colorMode";
 import { precheckKey } from "./utils/precheckKey";
+import { withRequested } from "./utils/offers";
 import MlProgress, { type MlRun } from "./components/MlProgress";
 import { defaultData, goals } from "./data/application";
 import { DEFAULT_DEMO_ACCOUNT, demoAccounts, type DemoAccount } from "./data/demoAccounts";
@@ -332,7 +333,7 @@ export default function App() {
 
   // Выбранный вариант становится условиями заявки: сумма, срок и продукт
   const chooseOffer = async () => {
-    const offer = (data.goalOffers ?? data.precheck?.goalOffers ?? [])[selectedOffer];
+    const offer = withRequested(data.goalOffers ?? data.precheck?.goalOffers ?? [], data)[selectedOffer];
     let updated = data;
     if (offer && typeof offer.amount === "number") {
       const cashGap = goals[2][0];
@@ -354,8 +355,10 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const startNewApplication = async () => {
-    const draft = applicationForAccount(demoAccountForLogin(profile?.login), profile ?? undefined);
+  // Новая заявка; из пройденного маршрута — с кодами выполненных шагов, чтобы оценка их учла
+  const startNewApplication = async (routeDone: string[] = []) => {
+    const base = applicationForAccount(demoAccountForLogin(profile?.login), profile ?? undefined);
+    const draft = routeDone.length ? { ...base, goal: data.goal, amount: data.amount, term: data.term, routeDone } : base;
     setData(draft);
     setMaxVisitedStep(0);
     setSelectedOffer(0);
@@ -499,7 +502,7 @@ export default function App() {
   if (profile.role === "SPECIALIST") return <ThemeProvider theme={theme}><CssBaseline /><BankPage userName={profile.name} onLogout={logout} /></ThemeProvider>;
   if (profile.role === "ADMIN") return <ThemeProvider theme={theme}><CssBaseline /><AdminPage userName={profile.name} onLogout={logout} /></ThemeProvider>;
   if (page === "home") return <ThemeProvider theme={theme}><CssBaseline /><LandingPage userName={profile.name} application={data} onOpenRoute={() => void openRoute()} onStart={() => openApplication(data.submitted ? 6 : 0)} onProfile={openProfile} onLogout={logout} onHome={openHome} colorMode={colorMode} onToggleTheme={toggleTheme}
-    routeOpen={routeOpen} onRouteOpenChange={setRouteOpen} recalculateRoute={recalcRoute} onNewApplication={() => { void startNewApplication(); openApplication(0); }} onHelp={openHelp} /></ThemeProvider>;
+    routeOpen={routeOpen} onRouteOpenChange={setRouteOpen} recalculateRoute={recalcRoute} onNewApplication={() => { void startNewApplication((data.route?.steps ?? []).filter((s) => s.done).map((s) => s.code)).then(() => openApplication(0)); }} onHelp={openHelp} /></ThemeProvider>;
   if (page === "profile") return <ThemeProvider theme={theme}><CssBaseline /><ProfilePage profile={profile} onBack={backFromProfile} /></ThemeProvider>;
   if (page === "help") return <ThemeProvider theme={theme}><CssBaseline />
     <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHome={openHome} openHelp={openHelp} openApplication={openApplication} onLogout={logout} colorMode={colorMode} onToggleTheme={toggleTheme} />
@@ -509,7 +512,7 @@ export default function App() {
 
   const monthly = data.quote?.monthly ?? 0;
   const total = data.quote?.total ?? 0;
-  const offers = data.goalOffers ?? data.precheck?.goalOffers ?? [];
+  const offers = withRequested(data.goalOffers ?? data.precheck?.goalOffers ?? [], data);
   const chosen = offers[selectedOffer];
   const pages = [
     <GoalPage key="goal" data={data} update={update} next={next} previewOffers={previewOffers} />,

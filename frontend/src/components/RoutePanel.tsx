@@ -18,9 +18,10 @@ interface RoutePanelProps {
   recalculateRoute: (doneSteps: string[]) => Promise<void>;
   onNewApplication: () => void;
   onHelp: () => void;
+  onContinue?: () => void;
 }
 
-export default function RoutePanel({ data, available, onClose, recalculateRoute, onNewApplication, onHelp }: RoutePanelProps) {
+export default function RoutePanel({ data, available, onClose, recalculateRoute, onNewApplication, onHelp, onContinue }: RoutePanelProps) {
   const [saving, setSaving] = useState<string | null>(null);
   const route = data.route;
   const draft = data.status === "DRAFT" || !data.submitted;
@@ -35,7 +36,7 @@ export default function RoutePanel({ data, available, onClose, recalculateRoute,
 
   const head = <Box className="rp-head">
     <Box><Typography component="h2" className="rp-title">Маршрут к вершине</Typography><Typography className="rp-basis">Построен {basis}</Typography></Box>
-    <IconButton onClick={onClose} aria-label="Закрыть"><Close /></IconButton>
+    <IconButton onClick={onClose} aria-label="Свернуть маршрут"><Close /></IconButton>
   </Box>;
 
   if (!route) return <Box className="rp">{head}<Box className="rp-loading"><CircularProgress size={18} /> Строим маршрут…</Box></Box>;
@@ -47,7 +48,7 @@ export default function RoutePanel({ data, available, onClose, recalculateRoute,
   return <Box className="rp">
     {head}
 
-    <Box component="section" className="rp-section">
+    <Box component="section" className="rp-section rp-where">
       <Typography className="rp-label">Где вы</Typography>
       <Box className="rp-heights">
         <Box><small>Доступно сейчас</small><b>{formatMoney(available)}</b></Box>
@@ -57,7 +58,7 @@ export default function RoutePanel({ data, available, onClose, recalculateRoute,
       <Box className="rp-progress" aria-label={`Пройдено ${Math.round(progress * 100)}% пути`}><i style={{ transform: `scaleX(${progress})` }} /></Box>
     </Box>
 
-    <Box component="section" className="rp-section">
+    <Box component="section" className="rp-section rp-todo">
       <Typography className="rp-label">{noRoute ? "Маршрута нет" : "Что сделать"}</Typography>
       {noRoute
         ? <Typography className="rp-text">К этому продукту сейчас нет пути. Можно подобрать другой вариант или спросить помощника.</Typography>
@@ -82,21 +83,28 @@ export default function RoutePanel({ data, available, onClose, recalculateRoute,
           </Box>}
     </Box>
 
-    {!noRoute && <Box component="section" className="rp-section">
+    {!noRoute && <Box component="section" className="rp-section rp-goal">
       <Typography className="rp-label">Ориентир</Typography>
       <Typography className="rp-horizon">{route.horizonText}</Typography>
       {route.projectedAmount != null && <Typography className="rp-text">После всех шагов — около {formatMoney(route.projectedAmount)}{route.projectedAmount >= data.amount ? ", вершина доступна" : ""}.</Typography>}
       <Typography className="rp-fine">{route.disclaimer ?? "Это ориентир при текущем темпе, а не обещание одобрения."}</Typography>
     </Box>}
 
-    {(route.advice ?? []).length > 0 && <Box component="section" className="rp-section">
+    {(route.advice ?? []).length > 0 && <Box component="section" className="rp-section rp-avoid">
       <Typography className="rp-label">Чего не делать</Typography>
       {(route.advice ?? []).map((tip) => <Typography key={tip} className="rp-text rp-dont">{tip}</Typography>)}
     </Box>}
 
+    {/* Что дальше: маршрут пройден — новая заявка с учётом шагов; иначе — вернуться к заявке. Отметки сохраняются сами */}
     <Box className="rp-actions">
-      {ready && <Button variant="contained" endIcon={<ArrowForward />} onClick={onNewApplication}>Подать новую заявку</Button>}
-      <Button variant={ready ? "outlined" : "contained"} startIcon={<ChatBubbleOutline />} onClick={onHelp}>Спросить помощника</Button>
+      <Typography className="rp-next">
+        {ready ? "Шаги выполнены — подайте новую заявку: банк пересчитает оценку с их учётом." : "Отметки сохраняются автоматически — можно вернуться к маршруту в любой момент."}
+      </Typography>
+      <Box className="rp-buttons">
+        <Button variant="text" startIcon={<ChatBubbleOutline />} onClick={onHelp}>Спросить помощника</Button>
+        {onContinue && !ready && <Button variant="outlined" onClick={onContinue}>К заявке</Button>}
+        {ready && <Button variant="contained" endIcon={<ArrowForward />} onClick={onNewApplication}>Подать новую заявку</Button>}
+      </Box>
     </Box>
   </Box>;
 }

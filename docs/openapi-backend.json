@@ -127,7 +127,7 @@
         "type": "object"
       },
       "AdminStats": {
-        "description": "Эффект продукта: только по событиям заявок в базе (docs/route-pages.md, раздел 8).",
+        "description": "Эффект продукта: только по событиям заявок в базе (docs/05-ux/route-pages.md, раздел 8).",
         "properties": {
           "autoDecisionShare": {
             "anyOf": [
@@ -307,6 +307,14 @@
             "minimum": 0.0,
             "title": "Monthlyrevenue",
             "type": "integer"
+          },
+          "routeDone": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Routedone",
+            "type": "array"
           },
           "term": {
             "exclusiveMinimum": 0.0,
