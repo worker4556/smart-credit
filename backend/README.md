@@ -56,3 +56,21 @@ Authorization: Bearer <token>
 uv run alembic revision --autogenerate -m "что изменилось"   # новая миграция после правки app/db/models.py
 uv run alembic upgrade head                                  # применить вручную
 ```
+
+## Тесты
+
+```bash
+uv run pytest -q
+```
+
+Тесты миграций работают с настоящим PostgreSQL и требуют пустую базу через `TEST_DATABASE_URL`
+(в CI её поднимает сервис `postgres`):
+
+```bash
+# Windows PowerShell
+$env:TEST_DATABASE_URL="postgresql+psycopg://postgres:postgres@localhost:5432/smartcredit_test"
+uv run pytest -q
+```
+
+Без `TEST_DATABASE_URL` тесты миграций пропускаются, остальные проходят. Не указывайте в
+`TEST_DATABASE_URL` рабочую базу: тесты очищают схему `public`.
