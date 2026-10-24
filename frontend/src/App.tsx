@@ -50,6 +50,7 @@ export default function App() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [data, setData] = useState<ApplicationData>(() => applicationForAccount(DEFAULT_DEMO_ACCOUNT));
   const [screen, setScreen] = useState(0);
+  const [maxVisitedStep, setMaxVisitedStep] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getToken()));
   const [checkingSession, setCheckingSession] = useState(() => Boolean(getToken()));
   const [page, setPage] = useState<"home" | "login" | "application" | "profile" | "help" | "bank" | "admin" | "route">(() => {
@@ -65,10 +66,15 @@ export default function App() {
   const [authNotice, setAuthNotice] = useState("");
 
   useEffect(() => {
+    setMaxVisitedStep((visited) => Math.max(visited, Math.min(screen, 5)));
+  }, [screen]);
+
+  useEffect(() => {
     const onUnauthorized = () => {
       setIsAuthenticated(false);
       setProfile(null);
       setScreen(0);
+      setMaxVisitedStep(0);
       setData(applicationForAccount(DEFAULT_DEMO_ACCOUNT));
       setAuthNotice("Сессия истекла. Войдите снова.");
       sessionStorage.removeItem(PROFILE_SESSION_KEY);
@@ -120,6 +126,7 @@ export default function App() {
   // нет ни одной — создаём черновик. Вызывается при входе и когда текущая заявка пропала (например, сброс демо).
   const syncApplication = useCallback(async (): Promise<string | undefined> => {
     if (!profile || profile.role !== "CLIENT") return undefined;
+    setMaxVisitedStep(0);
     const draft = applicationForAccount(demoAccountForLogin(profile.login), profile);
     setData(draft);
     setSelectedOffer(0);
@@ -167,6 +174,7 @@ export default function App() {
     const user = response.user;
     sessionStorage.setItem(PROFILE_SESSION_KEY, JSON.stringify(user));
     setProfile(user);
+    setMaxVisitedStep(0);
     setData(applicationForAccount(demoAccountForLogin(user.login), user));
     setScreen(0);
     const destination = user.role === "SPECIALIST" ? "/bank" : user.role === "ADMIN" ? "/admin" : "/application";
@@ -183,6 +191,7 @@ export default function App() {
     setProfile(null);
     setIsAuthenticated(false);
     setScreen(0);
+    setMaxVisitedStep(0);
     setData(applicationForAccount(DEFAULT_DEMO_ACCOUNT));
     setPage("home");
     setAuthNotice("");
@@ -301,6 +310,7 @@ export default function App() {
   const startNewApplication = async () => {
     const draft = applicationForAccount(demoAccountForLogin(profile?.login), profile ?? undefined);
     setData(draft);
+    setMaxVisitedStep(0);
     setSelectedOffer(0);
     setScreen(0);
     try { applyApplication(await api.createApplication(draft)); }
@@ -471,7 +481,7 @@ export default function App() {
 
   return <ThemeProvider theme={theme}><CssBaseline />
     <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHome={openHome} openHelp={openHelp} openApplication={openApplication} onLogout={logout} />
-    <Box className="app-shell"><StepRail screen={screen} setScreen={navigateToStep} /><Box component="main" className="main-content">
+    <Box className="app-shell"><StepRail screen={screen} maxVisitedStep={maxVisitedStep} setScreen={navigateToStep} /><Box component="main" className="main-content">
       {apiError && <Alert severity="error" onClose={() => setApiError("")} sx={{ mb: 2 }}>{apiError}</Alert>}
       {pages[screen]}
     </Box></Box>

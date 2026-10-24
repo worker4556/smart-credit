@@ -149,6 +149,7 @@ export function MountainRoute({ metrics }: { metrics: Metrics }) {
     ? plan?.still ? `Ускорить нельзя${metrics.horizon ? ` · ${metrics.horizon.replace(/,?\s*ускорить нельзя/i, "")}` : ""}`
       : plan && plan.total ? `Шагов пройдено: ${plan.done} из ${plan.total}` : `Доступно: ${formatMoney(metrics.height)}`
     : "Вы здесь";
+  const labelWidth = Math.max(270, Math.min(430, 34 + label.length * 13));
 
   return <svg className={plan?.still ? "landing-route-overlay trail-still" : "landing-route-overlay"} viewBox="0 0 1774 887" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
     <defs>
@@ -175,7 +176,7 @@ export function MountainRoute({ metrics }: { metrics: Metrics }) {
     <g className="trail-hiker" style={{ transform: `translate(${hiker.x}px, ${hiker.y}px)` }} filter="url(#trail-shadow)">
       <path d="M0 0 C-6 -14 -24 -26 -24 -44 A24 24 0 1 1 24 -44 C24 -26 6 -14 0 0 Z" fill="#ef3124" stroke="#fff" strokeWidth="4" />
       <circle cy="-44" r="9" fill="#fff" />
-      <g transform={(plan?.climber ?? 0) > 0.78 ? "translate(-302 -40)" : "translate(32 -98)"}><rect width="270" height="68" rx="12" fill="#fff" />
+      <g transform={(plan?.climber ?? 0) > 0.78 ? `translate(${-labelWidth - 32} -40)` : "translate(32 -98)"}><rect width={labelWidth} height="68" rx="12" fill="#fff" />
         <text x="18" y="28" className="trail-label-title">Вы здесь</text>
         <text x="18" y="54" className="trail-label-value">{label}</text></g>
     </g>

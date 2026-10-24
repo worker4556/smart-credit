@@ -2580,3 +2580,156 @@ body {
 .stat-bar em, .stat-reason em { color: #1d2b36; font-style: normal; font-weight: 800; text-align: right; }
 .stat-reason { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #eef1f4; font-size: 13px; }
 @media (max-width: 800px) { .stat-tiles { grid-template-columns: 1fr 1fr; } .stat-columns { grid-template-columns: 1fr; } }
+
+/* Общая донастройка экранов для телефонов и небольших планшетов */
+@media (max-width: 760px) {
+  html, body, #root { min-width: 320px; max-width: 100%; overflow-x: clip; }
+  .main-content, .route-main-content, .help-page, .staff-page { min-width: 0; }
+  .step-title h2 { font-size: clamp(26px, 7vw, 34px); line-height: 1.12; overflow-wrap: anywhere; }
+  .step-title .subtitle, .step-title > .MuiTypography-colorTextSecondary { line-height: 1.55; }
+  .footer-nav { align-items: center; gap: 8px; }
+  .footer-right { min-width: 0; flex: 1; justify-content: flex-end; flex-wrap: wrap; }
+  .footer-right .MuiButton-contained { min-height: 44px; white-space: normal; line-height: 1.2; }
+  .profile-page { padding: 20px 12px; }
+  .profile-card { width: 100%; margin-top: 12px; padding: 22px 18px !important; }
+  .profile-card h3 { font-size: 28px; overflow-wrap: anywhere; }
+  .profile-facts { grid-template-columns: 1fr; gap: 14px; }
+  .profile-facts b { overflow-wrap: anywhere; }
+
+  .company-panel { min-width: 0; padding: 17px !important; gap: 12px; }
+  .company-title { align-items: flex-start; flex-wrap: wrap; }
+  .company-title .verified { margin-left: 0; }
+  .company-facts { grid-template-columns: 1fr; gap: 12px; }
+  .company-facts div:last-child { grid-column: auto; }
+  .company-facts b { overflow-wrap: anywhere; }
+  .goal-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .goal-actions .MuiButton-contained { flex: 1 1 100%; min-height: 46px; }
+  .intent-panel, .goal-form-panel { min-width: 0; padding: 17px; }
+  .intent-panel .MuiTextField-root, .goal-form-panel .MuiTextField-root { width: 100%; }
+  .intent-result-fields { gap: 8px; }
+  .goal-form-panel .goal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .docs-panel, .review-panel, .consent-panel { min-width: 0; }
+  .docs-progress { grid-template-columns: 1fr; gap: 8px; }
+  .docs-progress .MuiLinearProgress-root { width: 100%; }
+  .doc-row { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+  .doc-copy { min-width: 0; }
+  .doc-copy .MuiTypography-root { overflow-wrap: anywhere; }
+  .doc-row .MuiButton-root { min-width: 0; padding-inline: 9px; white-space: nowrap; }
+  .required-docs-alert, .secure-alert { align-items: flex-start; line-height: 1.5; }
+  .review-block { min-width: 0; }
+  .review-copy { min-width: 0; }
+  .review-copy .MuiTypography-root:not(.eyebrow) { overflow-wrap: anywhere; }
+  .consent-panel .MuiFormControlLabel-root { margin-right: 0; }
+  .consent-panel .MuiFormControlLabel-label { line-height: 1.5; }
+
+  .precheck-card { min-width: 0; padding: 17px !important; }
+  .precheck-amounts { grid-template-columns: 1fr; gap: 12px; }
+  .route-item { grid-template-columns: 10px minmax(0, 1fr); }
+  .route-item .MuiChip-root { grid-column: 2; justify-self: start; }
+  .offer-card, .recommend-card { min-width: 0; }
+  .offer-card .MuiCardContent-root, .recommend-card { padding: 18px !important; }
+  .offer-topline { align-items: flex-start; }
+  .offer-badges { min-width: 0; }
+  .offer-card h5, .offer-card .MuiTypography-root { overflow-wrap: anywhere; }
+  .recommend-card .MuiButton-root { white-space: normal; line-height: 1.25; }
+  .catalog-teaser { min-width: 0; }
+  .catalog-teaser > * { max-width: 100%; overflow-wrap: anywhere; }
+
+  .status-hero, .status-snapshot, .route-decision, .decision-route-panel, .route-steps { min-width: 0; }
+  .status-snapshot { padding: 15px !important; }
+  .status-snapshot .MuiTypography-root { overflow-wrap: anywhere; }
+  .status-actions { flex-wrap: wrap; }
+  .status-actions .MuiButton-root { min-height: 42px; }
+  .decision-route-panel { padding: 16px !important; }
+  .route-steps { padding: 15px !important; }
+  .route-step label { min-width: 0; padding: 12px; }
+  .route-step label > span { min-width: 0; overflow-wrap: anywhere; }
+  .timeline-panel { padding: 15px !important; }
+  .timeline { grid-template-columns: repeat(4, 82px); }
+  .route-map-legend { align-items: flex-start; }
+  .route-hold { width: 100%; white-space: normal; line-height: 1.45; }
+  .route-main-content { width: calc(100% - 24px); margin: 14px auto 24px; }
+  .route-page > .MuiTypography-colorTextSecondary { line-height: 1.55; overflow-wrap: anywhere; }
+  .route-title { font-size: clamp(28px, 8vw, 36px) !important; line-height: 1.12 !important; }
+  .r3-map { aspect-ratio: 1.35 / 1; }
+  .route-map-legend { padding: 12px 15px; font-size: 12px; }
+  .route-map-legend b { font-size: 14px; }
+  .route-grid { grid-template-columns: minmax(0, 1fr); }
+  .route-block { padding: 16px !important; }
+
+  .help-page { padding: 20px 12px 28px; }
+  .help-heading { margin-bottom: 14px; }
+  .help-chat { border-radius: 14px !important; }
+  .help-chat-top { gap: 9px; padding: 13px; }
+  .help-chat-top > div { min-width: 0; }
+  .help-chat-top .MuiTypography-root { overflow-wrap: anywhere; }
+  .help-messages { max-height: min(55vh, 520px); padding: 13px; }
+  .help-welcome, .help-answer-row { gap: 8px; }
+  .help-welcome > .MuiPaper-root, .help-answer { min-width: 0; padding: 12px; }
+  .help-user-message { max-width: 90%; padding: 11px 13px; }
+  .help-composer { grid-template-columns: minmax(0, 1fr) 42px; gap: 7px; padding: 11px; }
+  .help-prompts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .help-prompts .MuiButton-root { max-width: 100%; white-space: normal; text-align: left; line-height: 1.35; }
+
+  .staff-page { padding: 16px 12px 30px; }
+  .staff-layout { grid-template-columns: minmax(0, 1fr); }
+  .staff-queue, .staff-dossier { min-width: 0; padding: 15px; }
+  .staff-factor { grid-template-columns: minmax(0, 1fr) 40px; gap: 6px 10px; }
+  .staff-factor .MuiLinearProgress-root { grid-column: 1; grid-row: 2; }
+  .staff-factor > span:last-child { grid-column: 2; grid-row: 1 / span 2; }
+  .staff-form { grid-template-columns: minmax(0, 1fr); }
+  .staff-form .wide { grid-column: auto; }
+  .stat-tiles { grid-template-columns: minmax(0, 1fr); }
+  .stat-bar { grid-template-columns: minmax(80px, 110px) minmax(0, 1fr) 30px; gap: 6px; }
+
+  .landing-header { min-width: 0; }
+  .landing-brand { flex: 1; }
+  .landing-hero-copy h1 { overflow-wrap: anywhere; }
+  .landing-benefits { grid-template-columns: minmax(0, 1fr); }
+  .dash { grid-template-columns: minmax(0, 1fr); }
+  .dash-list-card { grid-column: auto; }
+  .dash-card { min-height: 0; padding: 17px !important; }
+  .dash-figures { flex-wrap: wrap; gap: 10px; }
+  .dash-value { white-space: normal; overflow-wrap: anywhere; font-size: clamp(23px, 7vw, 31px) !important; }
+  .dash-row { grid-template-columns: 34px minmax(0, 1fr); gap: 8px; }
+  .dash-row b { white-space: normal; overflow-wrap: anywhere; }
+  .dash-row-value { grid-column: 2; white-space: normal; }
+  .conditions-bar { align-items: flex-start; gap: 11px; padding: 13px !important; }
+  .conditions-copy { min-width: 0; }
+  .conditions-copy span { overflow-wrap: anywhere; }
+  .conditions-more { width: 100%; }
+  .landing-drawer-body { width: min(100vw, 440px) !important; padding: 18px !important; }
+  .landing-variant { grid-template-columns: 34px minmax(0, 1fr); }
+  .landing-variant > span { grid-column: 2; white-space: normal; }
+}
+
+@media (max-width: 390px) {
+  .toolbar { padding-inline: 10px !important; }
+  .brand-mark { width: 31px; height: 31px; font-size: 25px; }
+  .brand-name { font-size: 14px !important; }
+  .brand-caption { font-size: 6px !important; }
+  .head-actions { gap: 3px; }
+  .logout-button { min-width: 0 !important; padding-inline: 6px !important; font-size: 10px !important; }
+  .menu-mobile { padding: 5px !important; }
+  .main-content { padding-inline: 12px; }
+  .rail-list { gap: 2px; }
+  .rail-item { min-width: 35px; width: 35px; }
+  .footer-nav { flex-wrap: wrap; }
+  .footer-nav > .MuiBox:first-child { flex: 0 0 auto; }
+  .footer-right { gap: 6px; }
+  .footer-nav .MuiButton-contained { padding-inline: 10px; font-size: 10px; }
+  .goal-grid, .goal-form-panel .goal-grid { grid-template-columns: minmax(0, 1fr); }
+  .select-card .MuiCardContent-root { min-height: 0; }
+  .doc-row { grid-template-columns: 30px minmax(0, 1fr); }
+  .doc-row .MuiButton-root { grid-column: 2; justify-self: start; }
+  .doc-done { grid-column: 2; justify-self: start; }
+  .precheck-value { font-size: 20px !important; }
+  .landing-header { gap: 4px; padding-inline: 9px; }
+  .landing-brand b { font-size: 13px; }
+  .landing-account-top { padding-inline: 4px !important; }
+  .landing-logout { padding-inline: 5px !important; font-size: 10px !important; }
+  .landing-hero { min-height: 640px; }
+  .landing-route-card > div:not(.eyebrow) { width: 32%; }
+  .landing-footer > .MuiButton-root:last-child { padding-inline: 5px; }
+}
