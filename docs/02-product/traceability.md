@@ -1,6 +1,6 @@
 # Трассировка: от боли к проверке
 
-Обозначения: боли — [`discovery.md`](../01-research/discovery.md); Г — [`hypotheses.md`](../01-research/hypotheses.md); US — [`user-stories.md`](../03-requirements/user-stories.md); UC и BR — [`use-cases.md`](../03-requirements/use-cases.md), [`business-rules.md`](../03-requirements/business-rules.md); S — [`test-scenarios.md`](../../test-scenarios.md); P — [`test-user-maps.md`](../06-personas/test-user-maps.md).
+Обозначения: боли — [`discovery.md`](../01-research/discovery.md); Г — [`hypotheses.md`](../01-research/hypotheses.md); US — [`user-stories.md`](../03-requirements/user-stories.md); UC и BR — [`use-cases.md`](../03-requirements/use-cases.md), [`business-rules.md`](../03-requirements/business-rules.md); S — [`test-scenarios.md`](../test-scenarios.md); P — [`test-user-maps.md`](../06-personas/test-user-maps.md).
 
 | # | Боль или требование кейса | Гипотеза | Истории | UC / BR | Где в продукте (экран · эндпоинт) | Проверка |
 |---|---|---|---|---|---|---|
@@ -14,7 +14,7 @@
 | 8 | Требование кейса: небинарный итог | Г3 | US-12, US-14, US-15, US-16 | UC-03, UC-05, UC-06 | Экраны исходов · статусы `APPROVED`, `COUNTER_OFFER`, `INFO_REQUESTED`, `REJECTED` | S1, S2, S3, S5 |
 | 9 | Частичное одобрение читается как отказ | Г3 | US-14 | UC-05 · BR-06 | «Хотели X — можем Y», что держит сумму | S2 шаг 6; P2 |
 | 10 | Отказ без объяснения — массовая практика | Г1 | US-16 | UC-03 5б · BR-09 | Причины из общего справочника, первая — главная · `reasons.yaml` | S3 шаг 2; P3, P4 |
-| 11 | После отказа непонятно, что исправлять и когда возвращаться; переадресация без исправления даёт ~5% | Г2 | US-20, US-21, US-22 | UC-07 · BR-12, BR-13 | Панель «Маршрут к вершине» на главной, «Следующий привал» · `POST …/route`, `…/route/recalculate` | S3 шаги 3–4; P3 |
+| 11 | После отказа непонятно, что исправлять и когда возвращаться; переадресация без исправления даёт ~5% | Г2 | US-20, US-21, US-22 | UC-07 · BR-12, BR-13 | Панель «Маршрут к вершине» на главной, карточка «Следующий привал» на статусе · `POST …/route`, `…/route/recalculate` | S3 шаги 3–4; P3 |
 | 12 | Универсальный совет вредит части пользователей (RCT CFPB) | Г2 | US-20, US-23 | UC-07 2а–2б | Маршрут ветвится по тому, что держит результат (`holds`): стоп, баллы, оборот, временное окно | S2 шаг 8б (оборот), S4 (временное окно) |
 | 13 | Быстрого пути нет — продукт не должен его выдумывать | Г2 | US-23 | UC-07 2а | «~8 мес., ускорить нельзя», «чего не делать» | S4; P4 |
 | 14 | Банк видит не весь оборот | Г3 | US-15, US-11 | UC-06 · BR-07 | «Нужны данные» → выписка в ту же заявку без нового запроса в БКИ | S5; P5 |
