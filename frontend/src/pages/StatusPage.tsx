@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import CheckCircle from "@mui/icons-material/CheckCircle";
 import CloudUpload from "@mui/icons-material/CloudUpload";
-import RouteMap from "../components/RouteMap";
+import ArrowForward from "@mui/icons-material/ArrowForward";
 import { reasonTone, toneLabel } from "../utils/route";
 
 // Что держит решение — по ответу движка (route.holds)
@@ -233,70 +233,17 @@ export default function StatusPage({
         </Box>
       )}
 
+      {/* Маршрут — на главной («Гора»); здесь только следующий привал и переход к нему */}
       {hasRoute && (
-        <Paper className="decision-route-panel">
-          <RouteMap
-            compact
-            restricted
-            currentLabel="Доступная высота"
-            summitLabel="Запрошенная вершина"
-            currentAmount={availableAmount}
-            targetAmount={data.amount}
-            obstacleLabel={holdLabel[data.route?.holds ?? ""] ?? "Ограничение по лимиту"}
-          />
-          <Box className="route-steps">
-            <Typography className="eyebrow">СЛЕДУЮЩИЙ ПРИВАЛ</Typography>
-            <Typography variant="h5" fontWeight={800}>
-            {data.route?.horizonText ?? "Загружаем маршрут рекомендаций…"}
-            </Typography>
-            {data.route?.message && (
-              <Typography color="text.secondary">{data.route.message}</Typography>
-            )}
-            {data.route?.basedOn === "SPECIALIST" && (
-              <Typography variant="body2" color="text.secondary">
-                Маршрут построен по решению специалиста банка.
-              </Typography>
-            )}
-            {(data.route?.steps ?? []).map((step) => (
-              <Box className={`route-step tone-${reasonTone(step.code, `${step.term} ${step.action}`)}`} key={step.code}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={step.done}
-                    onChange={(event) => {
-                      const done = new Set(
-                        (data.route?.steps ?? [])
-                          .filter((item) => item.done)
-                          .map((item) => item.code),
-                      );
-                      event.target.checked
-                        ? done.add(step.code)
-                        : done.delete(step.code);
-                      void recalculateRoute([...done]);
-                    }}
-                  />
-                  <span>
-                    <b>
-                      {step.action}
-                      {step.targetTurnover ? ` — до ${money(step.targetTurnover)} в месяц` : ""}
-                    </b>
-                    <small>
-                      {step.term} · {toneLabel[reasonTone(step.code, `${step.term} ${step.action}`)]}
-                    </small>
-                  </span>
-                </label>
-              </Box>
-            ))}
-            {(data.route?.advice ?? []).map((tip) => (
-              <Alert key={tip} severity="warning" className="route-advice">{tip}</Alert>
-            ))}
-            <Typography className="precheck-disclaimer">
-              {data.route?.disclaimer}
-            </Typography>
-            {onOpenRoute && data.route?.status !== "NO_ROUTE" && data.route?.holds !== "STOP_PERMANENT" && (
-              <Button variant="contained" className="open-route-btn" onClick={onOpenRoute}>Открыть маршрут</Button>
-            )}
+        <Paper className="next-stop">
+          <Box className="next-stop-body">
+            <Typography className="next-stop-label">Следующий привал</Typography>
+            <Typography className="next-stop-title">{data.route?.horizonText ?? "Строим маршрут…"}</Typography>
+            {data.route?.message && <Typography className="next-stop-text">{data.route.message}</Typography>}
           </Box>
+          {onOpenRoute && data.route?.status !== "NO_ROUTE" && data.route?.holds !== "STOP_PERMANENT" && (
+            <Button variant="contained" endIcon={<ArrowForward />} onClick={onOpenRoute}>Маршрут на главной</Button>
+          )}
         </Paper>
       )}
 

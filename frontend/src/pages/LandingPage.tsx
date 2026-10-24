@@ -18,6 +18,7 @@ import StarRounded from "@mui/icons-material/StarRounded";
 import ChevronRight from "@mui/icons-material/ChevronRight";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import type { ApplicationData, RouteStep } from "../types";
+import RoutePanel from "../components/RoutePanel";
 import { formatMoney } from "../utils/format";
 
 interface LandingPageProps {
@@ -30,6 +31,11 @@ interface LandingPageProps {
   onProfile: () => void;
   onLogout?: () => void;
   onHome?: () => void;
+  routeOpen?: boolean;
+  onRouteOpenChange?: (open: boolean) => void;
+  recalculateRoute?: (doneSteps: string[]) => Promise<void>;
+  onNewApplication?: () => void;
+  onHelp?: () => void;
 }
 
 const benefits = [
@@ -317,7 +323,7 @@ function ConditionsBar({ season, onDetails }: { season: Season; onDetails: () =>
   </Paper>;
 }
 
-export default function LandingPage({ userName, application, onStart, onProfile, onLogout, onHome, onOpenRoute, colorMode, onToggleTheme }: LandingPageProps) {
+export default function LandingPage({ userName, application, onStart, onProfile, onLogout, onHome, onOpenRoute, colorMode, onToggleTheme, routeOpen = false, onRouteOpenChange, recalculateRoute, onNewApplication, onHelp }: LandingPageProps) {
   const [season, setSeason] = useState<Season>(initialSeason);
   const [panel, setPanel] = useState<"metrics" | "conditions" | null>(null);
   const metrics = useMetrics(application);
@@ -414,6 +420,13 @@ export default function LandingPage({ userName, application, onStart, onProfile,
         <Button variant={application?.route && onOpenRoute ? "outlined" : "contained"} endIcon={<ArrowForward />} onClick={() => { close(); onStart(); }}>Открыть заявку</Button>
       </Box>}
     </Drawer>
+
+    {application && recalculateRoute && <Drawer anchor="right" open={routeOpen} onClose={() => onRouteOpenChange?.(false)} PaperProps={{ className: "landing-drawer route-drawer" }}>
+      <RoutePanel data={application} available={metrics?.height ?? 0} onClose={() => onRouteOpenChange?.(false)}
+        recalculateRoute={recalculateRoute}
+        onNewApplication={() => { onRouteOpenChange?.(false); onNewApplication?.(); }}
+        onHelp={() => { onRouteOpenChange?.(false); onHelp?.(); }} />
+    </Drawer>}
 
     <Drawer anchor="right" open={panel === "conditions"} onClose={close} PaperProps={{ className: "landing-drawer" }}>
       <Box className="landing-drawer-body">

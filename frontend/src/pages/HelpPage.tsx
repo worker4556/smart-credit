@@ -6,6 +6,7 @@ import Send from "@mui/icons-material/Send";
 import Close from "@mui/icons-material/Close";
 import { api, ApiError, type AssistantAnswer } from "../api";
 import type { ApplicationData } from "../types";
+import FlowBackground from "../components/FlowBackground";
 
 interface ChatMessage { id: string; question: string; answer: string; source?: AssistantAnswer["source"]; topic?: string; enhancing?: boolean; error?: boolean; }
 // variant="drawer" — тот же помощник в боковой панели на шагах заявки: клиент спрашивает, не уходя с шага
@@ -73,6 +74,7 @@ export default function HelpPage({ data, onBack, onStaleApplication, variant = "
   };
 
   return <Box className={`help-page help-${variant}`}>
+    {variant === "page" && <FlowBackground />}
     {variant === "page" ? <Box className="help-heading">
       <Button startIcon={<ArrowBack />} onClick={onBack}>К заявке</Button>
       <Typography className="eyebrow">ПОМОЩЬ ПО ЗАЯВКЕ</Typography>

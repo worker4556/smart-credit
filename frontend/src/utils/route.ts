@@ -2,6 +2,9 @@ import type { Precheck } from "../types";
 
 export type Tone = "green" | "amber" | "red";
 
+// Шаги-ожидания: их нельзя «выполнить» отметкой, только дождаться
+export const WAIT_CODES = new Set(["S_90_12", "S_AGE", "B_AGE"]);
+
 // Цвет по виду причины из ml/config/reasons.yaml:
 // DATA и смена суммы/срока — можно сразу; FACTOR/LIMIT/PRICE — нужно время; STOP/NONCREDIT — стоп-фактор.
 export function reasonTone(code?: string, term?: string): Tone {

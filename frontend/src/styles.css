@@ -3106,3 +3106,70 @@ body { background: var(--bg); color: var(--ink); transition: background-color .3
   .factor-tag { grid-column: 2; }
   .altitude-chance { justify-items: start; }
 }
+
+/* ---------- Маршрут на главной: панель по разделам ---------- */
+.route-drawer { width: min(460px, 100vw) !important; }
+.rp { display: grid; gap: 0; padding: 0 0 20px; }
+.rp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 22px 22px 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface-2); z-index: 1; }
+.rp-title { font-size: 22px !important; font-weight: 800 !important; letter-spacing: -.02em; }
+.rp-basis { font-size: 12px !important; color: var(--muted); margin-top: 2px !important; }
+.rp-loading { display: flex; gap: 10px; align-items: center; padding: 22px; color: var(--muted); }
+.rp-section { padding: 18px 22px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; animation: card-rise .35s var(--ease-out) both; }
+.rp-section:nth-of-type(2) { animation-delay: .05s; } .rp-section:nth-of-type(3) { animation-delay: .1s; } .rp-section:nth-of-type(4) { animation-delay: .15s; }
+.rp-label { font-size: 12px !important; font-weight: 700 !important; color: var(--muted); }
+.rp-heights { display: grid; grid-template-columns: 1fr 28px 1fr; align-items: center; gap: 8px; }
+.rp-heights small { display: block; font-size: 12px; color: var(--muted); }
+.rp-heights b { font-size: 20px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.rp-heights > div:last-child { text-align: right; }
+.rp-arrow { height: 2px; background: repeating-linear-gradient(90deg, var(--muted-2) 0 4px, transparent 4px 8px); }
+.rp-progress { height: 6px; border-radius: 3px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; }
+.rp-progress i { display: block; height: 100%; background: var(--accent); transform-origin: left; transition: transform .7s var(--ease-out); }
+.rp-steps { display: grid; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--surface); }
+.rp-step { position: relative; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 14px; cursor: pointer; transition: background .2s; }
+.rp-step + .rp-step { border-top: 1px solid var(--line); }
+.rp-step:hover { background: var(--surface-2); }
+.rp-step.wait { cursor: default; }
+.rp-input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.rp-check { width: 22px; height: 22px; border-radius: 7px; border: 1.5px solid var(--line); display: grid; place-items: center; color: var(--tone-green); transition: border-color .2s, background .2s; }
+.rp-check svg { font-size: 18px; }
+.rp-step.wait .rp-check { border-style: dashed; color: var(--tone-red); }
+.rp-input:focus-visible + .rp-check { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rp-step.done .rp-check { border-color: var(--tone-green); background: var(--tone-green-bg); }
+.rp-step-body { display: grid; gap: 2px; min-width: 0; }
+.rp-step-body b { font-size: 14px; font-weight: 700; }
+.rp-step.done .rp-step-body b { text-decoration: line-through; color: var(--muted); }
+.rp-step-body small { font-size: 12px; color: var(--muted); }
+.rp-tag { font-size: 11px; font-weight: 700; white-space: nowrap; }
+.rp-step.tone-green .rp-tag { color: var(--tone-green); } .rp-step.tone-amber .rp-tag { color: var(--tone-amber); } .rp-step.tone-red .rp-tag { color: var(--tone-red); }
+.rp-horizon { font-size: 20px !important; font-weight: 800 !important; letter-spacing: -.02em; }
+.rp-text { font-size: 14px !important; color: var(--ink); }
+.rp-dont { padding-left: 14px; position: relative; color: var(--muted) !important; }
+.rp-dont::before { content: ""; position: absolute; left: 0; top: .6em; width: 6px; height: 6px; border-radius: 50%; background: var(--tone-amber); }
+.rp-fine { font-size: 12px !important; color: var(--muted); }
+.rp-actions { display: grid; gap: 8px; padding: 18px 22px 0; }
+
+/* Статус: следующий привал одной карточкой, маршрут — на главной */
+.next-stop { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 20px 22px !important; margin-top: 16px; flex-wrap: wrap; }
+.next-stop-body { display: grid; gap: 4px; min-width: 0; flex: 1 1 320px; }
+.next-stop-label { font-size: 12px !important; font-weight: 700 !important; color: var(--muted); }
+.next-stop-title { font-size: 22px !important; font-weight: 800 !important; letter-spacing: -.02em; }
+.next-stop-text { font-size: 14px !important; color: var(--muted); }
+
+/* «Помощь»: потоки на фоне */
+.help-page.help-page { position: relative; isolation: isolate; }
+.help-page > .flow-bg { position: fixed; inset: 74px 0 0 0; width: 100%; height: calc(100% - 74px); z-index: -1; pointer-events: none; }
+.flow-ribbon, .flow-line { animation-name: flow-drift; animation-iteration-count: infinite; animation-timing-function: ease-in-out; animation-direction: alternate; transform-origin: center; }
+.flow-line { stroke-dasharray: 220 900; animation-name: flow-run; animation-timing-function: linear; animation-direction: normal; }
+@keyframes flow-drift { from { transform: translate3d(-30px, 10px, 0); } to { transform: translate3d(30px, -14px, 0); } }
+@keyframes flow-run { from { stroke-dashoffset: 1120; } to { stroke-dashoffset: 0; } }
+:root[data-theme="dark"] .flow-bg { opacity: 1; }
+:root:not([data-theme="dark"]) .flow-bg { opacity: .75; }
+.help-page .help-chat { box-shadow: var(--shadow-2); }
+@media (prefers-reduced-motion: reduce) { .flow-ribbon, .flow-line, .rp-section { animation: none !important; } }
+/* Чат на фоне потоков: стекло, чтобы потоки просвечивали; значок помощника — фирменный красный */
+.help-page.help-page .help-chat { background: var(--glass); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+.help-page.help-page .help-messages { background: transparent; }
+.help-page.help-page .help-composer { background: transparent; }
+.help-chat-top .MuiAvatar-root, .help-welcome > .MuiAvatar-root, .help-answer-row > .MuiAvatar-root { background: var(--accent) !important; color: #fff; }
+:root:not([data-theme="dark"]) .flow-bg { opacity: .9; }
+.help-page.help-page .help-chat { background: color-mix(in srgb, var(--surface) 74%, transparent); }

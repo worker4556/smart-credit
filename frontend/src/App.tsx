@@ -22,7 +22,6 @@ import HelpPage from "./pages/HelpPage";
 import BankPage from "./pages/BankPage";
 import AdminPage from "./pages/AdminPage";
 import LandingPage from "./pages/LandingPage";
-import RoutePage from "./pages/RoutePage";
 import { api, ApiError, clearToken, getToken, saveToken, type ApplicationResponse, type UserProfile } from "./api";
 import type { ApplicationData, Company } from "./types";
 import "./styles.css";
@@ -55,6 +54,7 @@ export default function App() {
   const theme = useMemo(() => makeTheme(colorMode), [colorMode]);
   const [mlRun, setMlRun] = useState<MlRun | null>(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [routeOpen, setRouteOpen] = useState(() => window.location.pathname === "/route");
   // Направление перехода между шагами: вперёд — экран въезжает справа, назад — слева
   const [screen, setScreen] = useState(0);
   const previousScreen = useRef(screen);
@@ -67,7 +67,7 @@ export default function App() {
   const [checkingSession, setCheckingSession] = useState(() => Boolean(getToken()));
   const [page, setPage] = useState<"home" | "login" | "application" | "profile" | "help" | "bank" | "admin" | "route">(() => {
     const path = window.location.pathname;
-    return path === "/profile" ? "profile" : path === "/login" ? "login" : path === "/application" ? "application" : path === "/help" ? "help" : path === "/route" ? "route" : path === "/bank" ? "bank" : path === "/admin" ? "admin" : "home";
+    return path === "/profile" ? "profile" : path === "/login" ? "login" : path === "/application" ? "application" : path === "/help" ? "help" : path === "/route" ? "home" : path === "/bank" ? "bank" : path === "/admin" ? "admin" : "home";
   });
   const [returnToPage, setReturnToPage] = useState<"home" | "application">("home");
   const [selectedOffer, setSelectedOffer] = useState(0);
@@ -105,7 +105,7 @@ export default function App() {
       setApiError("");
       setAuthNotice("");
       const path = window.location.pathname;
-      const clientPages: Record<string, "profile" | "application" | "route" | "help"> = { "/profile": "profile", "/application": "application", "/route": "route", "/help": "help" };
+      const clientPages: Record<string, "profile" | "application" | "home" | "help"> = { "/profile": "profile", "/application": "application", "/route": "home", "/help": "help" };
       setPage(user.role === "CLIENT" && clientPages[path] ? clientPages[path] : path === "/application" ? "application" : "home");
     }).catch((error) => {
       setAuthNotice(
@@ -413,8 +413,9 @@ export default function App() {
       applyApplication(await api.application(data.applicationId));
       const route = await api.route(data.applicationId);
       setData((current) => ({ ...current, route }));
-      window.history.pushState({}, "", "/route");
-      setPage("route");
+      window.history.pushState({}, "", "/");
+      setPage("home");
+      setRouteOpen(true);
     } catch (error) { setApiError(toMessage(error, "Не удалось отклонить предложение")); }
   };
   const withdraw = async () => {
@@ -424,11 +425,13 @@ export default function App() {
       applyApplication(await api.application(data.applicationId));
     } catch (error) { setApiError(toMessage(error, "Не удалось отозвать заявку")); }
   };
-  // Р3 «Маршрут к одобрению»: для черновика — по предоценке без бюро, после решения — по данным решения
+  // Маршрут к одобрению живёт на главной («Гора»): открываем её с панелью маршрута.
+  // Для черновика маршрут — по предоценке без бюро, после решения — по данным решения.
   const openRoute = async () => {
     if (!data.applicationId) return;
-    if (window.location.pathname !== "/route") window.history.pushState({}, "", "/route");
-    setPage("route");
+    if (window.location.pathname !== "/") window.history.pushState({}, "", "/");
+    setPage("home");
+    setRouteOpen(true);
     window.scrollTo({ top: 0 });
     if (!data.route) {
       try {
@@ -437,15 +440,15 @@ export default function App() {
       } catch (error) { setApiError(toMessage(error, "Не удалось построить маршрут")); }
     }
   };
-  // Страницу маршрута открыли напрямую (перезагрузка, ссылка) — подгружаем сохранённый маршрут с отметками
+  // Панель маршрута открыли напрямую (перезагрузка, ссылка /route) — подгружаем сохранённый маршрут с отметками
   useEffect(() => {
-    if (page !== "route" || !data.applicationId || data.route) return;
+    if (!routeOpen || !data.applicationId || data.route) return;
     let active = true;
     void api.route(data.applicationId)
       .then((route) => { if (active) setData((current) => ({ ...current, route })); })
       .catch((error) => { if (active) setApiError(toMessage(error, "Не удалось построить маршрут")); });
     return () => { active = false; };
-  }, [page, data.applicationId, data.route]);
+  }, [routeOpen, data.applicationId, data.route]);
 
   const recalcRoute = async (done: string[]) => {
     if (!data.applicationId) return;
@@ -462,7 +465,7 @@ export default function App() {
   useEffect(() => {
     const onPopState = () => {
       const path = window.location.pathname;
-      setPage(path === "/profile" ? "profile" : path === "/login" ? "login" : path === "/application" ? "application" : path === "/help" ? "help" : path === "/route" ? "route" : path === "/bank" ? "bank" : path === "/admin" ? "admin" : "home");
+      setPage(path === "/profile" ? "profile" : path === "/login" ? "login" : path === "/application" ? "application" : path === "/help" ? "help" : path === "/route" ? "home" : path === "/bank" ? "bank" : path === "/admin" ? "admin" : "home");
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -495,21 +498,12 @@ export default function App() {
   }
   if (profile.role === "SPECIALIST") return <ThemeProvider theme={theme}><CssBaseline /><BankPage userName={profile.name} onLogout={logout} /></ThemeProvider>;
   if (profile.role === "ADMIN") return <ThemeProvider theme={theme}><CssBaseline /><AdminPage userName={profile.name} onLogout={logout} /></ThemeProvider>;
-  if (page === "home") return <ThemeProvider theme={theme}><CssBaseline /><LandingPage userName={profile.name} application={data} onOpenRoute={() => void openRoute()} onStart={() => openApplication(data.submitted ? 6 : 0)} onProfile={openProfile} onLogout={logout} onHome={openHome} colorMode={colorMode} onToggleTheme={toggleTheme} /></ThemeProvider>;
+  if (page === "home") return <ThemeProvider theme={theme}><CssBaseline /><LandingPage userName={profile.name} application={data} onOpenRoute={() => void openRoute()} onStart={() => openApplication(data.submitted ? 6 : 0)} onProfile={openProfile} onLogout={logout} onHome={openHome} colorMode={colorMode} onToggleTheme={toggleTheme}
+    routeOpen={routeOpen} onRouteOpenChange={setRouteOpen} recalculateRoute={recalcRoute} onNewApplication={() => { void startNewApplication(); openApplication(0); }} onHelp={openHelp} /></ThemeProvider>;
   if (page === "profile") return <ThemeProvider theme={theme}><CssBaseline /><ProfilePage profile={profile} onBack={backFromProfile} /></ThemeProvider>;
   if (page === "help") return <ThemeProvider theme={theme}><CssBaseline />
     <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHome={openHome} openHelp={openHelp} openApplication={openApplication} onLogout={logout} colorMode={colorMode} onToggleTheme={toggleTheme} />
     <HelpPage data={data} onBack={backFromHelp} onStaleApplication={syncApplication} prepare={prepareAssistant} />
-    <Box className="bottom-help"><ShieldOutlined /> Безопасно. Просто. На ваших условиях. <span>© Альфа-Бизнес · Кредитный кабинет</span></Box>
-  </ThemeProvider>;
-
-  if (page === "route") return <ThemeProvider theme={theme}><CssBaseline />
-    <Header screen={screen} setScreen={navigateToStep} userName={profile.name} openProfile={openProfile} openHome={openHome} openHelp={openHelp} openApplication={openApplication} onLogout={logout} colorMode={colorMode} onToggleTheme={toggleTheme} />
-    <Box component="main" className="main-content route-main-content">
-      {apiError && <Alert severity="error" onClose={() => setApiError("")} sx={{ mb: 2 }}>{apiError}</Alert>}
-      <RoutePage data={data} recalculateRoute={recalcRoute} onHelp={openHelp} onNewApplication={startNewApplication}
-        onBack={() => openApplication(data.submitted ? 6 : 3)} />
-    </Box>
     <Box className="bottom-help"><ShieldOutlined /> Безопасно. Просто. На ваших условиях. <span>© Альфа-Бизнес · Кредитный кабинет</span></Box>
   </ThemeProvider>;
 
