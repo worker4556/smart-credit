@@ -82,5 +82,5 @@ jobs:
         run: pip install uv==0.11.14
       - name: Зависимости из uv.lock
         run: uv sync --frozen
-      - name: Миграции применяются и совпадают с моделями
-        run: uv run pytest -q tests/test_migrations.py
+      - name: Миграции и resume на PostgreSQL
+        run: uv run pytest -q tests/test_migrations.py tests/test_resume.py

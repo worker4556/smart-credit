@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from threading import Thread
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -13,6 +14,7 @@ from app.config import settings
 from app.db.base import engine, init_db
 from app.db.seed import seed_users
 from app.services.personas import load_personas_by_key
+from app.services.pipeline import resume_pending
 
 VALIDATION_MESSAGES = {
     "Field required": "Поле обязательно",
@@ -31,10 +33,15 @@ async def lifespan(app: FastAPI):
     load_personas_by_key()  # прогрев моков
     with Session(engine) as session:
         seed_users(session)  # p1–p5, zsk, specialist, admin
+    Thread(
+        target=resume_pending,
+        name="startup-resume",
+        daemon=True,
+    ).start()
     yield
 
 
-app = FastAPI(
+app = FastAPI( #единая точка входа
     title="Smart Credit Backend",
     version="0.2.0",
     lifespan=lifespan,

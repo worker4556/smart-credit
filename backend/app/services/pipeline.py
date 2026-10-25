@@ -5,7 +5,7 @@ import time
 import uuid
 from typing import Any
 
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.db.base import engine
 from app.db.models import Application, ApplicationEvent, Company
@@ -25,6 +25,8 @@ STATUS_BY_OUTCOME = {
     "SUSPENDED_115FZ": "SUSPENDED_115FZ",
 }
 
+RESUME_STATUSES = ("SUBMITTED", "IN_REVIEW")
+
 
 def process_application(
     application_id: uuid.UUID,
@@ -36,6 +38,39 @@ def process_application(
         _process(application_id, request_id, resume=resume)
     except Exception:
         log.exception("Не удалось обработать заявку %s", application_id)
+
+
+def resume_pending() -> None:
+    try:
+        with Session(engine) as session:
+            applications = session.exec(
+                select(Application)
+                .where(Application.status.in_(RESUME_STATUSES))
+                .order_by(Application.created_at)
+            ).all()
+            pending = [
+                (application.id, application.number)
+                for application in applications
+            ]
+    except Exception:
+        log.exception("Не удалось получить заявки для resume")
+        return
+
+    if not pending:
+        log.info("Resume: незавершённых заявок нет")
+        return
+
+    log.info("Resume: возобновляем %s заявок", len(pending))
+    for application_id, number in pending:
+        try:
+            log.info("Resume: заявка %s", number)
+            process_application(
+                application_id,
+                request_id=f"resume-{application_id}",
+                resume=True,
+            )
+        except Exception:
+            log.exception("Resume: не удалось обработать заявку %s", number)
 
 
 def _process(
