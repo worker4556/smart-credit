@@ -152,5 +152,5 @@
 25.10.2026, `docker compose up --build` на macOS (8 ГБ ОЗУ):
 
 - `scripts/smoke_api.py` — все 6 персонажей прошли, исходы совпали с ожидаемыми;
-- `ml` pytest — 170 passed; `backend` pytest — 19 passed (ещё 2 теста миграций запускаются с PostgreSQL, в CI); `frontend` vitest — 23 passed;
-- коллекция Postman (newman) — 48 запросов, 28 проверок, 0 ошибок (прогон 24.10).
+- `ml` pytest — 171 passed; `backend` pytest — 19 passed (ещё 2 теста миграций запускаются с PostgreSQL, в CI); `frontend` vitest — 23 passed;
+- коллекция Postman (newman) — 48 запросов, 28 проверок, 0 ошибок (после добавления овердрафта вторым продуктом);
