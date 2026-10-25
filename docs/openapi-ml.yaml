@@ -703,6 +703,22 @@ components:
           - OVERDRAFT
           title: Product
           type: string
+        purpose:
+          anyOf:
+          - enum:
+            - PURCHASE
+            - CONTRACT
+            - OPERATING
+            - CASH_GAP
+            - EQUIPMENT
+            - EXPANSION
+            - REFINANCE
+            - OTHER
+            type: string
+          - type: 'null'
+          description: 'Цель заявки: по ней движок решает, уместен ли второй продукт
+            (овердрафт к оборотному кредиту)'
+          title: Purpose
         term_months:
           anyOf:
           - maximum: 60.0

@@ -123,6 +123,9 @@ products:
     fee_percent: 1.0
     days_in_month: 30
     tranche_days: 60
+    # Второй вариант к оборотному кредиту — только для задач, где деньги быстро возвращаются в оборот
+    # (каталог продуктов: закупка, контракт, текущие расходы); не для оборудования и развития
+    alternative_for: [PURCHASE, CONTRACT, OPERATING]
     limit:
       turnover_share: 0.40            # до 40% среднего оборота за 6 мес
       round_to: 10000

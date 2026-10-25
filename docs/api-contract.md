@@ -144,7 +144,7 @@ Swagger: `http://localhost:8001/docs`. **Машиночитаемый контр
 
 | Блок | Поля | Источник |
 |---|---|---|
-| `request` | `product` (`WORKING_CAPITAL` \| `OVERDRAFT`), `amount`, `term_months` (для овердрафта не нужен), `has_guarantor` | заявка |
+| `request` | `product` (`WORKING_CAPITAL` \| `OVERDRAFT`), `amount`, `term_months` (для овердрафта не нужен), `has_guarantor`, `purpose` (цель: `PURCHASE` \| `CONTRACT` \| `OPERATING` \| `CASH_GAP` \| `EQUIPMENT` \| `EXPANSION` \| `REFINANCE` \| `OTHER`; при закупке, контракте и текущих расходах к оборотному кредиту добавляется вариант «овердрафт») | заявка |
 | `company` | `legal_form`, `okved`, `status` (`ACTIVE` \| `LIQUIDATING` \| `LIQUIDATED`, иначе стоп `S_INACTIVE`), `business_age_months`, `tax_debt`, `fns_blocked`, `bankruptcy`, `recovery_lawsuit`, `fssp_debt`, `zsk_level` (`GREEN`/`YELLOW`/`RED`, после Б2), `measures_115fz` | ЕГРЮЛ/ЕГРИП, «Прозрачный бизнес», ФССП, арбитраж, ЗСК |
 | `account` | `turnover_monthly` (1–12 мес., от старых к новым), `rko_months`, `business_debt`, `business_monthly_payments`, `external_turnover_monthly` (выписка другого банка) | счёт в Альфе, документы |
 | `owner` | `source` (`SELF_REPORTED` до подачи \| `BKI` после Б2), `had_overdue_2y`, `current_overdue`, `max_dpd_24m`, `months_since_90plus`, `personal_monthly_payments`, `card_utilization` | ответы клиента / БКИ |

@@ -17,6 +17,8 @@ class LoanRequest(BaseModel):
     amount: int = Field(gt=0, description="Желаемая сумма («вершина»), ₽")
     term_months: int | None = Field(default=None, ge=1, le=60, description="Для овердрафта не нужен — 12 мес")
     has_guarantor: bool = Field(default=False, description="Владелец — поручитель (для ООО)")
+    purpose: Literal["PURCHASE", "CONTRACT", "OPERATING", "CASH_GAP", "EQUIPMENT", "EXPANSION", "REFINANCE", "OTHER"] | None = Field(
+        default=None, description="Цель заявки: по ней движок решает, уместен ли второй продукт (овердрафт к оборотному кредиту)")
 
 
 class Company(BaseModel):

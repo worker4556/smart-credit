@@ -141,15 +141,22 @@ export default function OffersPage({
       <Box className="offers-layout">
         <Box className="offers-list">
           {goalOffers.map((o, i) => {
-            const lowestPayment = goalOffers.length > 1 && i === minIndex(goalOffers, "monthly") && i !== 0;
-            const lowestCost = goalOffers.length > 1 && i === minIndex(goalOffers, "fullCost") && i !== 0;
+            // «Ниже платёж» и «Меньше переплата» сравниваем только внутри одного продукта: у овердрафта другая механика
+            const peers = goalOffers.filter((x) => x.product === o.product);
+            const lowestPayment = peers.length > 1 && i !== 0 && peers[minIndex(peers, "monthly")] === o;
+            const lowestCost = peers.length > 1 && i !== 0 && peers[minIndex(peers, "fullCost")] === o;
             const amountText = displayMoney(o.amount);
-            const detail = o.detail ?? [
+            const overdraftOffer = o.product === "OVERDRAFT";
+            const detail = o.detail ?? (overdraftOffer ? [
+              "лимит на 12 мес.",
+              o.rate != null ? `${o.rate}% на использованную сумму` : null,
+              o.monthly ? `проценты до ${money(o.monthly)}/мес. при полном использовании` : null,
+            ] : [
               o.termMonths ? `${o.termMonths} мес.` : null,
               o.rate != null ? `ставка ${o.rate}%` : null,
-                o.monthly ? `платёж ${money(o.monthly)}/мес.` : null,
-                o.fullCost ? `переплата ${money(o.fullCost)}` : null,
-            ].filter(Boolean).join(" · ");
+              o.monthly ? `платёж ${money(o.monthly)}/мес.` : null,
+              o.fullCost ? `переплата ${money(o.fullCost)}` : null,
+            ]).filter(Boolean).join(" · ");
             return (
             <Card
               key={`${o.name}-${o.amount}-${o.termMonths ?? i}`}
@@ -172,7 +179,7 @@ export default function OffersPage({
                   </Box>
                   <Radio checked={selectedOffer === i} />
                 </Box>
-                {o.product && <Typography className="offer-product">{productLabel[o.product] ?? o.product}</Typography>}
+                {o.product && productLabel[o.product] !== o.name && <Typography className="offer-product">{productLabel[o.product] ?? o.product}</Typography>}
                 <Typography variant="h5" fontWeight={800}>
                   {o.name}
                 </Typography>
@@ -194,7 +201,7 @@ export default function OffersPage({
           <Typography className="eyebrow">ВАШ ВЫБОР</Typography>
           {chosen ? (
             <>
-              {chosen.product && <Typography className="offer-product">{productLabel[chosen.product] ?? chosen.product}</Typography>}
+              {chosen.product && productLabel[chosen.product] !== chosen.name && <Typography className="offer-product">{productLabel[chosen.product] ?? chosen.product}</Typography>}
               <Typography variant="h5" fontWeight={800}>
                 {chosen.name}
               </Typography>
@@ -202,8 +209,9 @@ export default function OffersPage({
                 {money(chosen.monthly ?? monthly)}
               </Typography>
               <Typography className="recommend-detail" color="text.secondary">
-                в месяц · {displayMoney(chosen.amount)}
-                {chosen.termMonths ? ` на ${chosen.termMonths} мес.` : ""} · предварительно
+                {chosen.product === "OVERDRAFT"
+                  ? <>проценты в месяц при полном использовании · лимит {displayMoney(chosen.amount)} · предварительно</>
+                  : <>в месяц · {displayMoney(chosen.amount)}{chosen.termMonths ? ` на ${chosen.termMonths} мес.` : ""} · предварительно</>}
               </Typography>
             </>
           ) : (

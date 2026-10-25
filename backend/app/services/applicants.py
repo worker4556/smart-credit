@@ -4,7 +4,7 @@ from typing import Any, Literal
 
 from app.db.models import Application
 from app.schemas.applications import ApplicationData
-from app.services.credit import product_for
+from app.services.credit import product_for, purpose_for
 
 Stage = Literal["PRECHECK", "DECISION"]
 
@@ -40,6 +40,7 @@ def build_applicant(
             "amount": data.amount,
             "term_months": None if product == "OVERDRAFT" else data.term,
             "has_guarantor": company.get("legal_form") == "OOO",
+            "purpose": purpose_for(data.goal),
         },
         "company": company,
         "account": account,

@@ -48,6 +48,7 @@ def test_build_applicant_p1_precheck_uses_self_reported_owner() -> None:
         "amount": 850_000,
         "term_months": 24,
         "has_guarantor": False,
+        "purpose": "PURCHASE",
     }
     assert "zsk_level" not in applicant["company"]
     assert applicant["owner"] == {
@@ -143,7 +144,14 @@ def test_precheck_from_ml_maps_contract_fields() -> None:
                     "rows": [],
                     "disclaimer": "Это иллюстрация рисков.",
                 },
-            }
+            },
+            {
+                "kind": "OTHER_PRODUCT",
+                "product": "OVERDRAFT",
+                "amount": 760_000,
+                "term_months": 12,
+                "cost": {"rate": 22.0, "monthly_payment": 13_742, "full_cost": 174_800},
+            },
         ],
         "owner_note": "Кредитную историю проверим после подачи.",
         "disclaimer": "Это оценка, а не решение банка.",
@@ -173,6 +181,9 @@ def test_precheck_from_ml_maps_contract_fields() -> None:
     # «Почему подходит» объясняет вариант, а не повторяет причину отказа
     assert result.goal_offers[0].kind == "WITHIN_ESTIMATE"
     assert result.goal_offers[0].why == "Сумма в пределах предварительной оценки — шансы на одобрение выше"
+    # Овердрафт вторым продуктом: своё пояснение, а не общее «другой продукт»
+    assert result.goal_offers[1].product == "OVERDRAFT" and result.goal_offers[1].name == "Овердрафт"
+    assert "проценты — только за использованное" in (result.goal_offers[1].why or "")
     assert result.valid_until == date(2026, 11, 20)
 
 

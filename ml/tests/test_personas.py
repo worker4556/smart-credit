@@ -159,3 +159,16 @@ def test_offers_never_more_than_three(policy):
     for key in ("P1", "P2", "P5"):
         a = applicant(key)
         assert len(offers(policy, a, decide(policy, a))) <= 3
+
+
+def test_overdraft_offered_as_second_product_by_purpose(policy):
+    # P2 «Полка»: закупка товара — к оборотному кредиту добавляется овердрафт в пределах лимита (40% оборота)
+    a = precheck_applicant("P2")
+    purchase = a.model_copy(update={"request": a.request.model_copy(update={"purpose": "PURCHASE"})})
+    equipment = a.model_copy(update={"request": a.request.model_copy(update={"purpose": "EQUIPMENT"})})
+    with_od = precheck(policy, purchase).offers
+    without = precheck(policy, equipment).offers
+    od = [o for o in with_od if o.product == "OVERDRAFT"]
+    assert od and od[0].kind == "OTHER_PRODUCT" and od[0].term_months == 12 and od[0].amount <= 3_000_000
+    assert not any(o.product == "OVERDRAFT" for o in without)
+    assert len(with_od) <= 3

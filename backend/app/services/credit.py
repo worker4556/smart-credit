@@ -37,6 +37,22 @@ MISSING_FIELD = {
 }
 
 
+# Цель из формы → код цели для движка (по нему движок решает, предлагать ли второй продукт)
+PURPOSE_BY_GOAL = {
+    "Закрыть текущие расходы": "OPERATING",
+    "Закупить товар или материалы": "PURCHASE",
+    CASH_GAP_GOAL: "CASH_GAP",
+    "Купить оборудование или технику": "EQUIPMENT",
+    "Открыть точку или расширить бизнес": "EXPANSION",
+    "Погасить другие кредиты": "REFINANCE",
+    "Другое": "OTHER",
+}
+
+
+def purpose_for(goal: str) -> str:
+    return PURPOSE_BY_GOAL.get(goal, "OTHER")
+
+
 def product_for(goal: str) -> str:
     return "OVERDRAFT" if goal == CASH_GAP_GOAL else "WORKING_CAPITAL"
 
@@ -58,6 +74,7 @@ OFFER_WHY = {
     "OTHER_TERM": "Та же сумма, срок подобран под ваш оборот",
     "OTHER_PRODUCT": "Другой продукт, который подходит под вашу задачу",
 }
+OVERDRAFT_ALTERNATIVE_WHY = "Лимит на счёте для закупок частями: берёте сколько нужно, проценты — только за использованное"
 
 
 def _loan_offer(
@@ -66,9 +83,11 @@ def _loan_offer(
     why: str | None,
 ) -> LoanOffer:
     # Причины отказа не объясняют, почему вариант подходит: берём пояснение по типу варианта
-    why = OFFER_WHY.get(str(payload.get("kind")), None)
     cost = payload["cost"]
     product = payload["product"]
+    why = OFFER_WHY.get(str(payload.get("kind")), None)
+    if payload.get("kind") == "OTHER_PRODUCT" and product == "OVERDRAFT":
+        why = OVERDRAFT_ALTERNATIVE_WHY
     return LoanOffer(
         kind=payload.get("kind"),
         product=product,

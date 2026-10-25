@@ -203,7 +203,9 @@ def offers(policy: Policy, a: Applicant, dec: Decision) -> list[Offer]:
         other = "OVERDRAFT" if req.product == "WORKING_CAPITAL" else "WORKING_CAPITAL"
         sc = score(policy, a)
         avail = available_amount(policy, sc, limit(policy, a, other))
-        if avail >= policy.products[other]["min_amount"] and other == "WORKING_CAPITAL":
+        # Оборотный кредит к овердрафту — всегда; овердрафт к оборотному — по цели заявки (policy: alternative_for)
+        fits = other == "WORKING_CAPITAL" or req.purpose in policy.products[other].get("alternative_for", [])
+        if avail >= policy.products[other]["min_amount"] and fits:
             add("OTHER_PRODUCT", other, min(req.amount, avail), term_of(policy, other, 12))
     return out[:3]
 
