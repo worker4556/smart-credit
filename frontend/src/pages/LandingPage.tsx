@@ -189,7 +189,7 @@ export function MountainRoute({ metrics }: { metrics: Metrics }) {
   const label = metrics
     ? plan?.still ? `Ускорить нельзя${metrics.horizon ? ` · ${metrics.horizon.replace(/,?\s*ускорить нельзя/i, "")}` : ""}`
       : plan && plan.total ? `Шагов пройдено: ${plan.done} из ${plan.total}` : `Доступно: ${formatMoney(metrics.height)}`
-    : "Вы здесь";
+    : "Начало пути";
   const labelWidth = Math.max(270, Math.min(430, 34 + label.length * 13));
 
   return <svg className={plan?.still ? "landing-route-overlay trail-still" : "landing-route-overlay"} viewBox="0 0 1774 887" preserveAspectRatio="xMidYMid slice" aria-hidden="true">

@@ -3239,3 +3239,11 @@ body { background: var(--bg); color: var(--ink); transition: background-color .3
 .hiker-label { transition: opacity .3s ease; }
 .hiker-label.moving { opacity: 0; transition-duration: .1s; }
 @media (max-height: 900px) and (min-width: 1200px) { .landing-cta-row .landing-lead { max-width: 780px; } }
+
+/* Главная: белый текст на горе — мягкое затемнение за текстом и тень, гора и альпинист не темнеют */
+.landing-hero-shade { background:
+  radial-gradient(ellipse 58% 62% at 16% 20%, rgba(10, 22, 30, .58), rgba(10, 22, 30, .22) 55%, transparent 78%),
+  linear-gradient(90deg, rgba(15, 34, 47, .42), rgba(19, 40, 53, .1) 40%, transparent 60%); }
+.landing-hero-copy h1 { text-shadow: 0 2px 22px rgba(5, 14, 20, .45), 0 1px 2px rgba(5, 14, 20, .35); }
+.landing-lead { color: #ffffff !important; font-weight: 500; text-shadow: 0 1px 12px rgba(5, 14, 20, .7), 0 1px 2px rgba(5, 14, 20, .5); }
+@media (min-width: 901px) { .landing-lead { font-size: 16px !important; } }
