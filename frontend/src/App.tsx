@@ -8,7 +8,6 @@ import { precheckKey } from "./utils/precheckKey";
 import { withRequested } from "./utils/offers";
 import MlProgress, { type MlRun } from "./components/MlProgress";
 import { defaultData, goals } from "./data/application";
-import { DEFAULT_DEMO_ACCOUNT, demoAccounts, type DemoAccount } from "./data/demoAccounts";
 import { Header, StepRail } from "./components/ApplicationShell";
 import GoalPage from "./pages/GoalPage";
 import CompanyPage from "./pages/CompanyPage";
@@ -29,24 +28,14 @@ import "./styles.css";
 
 const PROFILE_SESSION_KEY = "credit-user-profile";
 
-function demoAccountForLogin(login?: string): DemoAccount {
-  return demoAccounts.find((account) => account.id.toLowerCase() === login?.toLowerCase()) ?? DEFAULT_DEMO_ACCOUNT;
-}
-
-function applicationForAccount(account: DemoAccount, profile?: UserProfile): ApplicationData {
-  const company = profile?.company ?? account.company;
+function applicationForProfile(profile?: UserProfile): ApplicationData {
+  const company = profile?.company ?? undefined;
   return {
     ...defaultData,
-    goal: account.goal,
-    amount: account.amount,
-    term: account.term,
-    inn: company.inn,
+    inn: company?.inn ?? "",
     company,
     companyOk: false,
-    monthlyRevenue: account.monthlyRevenue,
-    hasLoans: account.hasLoans,
-    loanPayment: account.loanPayment,
-    hadOverdue2y: account.hadOverdue2y,
+    monthlyRevenue: company?.averageMonthlyTurnover ?? 0,
   };
 }
 
@@ -62,7 +51,7 @@ export default function App() {
   const stepDirection = screen >= previousScreen.current ? "forward" : "back";
   useEffect(() => { previousScreen.current = screen; }, [screen]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [data, setData] = useState<ApplicationData>(() => applicationForAccount(DEFAULT_DEMO_ACCOUNT));
+  const [data, setData] = useState<ApplicationData>(() => ({ ...defaultData }));
   const [maxVisitedStep, setMaxVisitedStep] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getToken()));
   const [checkingSession, setCheckingSession] = useState(() => Boolean(getToken()));
@@ -88,7 +77,7 @@ export default function App() {
       setProfile(null);
       setScreen(0);
       setMaxVisitedStep(0);
-      setData(applicationForAccount(DEFAULT_DEMO_ACCOUNT));
+      setData({ ...defaultData });
       setAuthNotice("Сессия истекла. Войдите снова.");
       sessionStorage.removeItem(PROFILE_SESSION_KEY);
     };
@@ -101,7 +90,7 @@ export default function App() {
     void api.me().then((user) => {
       setProfile(user);
       sessionStorage.setItem(PROFILE_SESSION_KEY, JSON.stringify(user));
-      setData(applicationForAccount(demoAccountForLogin(user.login), user));
+      setData(applicationForProfile(user));
       setScreen(0);
       setApiError("");
       setAuthNotice("");
@@ -140,7 +129,7 @@ export default function App() {
   const syncApplication = useCallback(async (): Promise<string | undefined> => {
     if (!profile || profile.role !== "CLIENT") return undefined;
     setMaxVisitedStep(0);
-    const draft = applicationForAccount(demoAccountForLogin(profile.login), profile);
+    const draft = applicationForProfile(profile);
     setData(draft);
     setSelectedOffer(0);
     const list = await api.applications();
@@ -188,7 +177,7 @@ export default function App() {
     sessionStorage.setItem(PROFILE_SESSION_KEY, JSON.stringify(user));
     setProfile(user);
     setMaxVisitedStep(0);
-    setData(applicationForAccount(demoAccountForLogin(user.login), user));
+    setData(applicationForProfile(user));
     setScreen(0);
     const destination = user.role === "SPECIALIST" ? "/bank" : user.role === "ADMIN" ? "/admin" : "/application";
     setPage(user.role === "SPECIALIST" ? "bank" : user.role === "ADMIN" ? "admin" : "application");
@@ -205,7 +194,7 @@ export default function App() {
     setIsAuthenticated(false);
     setScreen(0);
     setMaxVisitedStep(0);
-    setData(applicationForAccount(DEFAULT_DEMO_ACCOUNT));
+    setData({ ...defaultData });
     setPage("home");
     setAuthNotice("");
     window.history.pushState({}, "", "/");
@@ -357,7 +346,7 @@ export default function App() {
 
   // Новая заявка; из пройденного маршрута — с кодами выполненных шагов, чтобы оценка их учла
   const startNewApplication = async (routeDone: string[] = []) => {
-    const base = applicationForAccount(demoAccountForLogin(profile?.login), profile ?? undefined);
+    const base = applicationForProfile(profile ?? undefined);
     const draft = routeDone.length ? { ...base, goal: data.goal, amount: data.amount, term: data.term, routeDone } : base;
     setData(draft);
     setMaxVisitedStep(0);

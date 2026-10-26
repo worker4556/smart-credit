@@ -1296,44 +1296,6 @@ body {
     min-height: auto;
   }
   .step-rail {
-    padding: 11px 15px;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-    position: sticky;
-    top: 62px;
-    z-index: 5;
-  }
-  .rail-top {
-    display: none;
-  }
-  .rail-progress {
-    order: 2;
-    margin: 10px 0 0;
-  }
-  .rail-list {
-    order: 1;
-    flex-direction: row;
-    overflow-x: auto;
-    gap: 4px;
-  }
-  .rail-item {
-    min-width: 39px;
-    width: 39px;
-    height: 35px;
-    min-height: 35px;
-    justify-content: center;
-    padding: 4px;
-  }
-  .rail-item > p,
-  .rail-chevron {
-    display: none;
-  }
-  .rail-dot {
-    width: 25px;
-    height: 25px;
-  }
-  .rail-help,
-  .rail-foot {
     display: none;
   }
   .main-content {
