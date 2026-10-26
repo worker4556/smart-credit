@@ -3209,3 +3209,34 @@ body { background: var(--bg); color: var(--ink); transition: background-color .3
 .landing-hero-copy h1 { text-shadow: 0 2px 22px rgba(5, 14, 20, .45), 0 1px 2px rgba(5, 14, 20, .35); }
 .landing-lead { color: #ffffff !important; font-weight: 500; text-shadow: 0 1px 12px rgba(5, 14, 20, .7), 0 1px 2px rgba(5, 14, 20, .5); }
 @media (min-width: 901px) { .landing-lead { font-size: 16px !important; } }
+
+/* Планшетная раскладка: компактная шапка и боковая навигация остаются доступными */
+@media (min-width: 761px) and (max-width: 1024px) {
+  .toolbar { height: 68px; padding-inline: 16px !important; }
+  .brand { min-width: 172px; gap: 8px; }
+  .brand-mark { width: 32px; height: 32px; }
+  .brand-name { font-size: 15px !important; }
+  .brand-caption { font-size: 7px !important; }
+  .navlinks { gap: 0; }
+  .navlinks .MuiButton-root { min-width: 0; padding-inline: 8px; font-size: 12px; }
+  .head-actions { gap: 5px; }
+  .profile-link { gap: 6px; padding-inline: 6px !important; }
+  .user-avatar { width: 30px !important; height: 30px !important; }
+
+  .app-shell { grid-template-columns: 190px minmax(0, 1fr); min-height: calc(100vh - 68px); }
+  .step-rail { padding: 24px 14px; }
+  .rail-item { gap: 8px; padding-inline: 7px; }
+  .main-content { min-width: 0; padding: 28px 22px; }
+  .goal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .goal-grid .select-card:last-child { grid-column: span 2; }
+  .goal-intent-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .landing-header { gap: 12px; padding-inline: 16px; }
+  .landing-brand { min-width: 174px; }
+  .landing-nav { gap: 0; }
+  .landing-nav .MuiButton-root { min-width: 0; padding-inline: 7px; font-size: 12px; }
+}
+
+@media (min-width: 901px) and (max-width: 1024px) {
+  .goal-intent-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  .finance-layout { grid-template-columns: minmax(0, 1.2fr) minmax(250px, .8fr); gap: 16px; }
+}
