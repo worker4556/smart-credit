@@ -105,3 +105,15 @@ def test_new_application_after_route_counts_completed_steps():
     after = client.post("/v1/decision", json={**a, "assume_done": done}).json()
     assert before["outcome"] == "REJECTED"
     assert after["outcome"] != "REJECTED" and after["score"]["score"] > before["score"]["score"]
+
+
+def test_turnover_growth_step_reaches_requested_amount():
+    # P3: после всех шагов сумму держит оборот — отмеченный рост оборота открывает запрошенную сумму
+    a = PERSONAS["P3"]["decision"]
+    done = [s["code"] for s in client.post("/v1/route", json={"applicant": a}).json()["steps"]]
+    route = client.post("/v1/route", json={"applicant": a, "assume_done": done}).json()
+    assert [s["code"] for s in route["steps"]] == ["L_TURNOVER"]
+    final = client.post("/v1/route", json={"applicant": a, "assume_done": done + ["L_TURNOVER"]}).json()
+    assert final["status"] == "READY"
+    after = client.post("/v1/decision", json={**a, "assume_done": done + ["L_TURNOVER"]}).json()
+    assert after["outcome"] == "APPROVED" and after["amount"] == a["request"]["amount"]

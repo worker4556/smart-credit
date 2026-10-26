@@ -43,6 +43,9 @@ export default function RoutePanel({ data, available, onClose, recalculateRoute,
 
   const noRoute = route.status === "NO_ROUTE" || route.holds === "STOP_PERMANENT";
   const ready = route.status === "READY";
+  // Все шаги отмечены, но вершина ещё выше ориентира — новая заявка всё равно поднимет оценку
+  const actionable = route.steps.filter((s) => !WAIT_CODES.has(s.code));
+  const stepsDone = ready || (actionable.length > 0 && actionable.every((s) => s.done));
   const progress = data.amount > 0 ? Math.min(available / data.amount, 1) : 0;
 
   return <Box className="rp">
@@ -98,12 +101,14 @@ export default function RoutePanel({ data, available, onClose, recalculateRoute,
     {/* Что дальше: маршрут пройден — новая заявка с учётом шагов; иначе — вернуться к заявке. Отметки сохраняются сами */}
     <Box className="rp-actions">
       <Typography className="rp-next">
-        {ready ? "Шаги выполнены — подайте новую заявку: банк пересчитает оценку с их учётом." : "Отметки сохраняются автоматически — можно вернуться к маршруту в любой момент."}
+        {ready ? "Шаги выполнены — подайте новую заявку: банк пересчитает оценку с их учётом."
+          : stepsDone ? `Шаги отмечены — подайте новую заявку: оценка пересчитается с их учётом${route.projectedAmount != null ? `, ориентир — около ${formatMoney(route.projectedAmount)}` : ""}.`
+          : "Отметки сохраняются автоматически — можно вернуться к маршруту в любой момент."}
       </Typography>
       <Box className="rp-buttons">
         <Button variant="text" startIcon={<ChatBubbleOutline />} onClick={onHelp}>Спросить помощника</Button>
-        {onContinue && !ready && <Button variant="outlined" onClick={onContinue}>К заявке</Button>}
-        {ready && <Button variant="contained" endIcon={<ArrowForward />} onClick={onNewApplication}>Подать новую заявку</Button>}
+        {onContinue && !stepsDone && <Button variant="outlined" onClick={onContinue}>К заявке</Button>}
+        {stepsDone && <Button variant="contained" endIcon={<ArrowForward />} onClick={onNewApplication}>Подать новую заявку</Button>}
       </Box>
     </Box>
   </Box>;

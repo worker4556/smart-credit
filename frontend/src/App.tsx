@@ -510,7 +510,7 @@ export default function App() {
     <OffersPage key="offers" data={data} update={update} next={next} goalOffers={offers} selectedOffer={selectedOffer} setSelectedOffer={setSelectedOffer} monthly={monthly} chosen={chosen} setToast={setToast} onChoose={chooseOffer} onOpenRoute={() => void openRoute()} />,
     <DocumentsPage key="documents" data={data} update={update} next={next} uploadFile={addDocument} />,
     <ReviewPage key="review" data={data} update={update} next={next} monthly={monthly} submit={submit} loading={loading} />,
-    <StatusPage key="status" data={data} update={update} setData={setData} setScreen={setScreen} next={next} monthly={monthly} total={total} uploadDocument={addDocument} acceptOffer={accept} signOffer={sign} declineOffer={decline} withdrawApplication={withdraw} onNewApplication={startNewApplication} recalculateRoute={recalcRoute} onOpenRoute={() => void openRoute()} />,
+    <StatusPage key="status" data={data} update={update} setData={setData} setScreen={setScreen} next={next} monthly={monthly} total={total} uploadDocument={addDocument} acceptOffer={accept} signOffer={sign} declineOffer={decline} withdrawApplication={withdraw} onNewApplication={() => startNewApplication((data.route?.steps ?? []).filter((s) => s.done).map((s) => s.code))} recalculateRoute={recalcRoute} onOpenRoute={() => void openRoute()} />,
   ];
 
   return <ThemeProvider theme={theme}><CssBaseline />

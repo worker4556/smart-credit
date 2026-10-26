@@ -105,6 +105,13 @@ def apply_effect(policy: Policy, a: Applicant, code: str) -> Applicant:
         cv = rc["regular_turnover_cv"]
         series = [round(level * (1 + cv if i % 2 else 1 - cv)) for i in range(6)]
         return _upd(a, "account", turnover_monthly=series, external_turnover_monthly=None)
+    if effect == "turnover_growth":
+        # Оборот вырос до уровня, при котором лимит покрывает запрошенную сумму
+        lc = policy.products[a.request.product]["limit"]
+        gap = a.request.amount / lc.get("turnover_multiple", lc.get("turnover_share", 1)) - avg_turnover(a)
+        if gap <= 0:
+            return a
+        return _upd(a, "account", turnover_monthly=[x + math.ceil(gap) for x in a.account.turnover_monthly])
     return a
 
 
